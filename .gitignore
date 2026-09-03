@@ -1,0 +1,79 @@
+## Build output
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+
+## Crash diagnostics written beside the executable
+crash.log
+
+## Test / coverage output
+[Tt]est[Rr]esult*/
+coverage*.json
+coverage*.xml
+coverage*.info
+coverage*.cobertura.xml
+*.coverage
+*.coveragexml
+BenchmarkDotNet.Artifacts/
+
+## NuGet
+*.nupkg
+*.snupkg
+.nuget/
+**/packages/*
+!**/packages/build/
+# packages.lock.json is committed on purpose - the dependency manifest.
+
+## Visual Studio / Rider / VS Code
+.vs/
+.idea/
+
+# Workspace config is committed; anything else under .vscode/ is personal.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.svclog
+*.psess
+*.vsp
+*.vspx
+*.sap
+
+## Build artifacts and intermediates
+*.pdb
+*.dll.config
+*.pidb
+*.svclog
+*.tlog
+*.ilk
+*.iobj
+*.ipdb
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.cache
+
+## OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+## Publish / deploy
+publish/
+*.[Pp]ublish.xml
+*.azurePubxml
+*.pubxml
+*.publishproj
+
+## Local source override
+Directory.Build.local.props

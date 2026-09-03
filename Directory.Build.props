@@ -1,0 +1,49 @@
+<Project>
+
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Build.local.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.local.props')" />
+
+  <PropertyGroup>
+    <!-- The engine release this module is built and tested against. Package mode pins it exactly;
+         a source clone named by CapsuleSourcePath (usually in the ignored Directory.Build.local.props)
+         replaces it with project references for development against the sibling engine. -->
+    <CapsuleVersion>0.5.0</CapsuleVersion>
+    <CapsuleSourceRoot Condition="'$(CapsuleUsePackages)' != 'true' and '$(CapsuleSourcePath)' != ''">$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', '$(CapsuleSourcePath)'))</CapsuleSourceRoot>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- The committed lock file describes the package graph; source mode resolves the engine
+         through project references and keeps its own manifest out of the way. -->
+    <NuGetLockFilePath Condition="'$(CapsuleSourceRoot)' != ''">$(MSBuildProjectDirectory)/obj/packages.source.lock.json</NuGetLockFilePath>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    <!-- A constant, never the current release: packages.yml supplies the real number from the
+         release tag at pack time, which keeps release numbers out of the lock files. -->
+    <VersionPrefix>0.0.0</VersionPrefix>
+    <Authors>JAG Studios</Authors>
+    <PackageTags>capsule;game-engine;2d;tiled;level-editor</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/just-awesome-games/capsule-engine-tiled</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/just-awesome-games/capsule-engine-tiled</RepositoryUrl>
+    <!-- PACKAGE.md, not README.md: nuget.org resolves no relative link, so the packed readme
+         carries absolute ones. -->
+    <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)PACKAGE.md"
+          Pack="true"
+          PackagePath="/"
+          Visible="false" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk" TreatAsLocalProperty="PublishAot;SelfContained;RuntimeIdentifier">
+
+  <!-- The Tiled authoring module for Capsule: one package carrying the build targets that hook
+       Capsule's scene-document seam and the process those targets run to translate a *.tmj map
+       into a *.scene.json document. No game references the assembly; it ships unlisted under
+       tools/ and only the targets invoke it. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Capsule.Tiled</RootNamespace>
+    <AssemblyName>Capsule.Tiled</AssemblyName>
+    <PackageId>JAG.Capsule.Tiled</PackageId>
+    <Description>Tiled (.tmj/.tsj) scene authoring for Capsule games: translates maps into Capsule scene documents at build time.</Description>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <IncludeSymbols>false</IncludeSymbols>
+    <!-- Nothing here is a reference a consumer compiles against, so it carries no API reference. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <PublishAot>false</PublishAot>
+    <SelfContained>false</SelfContained>
+    <RuntimeIdentifier></RuntimeIdentifier>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);IncludeCapsuleTiledTool</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(CapsuleSourceRoot)' == ''">
+    <PackageReference Include="JAG.Capsule" Version="[$(CapsuleVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(CapsuleSourceRoot)' != ''">
+    <ProjectReference Include="$(CapsuleSourceRoot)/src/Capsule.Scenes/Capsule.Scenes.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../build/JAG.Capsule.Tiled.targets" Pack="true" PackagePath="buildTransitive/" />
+  </ItemGroup>
+
+  <!-- The whole output directory, not the entry assembly: the tool loads Capsule.Scenes and its
+       spine, and those ship beside it so the process resolves without a game's package graph. -->
+  <Target Name="IncludeCapsuleTiledTool">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(OutDir)*.dll" PackagePath="tools/net10.0/any/" />
+      <TfmSpecificPackageFile Include="$(OutDir)*.json" PackagePath="tools/net10.0/any/" />
+    </ItemGroup>
+  </Target>
+
+</Project>

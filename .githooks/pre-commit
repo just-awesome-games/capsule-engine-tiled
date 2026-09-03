@@ -1,0 +1,29 @@
+#!/bin/sh
+# The local gate: a locked restore, the build, the format check and the tests on every commit.
+# NativeAOT verification is CI's — ci.yml's platform-and-aot job publishes the sample shell and
+# tests/Capsule.AotSmoke with ILC on every push, and two local ILC publishes would cost minutes
+# per commit.
+# Release, pack, the consumer lanes, coverage and the performance gates stay in CI too.
+# Activate once with: git config core.hooksPath .githooks
+set -u
+
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+run() {
+    step=$1
+    shift
+    echo "pre-commit: $step"
+    if ! "$@"; then
+        echo "pre-commit: $step FAILED"
+        exit 1
+    fi
+}
+
+# Locked restore first, and every later step with --no-restore: an implicit unlocked restore
+# would regenerate a drifted lock file locally instead of failing the way CI does.
+run "locked restore" dotnet restore --locked-mode
+run "build" dotnet build --no-restore
+run "format check" dotnet format --verify-no-changes --no-restore
+run "tests" dotnet test --no-build
+
+echo "pre-commit: all gates passed"

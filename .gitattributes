@@ -1,0 +1,7 @@
+# Every committed blob and every fresh checkout is LF, overriding a user's
+# core.autocrlf. Windows generators (NuGet's packages.lock.json) may transiently
+# write CRLF into the working tree; that normalizes back to LF on commit.
+# The format gate (.editorconfig end_of_line = lf) and .githooks/pre-commit both
+# depend on the checkout being LF: CRLF would fail the former and break the
+# latter under sh.
+* text=auto eol=lf

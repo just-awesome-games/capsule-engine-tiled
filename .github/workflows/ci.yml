@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  # The pinned lane: the module against the Capsule release it declares, which is what a game
+  # consuming both from NuGet.org gets. Packs the module and proves the packed targets and tool
+  # drive a consumer's build.
+  packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore --locked-mode -p:CapsuleUsePackages=true
+
+      - name: Build (Debug)
+        run: dotnet build --configuration Debug --no-restore -p:CapsuleUsePackages=true
+
+      - name: Build (Release)
+        run: dotnet build --configuration Release --no-restore -p:CapsuleUsePackages=true
+
+      - name: Format
+        run: dotnet format --verify-no-changes --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build -p:CapsuleUsePackages=true
+
+      - name: Pack
+        run: >
+          dotnet pack Capsule.Tiled.slnx
+          --configuration Release
+          --no-build
+          --output artifacts/packages
+          -p:CapsuleUsePackages=true
+
+      - name: Report package contents
+        shell: bash
+        run: unzip -l artifacts/packages/JAG.Capsule.Tiled.*.nupkg
+
+  # The source lane: the module against capsule-engine@main, which is how the pair is developed.
+  # A break here is the engine's scene-document seam moving under the module.
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: capsule-engine-tiled
+
+      - uses: actions/checkout@v7
+        with:
+          repository: just-awesome-games/capsule-engine
+          path: capsule-engine
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: capsule-engine-tiled/global.json
+
+      - name: Restore
+        working-directory: capsule-engine-tiled
+        run: dotnet restore -p:CapsuleSourcePath=../capsule-engine
+
+      - name: Build
+        working-directory: capsule-engine-tiled
+        run: dotnet build --configuration Release --no-restore -p:CapsuleSourcePath=../capsule-engine
+
+      - name: Test
+        working-directory: capsule-engine-tiled
+        run: dotnet test --configuration Release --no-build -p:CapsuleSourcePath=../capsule-engine

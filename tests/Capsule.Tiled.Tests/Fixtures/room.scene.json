@@ -1,0 +1,71 @@
+{
+  "formatVersion": 4,
+  "entities": [
+    {
+      "id": 6,
+      "type": "tile-map",
+      "x": 0,
+      "y": 0,
+      "properties": {
+        "tileSize": 16,
+        "width": 4,
+        "height": 3,
+        "texture": "tiles.png",
+        "columns": 4,
+        "tileTypes": [
+          {
+            "type": "empty"
+          },
+          {
+            "type": "ground",
+            "cell": 0
+          },
+          {
+            "type": "wall",
+            "cell": 1
+          },
+          {
+            "type": "ledge",
+            "cell": 2
+          },
+          {
+            "type": "hazard",
+            "cell": 3
+          }
+        ],
+        "tiles": [
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          2,
+          0,
+          1,
+          1,
+          1,
+          4
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "type": "player",
+      "x": 16,
+      "y": 32
+    },
+    {
+      "id": 5,
+      "type": "coin",
+      "x": 40.5,
+      "y": 24
+    }
+  ],
+  "nextEntityId": 7,
+  "source": {
+    "tool": "tiled",
+    "path": "room.tmj",
+    "hash": "0f45791c186fc074a9702381c518573a421d4de983f029ce5318a012a7629afb"
+  }
+}

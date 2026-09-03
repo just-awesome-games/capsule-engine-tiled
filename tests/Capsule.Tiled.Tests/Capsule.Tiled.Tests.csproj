@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Two kinds of spec: the importer driven directly over fixture maps, and the build integration
+       — this project imports scenes like a game shell, so its own asset-sources/scenes/room.tmj
+       must arrive at assets/scenes/room.scene.json beside the test binary through the seam the
+       package hooks, in source mode and in package mode alike. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Capsule.Tiled.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <CapsuleImportScenes>true</CapsuleImportScenes>
+    <CapsuleAssetSourcesDir>asset-sources</CapsuleAssetSourcesDir>
+    <CapsuleTileSize>16</CapsuleTileSize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(CapsuleSourceRoot)' == ''">
+    <PackageReference Include="JAG.Capsule" Version="[$(CapsuleVersion)]" />
+    <PackageReference Include="JAG.Capsule.Build" Version="[$(CapsuleVersion)]" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(CapsuleSourceRoot)' != ''">
+    <ProjectReference Include="$(CapsuleSourceRoot)/src/Capsule.Scenes/Capsule.Scenes.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Capsule.Tiled\Capsule.Tiled.csproj" />
+  </ItemGroup>
+
+  <!-- The importer resolves paths relative to its inputs, so the fixture maps, their tileset and
+       the golden document sit beside each other in the test output. -->
+  <ItemGroup>
+    <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>
