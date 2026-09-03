@@ -31,7 +31,7 @@ Tiled's Windows GUI executable writes no console output even on success. Use `tm
 
 ## How it hooks in
 
-`build/JAG.Capsule.Tiled.targets` ships in the package's `buildTransitive/` and does three things: globs `asset-sources/scenes/**/*.tmj` and every `.tsj` beneath the sources, runs the packed `Capsule.Tiled` process once per build over the stale maps, and adds each derived document to Capsule's `CapsuleSceneDocument` item through the `CapsuleCollectSceneDocumentsDependsOn` seam. The shipped document keeps the map as its provenance — `source.path` names the `.tmj`, and its hash covers the map and the tilesets it references. Nothing derived is committed.
+`build/JAG.Capsule.Tiled.targets` ships in the package's `buildTransitive/` and does three things: globs `asset-sources/scenes/**/*.tmj` and every `.tsj` beneath the sources, runs the packed `Capsule.Tiled` process once per build over the stale maps, and adds each derived document to Capsule's `CapsuleSceneDocument` item from a target hooked before the engine's `CapsuleCollectSceneDocuments`. Every Capsule property is read inside a target, because NuGet imports this package's targets before Capsule's. The shipped document keeps the map as its provenance — `source.path` names the `.tmj`, and its hash covers the map and the tilesets it references. Nothing derived is committed.
 
 ## Developing
 
