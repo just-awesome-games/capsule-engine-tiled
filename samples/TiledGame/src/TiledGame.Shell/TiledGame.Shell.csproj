@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <CapsuleGameShell>true</CapsuleGameShell>
+    <CapsuleTileSize>16</CapsuleTileSize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JAG.Capsule.Runtime" Version="[$(CapsuleVersion)]" />
+    <ProjectReference Include="../TiledGame.Game/TiledGame.Game.csproj" />
+  </ItemGroup>
+
+  <!-- The consumer proof: with nothing set beyond the package reference, the map under
+       asset-sources/scenes arrived beside the executable through the packed targets and tool. -->
+  <Target Name="TiledGameAssertRoomShipped" AfterTargets="Build">
+    <PropertyGroup>
+      <_TiledGameRoom>$(OutDir)assets/scenes/room.scene.json</_TiledGameRoom>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(_TiledGameRoom)')"
+           Text="JAG.Capsule.Tiled shipped no document for asset-sources/scenes/room.tmj (expected '$(_TiledGameRoom)')." />
+    <Error Condition="!$([System.IO.File]::ReadAllText('$(_TiledGameRoom)').Contains('&quot;tool&quot;: &quot;tiled&quot;'))"
+           Text="'$(_TiledGameRoom)' does not carry the Tiled map as its provenance." />
+  </Target>
+
+</Project>

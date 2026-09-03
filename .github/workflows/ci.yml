@@ -60,6 +60,22 @@ jobs:
         shell: bash
         run: unzip -l artifacts/packages/JAG.Capsule.Tiled.*.nupkg
 
+      # The consumer proof: a shell that references only the packages — Capsule from NuGet.org,
+      # this module from the pack just produced — and whose build asserts the map shipped as a
+      # document naming the map as its provenance. Nothing from this tree's source targets or
+      # project references takes part, so a malformed buildTransitive layout, a broken packed
+      # tool, or a targets file that reads Capsule's properties too early fails here.
+      - name: Restore sample (packaged consumer)
+        run: >
+          dotnet restore samples/TiledGame/TiledGame.slnx
+          --configfile samples/TiledGame/NuGet.config
+
+      - name: Build sample (packaged consumer)
+        run: >
+          dotnet build samples/TiledGame/TiledGame.slnx
+          --configuration Release
+          --no-restore
+
   # The source lane: the module against capsule-engine@main, which is how the pair is developed.
   # A break here is the engine's scene-document seam moving under the module.
   source:

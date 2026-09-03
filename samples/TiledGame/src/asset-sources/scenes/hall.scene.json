@@ -1,0 +1,25 @@
+{
+  "formatVersion": 4,
+  "entities": [
+    {
+      "id": 1,
+      "type": "tile-map",
+      "x": 0,
+      "y": 0,
+      "properties": {
+        "tileSize": 16,
+        "width": 4,
+        "height": 2,
+        "texture": "tiles.png",
+        "columns": 2,
+        "tileTypes": [
+          { "type": "empty" },
+          { "type": "ground", "cell": 0, "layer": "solid" }
+        ],
+        "tiles": [0, 0, 0, 0, 1, 1, 1, 1]
+      }
+    },
+    { "id": 2, "type": "player", "x": 16, "y": 8 }
+  ],
+  "nextEntityId": 3
+}

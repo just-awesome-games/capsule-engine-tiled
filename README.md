@@ -10,7 +10,7 @@ Capsule's build wires one scene format, `*.scene.json`. This module is an author
 
    ```xml
    <PackageReference Include="JAG.Capsule.Build" Version="[0.5.0]" PrivateAssets="all" />
-   <PackageReference Include="JAG.Capsule.Tiled" Version="[0.1.0]" PrivateAssets="all" />
+   <PackageReference Include="JAG.Capsule.Tiled" Version="[0.1.1]" PrivateAssets="all" />
    ```
 
 2. Save maps as `.tmj` and tilesets as `.tsj` anywhere under `asset-sources/scenes/`. Tileset images live under `asset-sources/textures/`, as every texture does.
@@ -51,6 +51,6 @@ The module pins the Capsule release it is built against (`CapsuleVersion` in `Di
 </Project>
 ```
 
-`-p:CapsuleUsePackages=true` on any command forces the pinned package graph for a run that must verify it. The gates are the four commands in `.githooks/pre-commit`; CI runs them in both modes and packs the module. A release is a `v*` tag, which `.github/workflows/packages.yml` publishes to NuGet.org.
+`-p:CapsuleUsePackages=true` on any command forces the pinned package graph for a run that must verify it. The gates are the four commands in `.githooks/pre-commit`; CI runs them in both modes, packs the module, and builds [`samples/TiledGame`](samples/TiledGame/) against that pack as the packaged-consumer proof. A release is a `v*` tag, which `.github/workflows/packages.yml` publishes to NuGet.org.
 
 Capsule Tiled is licensed under the [MIT License](LICENSE).
