@@ -4,6 +4,7 @@ using Capsule.Assets.Generated;
 using Capsule.Diagnostics;
 using Capsule.Rendering;
 using Capsule.Scenes;
+using Capsule.Scenes.Rendering;
 using Capsule.Scenes.Physics;
 using Capsule.Scenes.Spawning;
 
