@@ -8,8 +8,7 @@ namespace Capsule.Tiled;
 /// <param name="Path">Where the map is, relative to the working directory.</param>
 public readonly record struct TiledSource(string Key, string Path)
 {
-    /// <summary>The separator a source list writes between a key and its path.</summary>
-    internal const char Separator = '|';
+    private const char Separator = '|';
 
     /// <summary>
     /// The sources a batch file names, one <c>key|path</c> per line. Blank lines are skipped; a

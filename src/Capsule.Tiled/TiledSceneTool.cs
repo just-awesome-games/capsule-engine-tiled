@@ -5,11 +5,9 @@ namespace Capsule.Tiled;
 
 public static class TiledSceneTool
 {
-    public const string DocumentExtension = ".scene.json";
+    private const string DocumentExtension = ".scene.json";
 
-    private const string Name = "tiled";
-
-    public static int ImportFromList(
+    internal static int ImportFromList(
         string outputDirectory,
         string listPath,
         int? tileSize,
@@ -26,19 +24,22 @@ public static class TiledSceneTool
         }
         catch (Exception ex) when (IsReportable(ex))
         {
-            error.WriteLine($"{Name}: cannot read the source list '{listPath}' — {ex.Message}");
+            error.WriteLine($"{TiledImporter.ToolName}: cannot read the source list '{listPath}' — {ex.Message}");
             return 1;
         }
 
         return Import(outputDirectory, sources, tileSize, output, error, dependencyRoot);
     }
 
-    /// <summary>Imports <paramref name="sources"/>, each derived to <c>&lt;key&gt;.scene.json</c>.</summary>
+    /// <summary>
+    /// Imports every source to <c>&lt;outputDirectory&gt;/&lt;key&gt;.scene.json</c>. Each source is
+    /// attempted; a failure is written to <paramref name="error"/> anchored to the map that failed.
+    /// </summary>
     /// <param name="outputDirectory">Where the derived documents are written.</param>
     /// <param name="sources">The maps to import, each with the scene key it claims.</param>
     /// <param name="tileSize">The tile size every map must be authored at, or null to impose none.</param>
     /// <param name="output">Progress, one line per source.</param>
-    /// <param name="error">Failures, each anchored to the map that failed.</param>
+    /// <param name="error">Failures.</param>
     /// <param name="dependencyRoot">The asset source root tilesets and their images are confined to.</param>
     /// <returns>0 when every map succeeded, 1 when any failed.</returns>
     public static int Import(
@@ -59,7 +60,7 @@ public static class TiledSceneTool
         }
         catch (Exception ex) when (IsReportable(ex))
         {
-            error.WriteLine($"{Name}: cannot create '{outputDirectory}' — {ex.Message}");
+            error.WriteLine($"{TiledImporter.ToolName}: cannot create '{outputDirectory}' — {ex.Message}");
             return 1;
         }
 
@@ -82,7 +83,7 @@ public static class TiledSceneTool
                 // The key nests, so the directory the document lands in may not exist yet.
                 Directory.CreateDirectory(Path.GetDirectoryName(documentPath)!);
                 SceneDocumentFile.Save(TiledImporter.Import(source.Path, tileSize, dependencyRoot), documentPath);
-                output.WriteLine($"{Name}: {source.Path} -> {documentPath}");
+                output.WriteLine($"{TiledImporter.ToolName}: {source.Path} -> {documentPath}");
             }
             catch (Exception ex) when (IsReportable(ex))
             {
@@ -93,7 +94,7 @@ public static class TiledSceneTool
 
         if (failures > 0)
         {
-            error.WriteLine($"{Name}: {failures} of {sources.Count} source(s) failed");
+            error.WriteLine($"{TiledImporter.ToolName}: {failures} of {sources.Count} source(s) failed");
             return 1;
         }
 

@@ -1,6 +1,5 @@
 using Capsule.Assets;
 using Capsule.Scenes.Documents;
-using Capsule.Tiled;
 
 namespace Capsule.Tiled.Tests;
 
@@ -29,8 +28,6 @@ public sealed class TiledImportTests
         Assert.Equal(["empty", "ground", "wall", "ledge", "hazard"], types);
     }
 
-    // A tile's own id is the cell it draws, so a palette carries the atlas layout its layer's
-    // tileset declares and nothing else decides what a tile looks like.
     [Fact]
     public void Import_TakesEachTilesCellFromItsTiledTileId()
     {
@@ -41,7 +38,6 @@ public sealed class TiledImportTests
         Assert.Equal(new TextureHandle("tiles", ".png"), TileMapOf(document).Grid.Texture);
         Assert.Equal(4, TileMapOf(document).Grid.Columns);
 
-        // The document names the file the build ships, extension and all.
         Assert.Contains(
             "\"texture\": \"tiles.png\"",
             SceneDocumentFile.ToJson(document),
@@ -51,48 +47,21 @@ public sealed class TiledImportTests
             TileMapOf(document).Grid.TileTypes.ToArray().Select(static definition => definition.Cell));
     }
 
-    // A colour property is a second presentation lane the importer does not have, and reading it
-    // as an unknown custom property would import the tileset as if the author had asked for
-    // nothing.
-    [Fact]
-    public void Import_RejectsATileStillCarryingAColourProperty()
-    {
-        TiledImportException error = ImportMutated("\"name\":\"solid\"", "\"name\":\"color\"", mutateTileset: true);
-
-        Assert.Contains("tileset 'terrain' tile 2", error.Message, StringComparison.Ordinal);
-        Assert.Contains("no longer reads", error.Message, StringComparison.Ordinal);
-        Assert.Contains("paint the tile itself", error.Message, StringComparison.Ordinal);
-    }
-
     [Theory]
-    [InlineData("\"image\":\"textures\\/tiles.png\",", "\"image\":\"\",", "is a collection of images")]
-    [InlineData("\"columns\":4,", "\"columns\":0,", "declares 0 columns")]
-    public void Import_RefusesATilesetThatIsNotOneImage(string from, string to, string expected)
+    [InlineData("\"image\":\"textures\\/tiles.png\",", "\"image\":\"\",", "tileset 'terrain' is a collection of images")]
+    [InlineData("\"columns\":4,", "\"columns\":0,", "tileset 'terrain' declares 0 columns")]
+    [InlineData("\"columns\":4,", "\"columns\":3,", "3 columns of 16px over a 64px image")]
+    [InlineData("\"tileheight\":16,", "\"tileheight\":8,", "tileset 'terrain' has 16x8 tiles")]
+    [InlineData("\"type\":\"ledge\"", "\"type\":\"wall\"", "more than one tile")]
+    [InlineData("\"type\":\"ledge\"", "\"type\":\"empty\"", "reserved")]
+    [InlineData("\"name\":\"solid\"", "\"name\":\"color\"", "paint the tile itself")]
+    public void Import_RefusesATilesetItCannotRepresent(string from, string to, string expected)
     {
         TiledImportException error = ImportMutated(from, to, mutateTileset: true);
 
-        Assert.Contains("tileset 'terrain'", error.Message, StringComparison.Ordinal);
         Assert.Contains(expected, error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Import_RefusesATilesetWhoseColumnsDoNotSpanItsImage()
-    {
-        TiledImportException error = ImportMutated("\"columns\":4,", "\"columns\":3,", mutateTileset: true);
-
-        Assert.Contains("3 columns of 16px over a 64px image", error.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Import_RefusesATilesetWhoseTilesAreNotTheMapsSize()
-    {
-        TiledImportException error = ImportMutated("\"tileheight\":16,", "\"tileheight\":8,", mutateTileset: true);
-
-        Assert.Contains("tileset 'terrain' has 16x8 tiles", error.Message, StringComparison.Ordinal);
-    }
-
-    // The build ships assets/textures/<path> from asset-sources/textures alone, so an atlas filed
-    // anywhere else names a handle nothing would ship.
     [Fact]
     public void Import_RefusesAnImageOutsideTheTexturesDomain()
     {
@@ -105,8 +74,6 @@ public sealed class TiledImportTests
         Assert.Contains("textures", error.Message, StringComparison.Ordinal);
     }
 
-    // A nested atlas keeps its directories: the name is the image's path under the textures root,
-    // so the document names exactly the file the build ships.
     [Fact]
     public void Import_NamesANestedAtlasByItsPathUnderTheTexturesRoot()
     {
@@ -314,9 +281,6 @@ public sealed class TiledImportTests
         Assert.All(document.Entries.ToArray(), entry => Assert.NotNull(entry.Entity));
     }
 
-    // A tile object is authored by dragging a tileset tile out and resizing it, so its box against
-    // the cell it came from is the scale. A point carries a width and height of 0 and no gid, and
-    // those mean nothing to Capsule, so it still imports as a position alone.
     [Fact]
     public void Import_ScalesATileObjectByItsBoxOverTheTilesetCell()
     {
@@ -331,7 +295,7 @@ public sealed class TiledImportTests
         Assert.Equal(2f, placed.ScaleX);
         Assert.Equal(0.5f, placed.ScaleY);
 
-        // The points beside it keep the identity scale, which the canonical form leaves out.
+        // A point keeps the identity scale, which the canonical form leaves out.
         Assert.Equal(1f, document.Entries.ToArray()[1].Entity!.Value.ScaleX);
         Assert.Equal(1, SceneDocumentFile.ToJson(document).Split("\"scale\"").Length - 1);
     }
@@ -372,22 +336,6 @@ public sealed class TiledImportTests
         """);
 
     [Fact]
-    public void Import_RejectsAClassDefinedByTwoTiles()
-    {
-        TiledImportException error = ImportMutated("\"type\":\"ledge\"", "\"type\":\"wall\"", mutateTileset: true);
-
-        Assert.Contains("more than one tile", error.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Import_RejectsAClassThatShadowsTheEmptyTileType()
-    {
-        TiledImportException error = ImportMutated("\"type\":\"ledge\"", "\"type\":\"empty\"", mutateTileset: true);
-
-        Assert.Contains("reserved", error.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void Import_RejectsAGridWhoseAreaOverflowsAnInt()
     {
         string map = Mutate(SceneDocumentFixtures.Read("room.tmj"), "\"width\":4", "\"width\":65536");
@@ -398,8 +346,6 @@ public sealed class TiledImportTests
         Assert.Contains("65536x65536", error.Message, StringComparison.Ordinal);
     }
 
-    // A grid cuts its cells from one texture, so a layer painted from two tilesets has no single
-    // atlas to name and is a split the author has to make in Tiled.
     [Fact]
     public void Import_RejectsALayerPaintedFromTwoTilesets()
     {

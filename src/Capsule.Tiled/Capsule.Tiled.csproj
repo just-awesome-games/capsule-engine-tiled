@@ -1,9 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk" TreatAsLocalProperty="PublishAot;SelfContained;RuntimeIdentifier">
 
-  <!-- The Tiled authoring module for Capsule: one package carrying the build targets that hook
-       Capsule's scene-document seam and the process those targets run to translate a *.tmj map
-       into a *.scene.json document. No game references the assembly; it ships unlisted under
-       tools/ and only the targets invoke it. -->
+  <!-- One package: the build targets that hook Capsule's scene-document seam, and the process they
+       run to translate a *.tmj map into a *.scene.json document. No game references the assembly;
+       it ships unlisted under tools/ and only the targets invoke it. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -16,10 +15,9 @@
     <IncludeSymbols>false</IncludeSymbols>
     <!-- Nothing here is a reference a consumer compiles against, so it carries no API reference. -->
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <!-- Local, never global, together with TreatAsLocalProperty on the Project element: a
-         consumer's NativeAOT publish reaches this project twice — the build, where the
-         ProjectReference strips these properties, and NuGet's restore walk, which strips nothing.
-         Without the guard the restore evaluates the tool for the publish's runtime. -->
+    <!-- Local, never global, with TreatAsLocalProperty on the Project element: a consumer's
+         NativeAOT publish reaches this project through NuGet's restore walk too, which strips
+         nothing, and without the guard would evaluate the tool for the publish's runtime. -->
     <PublishAot>false</PublishAot>
     <SelfContained>false</SelfContained>
     <RuntimeIdentifier></RuntimeIdentifier>

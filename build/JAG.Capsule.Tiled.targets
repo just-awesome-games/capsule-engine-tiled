@@ -1,27 +1,21 @@
 <Project>
 
-  <!-- Tiled scene authoring for a Capsule game. Every *.tmj under the game's scene sources is
-       translated into a *.scene.json under obj/ and handed to Capsule's scene-document hook, which
-       validates, canonicalizes and ships it exactly as a hand-authored document. Inert until a
-       project imports scenes (a shell does; anything else sets CapsuleImportScenes), and adds no
-       property of its own: the sources are found where Capsule looks, and the tile size the game
-       declares with CapsuleTileSize is enforced here as well as by Capsule.
+  <!-- Tiled scene authoring for a Capsule game: every *.tmj under the game's scene sources becomes
+       a *.scene.json under obj/, handed to Capsule's scene-document hook. Inert unless
+       CapsuleImportScenes is true, and it defines no property of its own.
 
-       Everything that reads a Capsule property happens inside a target. NuGet imports this file
-       before JAG.Capsule.Build's targets, so at evaluation time CapsuleImportScenes and
-       CapsuleAssetSourcesDir are not yet what the engine will make them; by the time a target runs
-       they are. The hand-over is BeforeTargets on the engine's collect target for the same reason —
-       resolved at execution, whichever package imported first. -->
+       Everything reading a Capsule property must happen inside a target: NuGet imports this file
+       before JAG.Capsule.Build's targets, so CapsuleImportScenes and CapsuleAssetSourcesDir are
+       not final at evaluation time. The hand-over is BeforeTargets for the same reason. -->
 
   <PropertyGroup>
     <CapsuleTiledToolProject Condition="'$(CapsuleTiledToolProject)' == '' and Exists('$(MSBuildThisFileDirectory)../src/Capsule.Tiled/Capsule.Tiled.csproj')">$(MSBuildThisFileDirectory)../src/Capsule.Tiled/Capsule.Tiled.csproj</CapsuleTiledToolProject>
     <CapsuleTiledToolAssembly Condition="'$(CapsuleTiledToolAssembly)' == '' and Exists('$(MSBuildThisFileDirectory)../tools/net10.0/any/Capsule.Tiled.dll')">$(MSBuildThisFileDirectory)../tools/net10.0/any/Capsule.Tiled.dll</CapsuleTiledToolAssembly>
   </PropertyGroup>
 
-  <!-- Source mode only, where the engine's targets are imported ahead of this file by the
-       consuming repository's Directory.Build.targets and the property is already final. The tool
-       rides the game's own restore and build graph, so it restores under the game's locked mode
-       and contributes nothing to the game's output or publish set. -->
+  <!-- Source mode only, where the consuming repository's Directory.Build.targets imports the
+       engine ahead of this file and the property is already final. The tool rides the game's
+       restore and build graph but contributes nothing to its output or publish set. -->
   <ItemGroup Condition="'$(CapsuleTiledToolProject)' != '' and '$(CapsuleImportScenes)' == 'true'">
     <ProjectReference Include="$(CapsuleTiledToolProject)"
                       ReferenceOutputAssembly="false"
@@ -39,15 +33,14 @@
       <CapsuleTiledScene Include="$(CapsuleAssetSourcesDir)/scenes/**/*.tmj" />
 
       <!-- Not a source of its own: a map's tilesets are read during its import, so they are the
-           other half of what a derived document is up to date with respect to. The tool confines
-           references to this recursively tracked tree. -->
+           other half of what a derived document is up to date with respect to. -->
       <CapsuleTiledTileset Include="$(CapsuleAssetSourcesDir)/**/*.tsj" />
     </ItemGroup>
 
-    <!-- The key a map's document claims, and where the document is written: the map's path under
-         the scenes root, forward slashes and no extension. Two maps of one stem in different
-         directories are two keys. Its own ItemGroup, and qualified: %(RecursiveDir) on the Include
-         above would batch over the target rather than name the item being defined. -->
+    <!-- The key a map's document claims: its path under the scenes root, forward slashes and no
+         extension, so two maps of one stem in different directories are two keys. Its own
+         ItemGroup, and qualified: %(RecursiveDir) on the Include above would batch over the
+         target rather than name the item being defined. -->
     <ItemGroup>
       <CapsuleTiledScene>
         <Key>$([System.String]::Copy('%(CapsuleTiledScene.RecursiveDir)').Replace('\', '/'))%(CapsuleTiledScene.Filename)</Key>
@@ -73,9 +66,8 @@
 
     <MakeDir Directories="$(CapsuleTiledObjDir)" Condition="'@(CapsuleTiledScene)' != ''" />
 
-    <!-- The declared size is an input to every map's import, and MSBuild's incrementality is
-         file-based: without this stamp, changing CapsuleTileSize would leave documents already
-         derived under the old one up to date and unchecked. -->
+    <!-- MSBuild's incrementality is file-based, so the declared size needs a file: without this
+         stamp, changing CapsuleTileSize would leave documents derived under the old one current. -->
     <WriteLinesToFile Condition="'@(CapsuleTiledScene)' != ''"
                       File="$(CapsuleTiledTileSizeStamp)"
                       Lines="$(CapsuleTileSize)"
@@ -90,10 +82,9 @@
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true" />
 
-    <!-- Resolved here rather than where it is used: the importer is an input to every derived
-         document, and a target's Inputs are evaluated after its DependsOnTargets have run but
-         before its own tasks. The removed properties are the set the ProjectReference above drops,
-         and must be: the tool is built without them. -->
+    <!-- Resolved here, not where it is used: the importer is an input to every derived document,
+         and a target's Inputs are evaluated after its DependsOnTargets but before its own tasks.
+         RemoveProperties must match the set the ProjectReference above drops. -->
     <MSBuild Projects="$(CapsuleTiledToolProject)"
              Condition="'$(CapsuleTiledToolProject)' != '' and '@(CapsuleTiledScene)' != ''"
              Targets="GetTargetPath"
@@ -107,18 +98,16 @@
     </ItemGroup>
 
     <!-- The importer is the assembly graph it loads, not its entry point: an implementation-only
-         change in Capsule.Scenes rebuilds that assembly and never recompiles the tool. Globbing
-         the tool's output directory derives the closure instead of listing it. -->
+         change in Capsule.Scenes rebuilds that assembly without recompiling the tool. -->
     <ItemGroup>
       <_CapsuleTiledToolAssembly Include="%(_CapsuleTiledTool.RootDir)%(_CapsuleTiledTool.Directory)*.dll" />
     </ItemGroup>
   </Target>
 
-  <!-- Inputs/Outputs make this partially incremental: maps correlate one-to-one with the derived
-       documents, so MSBuild re-runs the target with only the stale ones in @(CapsuleTiledScene),
-       and the whole batch goes to one process. The tilesets, the stamps and the importer's
-       assemblies correlate with nothing: touching any of them re-derives the lot. An empty Inputs
-       skips the target outright, which is how a project with no maps gets no process. -->
+  <!-- Partially incremental: maps correlate one-to-one with the derived documents, so MSBuild
+       re-runs this with only the stale ones in @(CapsuleTiledScene) and the batch goes to one
+       process. The tilesets, stamps and importer assemblies correlate with nothing, so touching
+       any of them re-derives the lot. An empty Inputs skips the target outright. -->
   <Target Name="CapsuleTiledDeriveSceneDocuments"
           Condition="'$(CapsuleImportScenes)' == 'true'"
           DependsOnTargets="CapsuleTiledInit;ResolveProjectReferences"
@@ -129,13 +118,10 @@
            Text="Capsule.Tiled: the Tiled importer was not built (expected '@(_CapsuleTiledTool)')." />
 
     <!-- The batch goes through a file, not the command line: Exec runs through cmd, whose
-         8191-character line limit a couple of hundred paths blow past. Maps are named relative to
-         the importing project and the tool runs from there; it stamps each path into its
-         document's source block verbatim, so provenance reads '../asset-sources/scenes/room.tmj'
-         rather than a walk out of obj/.
-
-         Each line is the key the map claims, then '|', then that path; a key is path segments and
-         a path carries no '|' on any platform Capsule targets. -->
+         8191-character limit a couple of hundred paths blow past. Each line is the key, '|', then
+         the path relative to the importing project — the tool runs from there and stamps that path
+         into the document's source block verbatim. A key is path segments and a path carries no
+         '|' on any platform Capsule targets. -->
     <ItemGroup>
       <_CapsuleTiledSceneArg Include="@(CapsuleTiledScene)">
         <ProjectRelativePath>$([MSBuild]::MakeRelative($(CapsuleTiledProjectDir), %(FullPath)))</ProjectRelativePath>
@@ -146,9 +132,8 @@
                       Lines="@(_CapsuleTiledSceneArg->'%(Key)|%(ProjectRelativePath)')"
                       Overwrite="true" />
 
-    <!-- LogStandardErrorAsError surfaces the tool's own per-source messages verbatim as build
-         errors, each already anchored to the map that failed. The host is Capsule's own: set
-         whenever a project imports scenes, and final by the time any target runs. -->
+    <!-- LogStandardErrorAsError surfaces the tool's per-source messages verbatim as build errors,
+         each already anchored to the map that failed. -->
     <Exec Command="&quot;$(CapsuleDotNetHost)&quot; &quot;@(_CapsuleTiledTool)&quot; --out &quot;$(CapsuleTiledOutDir)&quot; $(CapsuleTiledDependencyRootArg)$(CapsuleTiledTileSizeArg)--scenes-from &quot;$(CapsuleTiledBatchFile)&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"
           LogStandardErrorAsError="true"
@@ -163,8 +148,7 @@
           BeforeTargets="CapsuleCollectSceneDocuments">
 
     <!-- Named in two steps: %() in the metadata below batches over the item the Include names, so
-         a transform there would resolve %(Key) against the derived document rather than the map.
-         A transform carries the map's metadata across, which is how the key survives it. -->
+         a transform there would resolve %(Key) against the derived document rather than the map. -->
     <ItemGroup>
       <_CapsuleTiledDerived Include="@(CapsuleTiledScene->'$(CapsuleTiledDerivedDir)%(Key).scene.json')" />
     </ItemGroup>

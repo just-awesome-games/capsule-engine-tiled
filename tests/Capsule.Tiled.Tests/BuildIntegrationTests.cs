@@ -3,8 +3,8 @@ using Capsule.Scenes.Documents;
 
 namespace Capsule.Tiled.Tests;
 
-// The whole seam, end to end: this project's asset-sources/scenes maps went through the package's
-// targets into Capsule's scene-document hook, and out the other side as shipped content.
+// The whole seam, end to end: this project's asset-sources/scenes maps through the package's
+// targets, Capsule's scene-document hook, and out as shipped content.
 public sealed class BuildIntegrationTests
 {
     private static string Shipped(string key) =>
@@ -21,8 +21,6 @@ public sealed class BuildIntegrationTests
         Assert.Equal(SceneDocumentFile.ToJson(SceneDocumentFile.Load(path)), File.ReadAllText(path));
     }
 
-    // Two maps of one stem in two directories are two keys, and the pair proves it: neither
-    // overwrites the other, and the nested one keeps its directory all the way to the output.
     [Theory]
     [InlineData("room", "asset-sources/scenes/room.tmj")]
     [InlineData("halls/room", "asset-sources/scenes/halls/room.tmj")]
@@ -34,8 +32,6 @@ public sealed class BuildIntegrationTests
         Assert.EndsWith(source, document.Source?.Path, StringComparison.Ordinal);
     }
 
-    // The nested map paints from an atlas at asset-sources/textures/terrain/tiles.png, which is the
-    // texture name the document carries.
     [Fact]
     public void TheShippedDocumentNamesANestedAtlasByItsPathUnderTextures()
     {

@@ -2,7 +2,7 @@
 
 Tiled scene authoring for [Capsule Engine](https://github.com/just-awesome-games/capsule-engine). Install the package, save maps under the game's scene sources, build: every map becomes a Capsule scene document the game loads by name.
 
-Capsule's build wires one scene format, `*.scene.json`. This module is an authoring module for that seam — it translates Tiled's `.tmj` maps into that format under `obj/` at build time and hands them to Capsule, which validates, canonicalizes, and ships them exactly as it does a hand-authored document. Without the package, Tiled files under a Capsule game's sources are ignored.
+Capsule's build wires one scene format, `*.scene.json`. This module translates Tiled's `.tmj` maps into it under `obj/` at build time and hands them to Capsule, which validates, canonicalizes, and ships them exactly as it does a hand-authored document. Without the package, Tiled files under a Capsule game's sources are ignored.
 
 ## Quick start
 

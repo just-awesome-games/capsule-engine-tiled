@@ -77,8 +77,8 @@ public sealed class TileLayerImportTests
         Assert.Contains("no 'layer'", error.Message, StringComparison.Ordinal);
     }
 
-    // A property that is there and names nothing is an authoring mistake, not a default: read as
-    // absent, an empty collidableFaces would silently ship a solid tile.
+    // Present and naming nothing is an authoring mistake, not a default: read as absent, an empty
+    // collidableFaces would silently ship a solid tile.
     [Theory]
     [InlineData("")]
     [InlineData(" , , ")]
@@ -92,8 +92,6 @@ public sealed class TileLayerImportTests
         Assert.Contains("remove the property", error.Message, StringComparison.Ordinal);
     }
 
-    // And with no layer either, the empty property must still reach the faces-without-layer refusal
-    // rather than passing as an absent one.
     [Theory]
     [InlineData("")]
     [InlineData(" , , ")]
@@ -118,9 +116,6 @@ public sealed class TileLayerImportTests
         Assert.Contains("naming nothing", error.Message, StringComparison.Ordinal);
     }
 
-    // The retired field is refused on presence, whatever it holds: read as a string member, an
-    // explicit null would look absent and a number or an object would fail as a JSON shape error,
-    // and neither tells an author what took the field's place.
     [Fact]
     public void Import_RejectsALayerPropertyNotDeclaredAsAString()
     {
