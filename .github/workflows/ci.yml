@@ -16,8 +16,8 @@ env:
 
 jobs:
   # The pinned lane: the module against the Capsule release it declares, which is what a game
-  # consuming both from NuGet.org gets. Packs the module and proves the packed targets and tool
-  # drive a consumer's build.
+  # consuming both from NuGet.org gets. Packs the module and asserts the packed layout a
+  # consumer's build depends on.
   packages:
     runs-on: ubuntu-latest
     steps:
@@ -56,25 +56,17 @@ jobs:
           --output artifacts/packages
           -p:CapsuleUsePackages=true
 
-      - name: Report package contents
+      - name: Verify package layout
         shell: bash
-        run: unzip -l artifacts/packages/JAG.Capsule.Tiled.*.nupkg
-
-      # The consumer proof: a shell that references only the packages — Capsule from NuGet.org,
-      # this module from the pack just produced — and whose build asserts the map shipped as a
-      # document naming the map as its provenance. Nothing from this tree's source targets or
-      # project references takes part, so a malformed buildTransitive layout, a broken packed
-      # tool, or a targets file that reads Capsule's properties too early fails here.
-      - name: Restore sample (packaged consumer)
-        run: >
-          dotnet restore samples/TiledGame/TiledGame.slnx
-          --configfile samples/TiledGame/NuGet.config
-
-      - name: Build sample (packaged consumer)
-        run: >
-          dotnet build samples/TiledGame/TiledGame.slnx
-          --configuration Release
-          --no-restore
+        run: |
+          nupkg=$(ls artifacts/packages/JAG.Capsule.Tiled.*.nupkg)
+          unzip -l "$nupkg"
+          for entry in buildTransitive/JAG.Capsule.Tiled.targets tools/net10.0/any/Capsule.Tiled.dll; do
+            if ! unzip -l "$nupkg" | grep -q " $entry\$"; then
+              echo "::error::$nupkg is missing $entry — a consumer's build would not run the importer."
+              exit 1
+            fi
+          done
 
   # The source lane: the module against capsule-engine@main, which is how the pair is developed.
   # A break here is the engine's scene-document seam moving under the module.

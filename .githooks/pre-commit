@@ -1,9 +1,9 @@
 #!/bin/sh
-# The local gate: a locked restore, the build, the format check and the tests on every commit.
-# NativeAOT verification is CI's — ci.yml's platform-and-aot job publishes the sample shell and
-# tests/Capsule.AotSmoke with ILC on every push, and two local ILC publishes would cost minutes
-# per commit.
-# Release, pack, the consumer lanes, coverage and the performance gates stay in CI too.
+# The local gate: a locked restore, the build, the format check and the tests on every commit,
+# in source mode against the sibling capsule-engine clone.
+# ci.yml adds what a commit cannot afford: the same four gates in package mode against the
+# pinned Capsule release, the pack and its layout assertion, and the source lane against
+# capsule-engine@main.
 # Activate once with: git config core.hooksPath .githooks
 set -u
 

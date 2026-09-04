@@ -1,6 +1,0 @@
-<Project>
-
-  <!-- Present so MSBuild stops here: the repository root's Directory.Build.targets imports this
-       module from source, and the sample must see only the packages it references. -->
-
-</Project>

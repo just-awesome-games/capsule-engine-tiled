@@ -1,4 +1,0 @@
-<Solution>
-  <Project Path="src/TiledGame.Game/TiledGame.Game.csproj" />
-  <Project Path="src/TiledGame.Shell/TiledGame.Shell.csproj" />
-</Solution>

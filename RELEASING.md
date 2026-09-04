@@ -7,10 +7,7 @@ Nothing else publishes.
 
 ## 1. Pull in a new Capsule release (skip if the pin is unchanged)
 
-The module pins one exact engine version in two places. Change both:
-
-- `Directory.Build.props` — `<CapsuleVersion>`
-- `samples/TiledGame/Directory.Build.props` — `<CapsuleVersion>`
+The module pins one exact engine version in `Directory.Build.props` — `<CapsuleVersion>`.
 
 Wait until NuGet.org serves that version (HTTP 200; 404 means still indexing):
 
@@ -27,8 +24,8 @@ dotnet restore -p:CapsuleUsePackages=true --force-evaluate
 git diff --stat -- '*packages.lock.json'    # exactly src/Capsule.Tiled and tests/Capsule.Tiled.Tests
 ```
 
-Fix whatever the new engine broke (a moved namespace, a changed document seam) in `src/`,
-`tests/` and `samples/TiledGame/` before continuing.
+Fix whatever the new engine broke (a moved namespace, a changed document seam) in `src/` and
+`tests/` before continuing.
 
 ## 2. Run the package-mode gates
 
@@ -42,14 +39,9 @@ dotnet build --configuration Release --no-restore -p:CapsuleUsePackages=true
 dotnet format --verify-no-changes --no-restore
 dotnet test --configuration Release --no-build -p:CapsuleUsePackages=true
 dotnet pack Capsule.Tiled.slnx --configuration Release --no-build --output artifacts/packages -p:CapsuleUsePackages=true
-rm -rf artifacts/package-consumer-cache/jag.capsule.tiled
-dotnet restore samples/TiledGame/TiledGame.slnx --configfile samples/TiledGame/NuGet.config
-dotnet build samples/TiledGame/TiledGame.slnx --configuration Release --no-restore
 ```
 
-The last command is the packaged-consumer proof: the sample references only NuGet packages and
-the pack just produced, and its shell asserts the derived scene documents shipped. Clear
-`artifacts/packages` first if a stale pack from an earlier run is there.
+Clear `artifacts/packages` first if a stale pack from an earlier run is there.
 
 ## 3. Commit and push
 

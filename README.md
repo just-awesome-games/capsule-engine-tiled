@@ -51,6 +51,6 @@ The module pins the Capsule release it is built against (`CapsuleVersion` in `Di
 </Project>
 ```
 
-`-p:CapsuleUsePackages=true` on any command forces the pinned package graph for a run that must verify it. The gates are the four commands in `.githooks/pre-commit`; CI runs them in both modes, packs the module, and builds [`samples/TiledGame`](samples/TiledGame/) against that pack as the packaged-consumer proof. A release is a `v*` tag, which `.github/workflows/packages.yml` publishes to NuGet.org. [RELEASING.md](RELEASING.md) is the release by hand, engine bump included.
+`-p:CapsuleUsePackages=true` on any command forces the pinned package graph for a run that must verify it. The gates are the four commands in `.githooks/pre-commit`; CI runs them in both modes, packs the module, and asserts the pack carries the `buildTransitive/` targets and the packed tool a consumer's build needs. A release is a `v*` tag, which `.github/workflows/packages.yml` publishes to NuGet.org. [RELEASING.md](RELEASING.md) is the release by hand, engine bump included.
 
 Capsule Tiled is licensed under the [MIT License](LICENSE).
