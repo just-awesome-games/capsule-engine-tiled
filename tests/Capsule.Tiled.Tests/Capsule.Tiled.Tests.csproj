@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Capsule.Tiled\Capsule.Tiled.csproj" />
+    <ProjectReference Include="../../src/Capsule.Tiled/Capsule.Tiled.csproj" />
   </ItemGroup>
 
   <!-- The importer resolves paths relative to its inputs, so the fixture maps, their tileset and

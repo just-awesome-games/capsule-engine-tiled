@@ -16,6 +16,10 @@
     <IncludeSymbols>false</IncludeSymbols>
     <!-- Nothing here is a reference a consumer compiles against, so it carries no API reference. -->
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- Local, never global, together with TreatAsLocalProperty on the Project element: a
+         consumer's NativeAOT publish reaches this project twice — the build, where the
+         ProjectReference strips these properties, and NuGet's restore walk, which strips nothing.
+         Without the guard the restore evaluates the tool for the publish's runtime. -->
     <PublishAot>false</PublishAot>
     <SelfContained>false</SelfContained>
     <RuntimeIdentifier></RuntimeIdentifier>
