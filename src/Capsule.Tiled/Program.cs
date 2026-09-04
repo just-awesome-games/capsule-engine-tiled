@@ -7,9 +7,10 @@ internal static class Program
     private const string Usage = """
         Capsule.Tiled --out <dir> [--dependency-root <dir>] [--tile-size <px>] --scenes-from <list.txt>
 
-          Translates every Tiled map named in <list.txt> (one path per line, relative to the
-          working directory) into <dir>/<map>.scene.json, creating <dir> if absent. Every source is
-          attempted. Exit 0 when all succeeded, 1 when any failed, 2 on a usage error.
+          Translates every Tiled map named in <list.txt> (one 'key|path' per line, the path
+          relative to the working directory) into <dir>/<key>.scene.json, creating the directories
+          it needs. A line with no key is keyed by its file name. Every source is attempted.
+          Exit 0 when all succeeded, 1 when any failed, 2 on a usage error.
 
           --dependency-root confines external tilesets and their images to a tree the caller
           tracks. --tile-size is the tile size the game declares; a map whose grid differs fails.

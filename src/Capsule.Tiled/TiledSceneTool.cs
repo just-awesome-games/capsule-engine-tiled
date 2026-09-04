@@ -19,13 +19,10 @@ public static class TiledSceneTool
     {
         ArgumentNullException.ThrowIfNull(error);
 
-        string[] sourcePaths;
+        TiledSource[] sources;
         try
         {
-            sourcePaths = File.ReadAllLines(listPath)
-                .Select(static line => line.Trim())
-                .Where(static line => line.Length > 0)
-                .ToArray();
+            sources = TiledSource.Read(listPath);
         }
         catch (Exception ex) when (IsReportable(ex))
         {
@@ -33,18 +30,26 @@ public static class TiledSceneTool
             return 1;
         }
 
-        return Import(outputDirectory, sourcePaths, tileSize, output, error, dependencyRoot);
+        return Import(outputDirectory, sources, tileSize, output, error, dependencyRoot);
     }
 
+    /// <summary>Imports <paramref name="sources"/>, each derived to <c>&lt;key&gt;.scene.json</c>.</summary>
+    /// <param name="outputDirectory">Where the derived documents are written.</param>
+    /// <param name="sources">The maps to import, each with the scene key it claims.</param>
+    /// <param name="tileSize">The tile size every map must be authored at, or null to impose none.</param>
+    /// <param name="output">Progress, one line per source.</param>
+    /// <param name="error">Failures, each anchored to the map that failed.</param>
+    /// <param name="dependencyRoot">The asset source root tilesets and their images are confined to.</param>
+    /// <returns>0 when every map succeeded, 1 when any failed.</returns>
     public static int Import(
         string outputDirectory,
-        IReadOnlyList<string> sourcePaths,
+        IReadOnlyList<TiledSource> sources,
         int? tileSize,
         TextWriter output,
         TextWriter error,
         string? dependencyRoot = null)
     {
-        ArgumentNullException.ThrowIfNull(sourcePaths);
+        ArgumentNullException.ThrowIfNull(sources);
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(error);
 
@@ -60,33 +65,35 @@ public static class TiledSceneTool
 
         Dictionary<string, string> claimedBy = new(StringComparer.OrdinalIgnoreCase);
         int failures = 0;
-        foreach (string sourcePath in sourcePaths)
+        foreach (TiledSource source in sources)
         {
-            string documentPath = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(sourcePath) + DocumentExtension);
+            string documentPath = Path.Combine(outputDirectory, source.Key + DocumentExtension);
 
-            if (!claimedBy.TryAdd(documentPath, sourcePath))
+            if (!claimedBy.TryAdd(documentPath, source.Path))
             {
                 error.WriteLine(
-                    $"{sourcePath}: would overwrite the scene document of '{claimedBy[documentPath]}'; a document is named after its source, so source names must be unique.");
+                    $"{source.Path}: would overwrite the scene document of '{claimedBy[documentPath]}'; a document is written at the key its map claims, so keys must be unique.");
                 failures++;
                 continue;
             }
 
             try
             {
-                SceneDocumentFile.Save(TiledImporter.Import(sourcePath, tileSize, dependencyRoot), documentPath);
-                output.WriteLine($"{Name}: {sourcePath} -> {documentPath}");
+                // The key nests, so the directory the document lands in may not exist yet.
+                Directory.CreateDirectory(Path.GetDirectoryName(documentPath)!);
+                SceneDocumentFile.Save(TiledImporter.Import(source.Path, tileSize, dependencyRoot), documentPath);
+                output.WriteLine($"{Name}: {source.Path} -> {documentPath}");
             }
             catch (Exception ex) when (IsReportable(ex))
             {
-                error.WriteLine($"{sourcePath}: {ex.Message}");
+                error.WriteLine($"{source.Path}: {ex.Message}");
                 failures++;
             }
         }
 
         if (failures > 0)
         {
-            error.WriteLine($"{Name}: {failures} of {sourcePaths.Count} source(s) failed");
+            error.WriteLine($"{Name}: {failures} of {sources.Count} source(s) failed");
             return 1;
         }
 

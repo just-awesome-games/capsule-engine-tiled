@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Two kinds of spec: the importer driven directly over fixture maps, and the build integration
-       — this project imports scenes like a game shell, so its own asset-sources/scenes/room.tmj
-       must arrive at assets/scenes/room.scene.json beside the test binary through the seam the
-       package hooks, in source mode and in package mode alike. -->
+       — this project imports scenes like a game shell, so its own asset-sources/scenes maps must
+       arrive at assets/scenes/<key>.scene.json beside the test binary through the seam the package
+       hooks, in source mode and in package mode alike. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Capsule.Tiled.Tests</RootNamespace>

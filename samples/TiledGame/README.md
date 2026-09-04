@@ -6,6 +6,7 @@ A complete Capsule game that authors its room in Tiled, and this module's consum
 | --- | --- |
 | `Directory.Build.props` | The two build-only package references a Tiled-authoring game carries. |
 | `src/asset-sources/scenes/room.tmj` + `tiles.tsj` | The Tiled room. `tiles.tsj` is an image tileset over `textures/tiles.png`; its tile properties carry the collision layer each tile type is on and which faces collide — the ledges declare `top` alone, which makes them one-way platforms. |
+| `src/asset-sources/scenes/halls/side-room.tmj` + `tiles.tsj` | A nested map, keyed `halls/side-room` and shipped at `assets/scenes/halls/side-room.scene.json`. Its tileset draws `textures/terrain/tiles.png`, which the document names `terrain/tiles.png`. |
 | `src/asset-sources/scenes/hall.scene.json` | A hand-authored document beside the map: both origins ship through the same hook. |
 | `src/TiledGame.Game/Scenes/Room.cs` | The class half of the room, claiming the document the map became. |
 | `src/TiledGame.Shell/TiledGame.Shell.csproj` | The shell, plus the assertion CI relies on: the shipped document exists and names the map as its provenance. |

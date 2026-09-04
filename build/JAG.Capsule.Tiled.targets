@@ -44,6 +44,16 @@
       <CapsuleTiledTileset Include="$(CapsuleAssetSourcesDir)/**/*.tsj" />
     </ItemGroup>
 
+    <!-- The key a map's document claims, and where the document is written: the map's path under
+         the scenes root, forward slashes and no extension. Two maps of one stem in different
+         directories are two keys. Its own ItemGroup, and qualified: %(RecursiveDir) on the Include
+         above would batch over the target rather than name the item being defined. -->
+    <ItemGroup>
+      <CapsuleTiledScene>
+        <Key>$([System.String]::Copy('%(CapsuleTiledScene.RecursiveDir)').Replace('\', '/'))%(CapsuleTiledScene.Filename)</Key>
+      </CapsuleTiledScene>
+    </ItemGroup>
+
     <Error Condition="'@(CapsuleTiledScene)' != '' and '$(CapsuleTiledToolProject)' == '' and '$(CapsuleTiledToolAssembly)' == ''"
            Text="Capsule.Tiled: the Tiled importer is unavailable. Reference the JAG.Capsule.Tiled package, or import build/JAG.Capsule.Tiled.targets from a capsule-engine-tiled source clone." />
 
@@ -116,7 +126,7 @@
           Condition="'$(CapsuleImportScenes)' == 'true'"
           DependsOnTargets="CapsuleTiledInit;ResolveProjectReferences"
           Inputs="@(CapsuleTiledScene);@(CapsuleTiledTileset);$(CapsuleTiledDependencyStamp);$(CapsuleTiledTileSizeStamp);@(_CapsuleTiledTool);@(_CapsuleTiledToolAssembly)"
-          Outputs="@(CapsuleTiledScene->'$(CapsuleTiledDerivedDir)%(Filename).scene.json')">
+          Outputs="@(CapsuleTiledScene->'$(CapsuleTiledDerivedDir)%(Key).scene.json')">
 
     <Error Condition="!Exists('@(_CapsuleTiledTool)')"
            Text="Capsule.Tiled: the Tiled importer was not built (expected '@(_CapsuleTiledTool)')." />
@@ -125,7 +135,10 @@
          8191-character line limit a couple of hundred paths blow past. Maps are named relative to
          the importing project and the tool runs from there; it stamps each path into its
          document's source block verbatim, so provenance reads '../asset-sources/scenes/room.tmj'
-         rather than a walk out of obj/. -->
+         rather than a walk out of obj/.
+
+         Each line is the key the map claims, then '|', then that path; a key is path segments and
+         a path carries no '|' on any platform Capsule targets. -->
     <ItemGroup>
       <_CapsuleTiledSceneArg Include="@(CapsuleTiledScene)">
         <ProjectRelativePath>$([MSBuild]::MakeRelative($(CapsuleTiledProjectDir), %(FullPath)))</ProjectRelativePath>
@@ -133,7 +146,7 @@
     </ItemGroup>
 
     <WriteLinesToFile File="$(CapsuleTiledBatchFile)"
-                      Lines="@(_CapsuleTiledSceneArg->'%(ProjectRelativePath)')"
+                      Lines="@(_CapsuleTiledSceneArg->'%(Key)|%(ProjectRelativePath)')"
                       Overwrite="true" />
 
     <!-- LogStandardErrorAsError surfaces the tool's own per-source messages verbatim as build
@@ -150,8 +163,18 @@
           Condition="'$(CapsuleImportScenes)' == 'true'"
           DependsOnTargets="CapsuleTiledDeriveSceneDocuments"
           BeforeTargets="CapsuleCollectSceneDocuments">
+
+    <!-- Named in two steps: %() in the metadata below batches over the item the Include names, so
+         a transform there would resolve %(Key) against the derived document rather than the map.
+         A transform carries the map's metadata across, which is how the key survives it. -->
     <ItemGroup>
-      <CapsuleSceneDocument Include="@(CapsuleTiledScene->'$(CapsuleTiledDerivedDir)%(Filename).scene.json')" />
+      <_CapsuleTiledDerived Include="@(CapsuleTiledScene->'$(CapsuleTiledDerivedDir)%(Key).scene.json')" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <CapsuleSceneDocument Include="@(_CapsuleTiledDerived)">
+        <CapsuleDocumentKey>%(_CapsuleTiledDerived.Key)</CapsuleDocumentKey>
+      </CapsuleSceneDocument>
     </ItemGroup>
   </Target>
 

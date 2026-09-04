@@ -10,7 +10,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
-    <CapsuleVersion>0.5.0</CapsuleVersion>
+    <CapsuleVersion>0.5.2</CapsuleVersion>
     <CapsuleTiledVersion>0.0.0</CapsuleTiledVersion>
     <IsPackable>false</IsPackable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

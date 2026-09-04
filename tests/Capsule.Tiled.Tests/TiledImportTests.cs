@@ -91,26 +91,50 @@ public sealed class TiledImportTests
         Assert.Contains("tileset 'terrain' has 16x8 tiles", error.Message, StringComparison.Ordinal);
     }
 
-    // The build ships assets/textures/<stem>.png from asset-sources/textures alone, so an atlas
-    // filed anywhere else names a handle nothing would ship.
+    // The build ships assets/textures/<path> from asset-sources/textures alone, so an atlas filed
+    // anywhere else names a handle nothing would ship.
     [Fact]
     public void Import_RefusesAnImageOutsideTheTexturesDomain()
     {
-        using SceneDocumentFixtures.Workspace workspace = new();
-        Directory.CreateDirectory("assets/scenes");
-        workspace.Write("assets/tiles.tsj", Mutate(
-            SceneDocumentFixtures.Read("tiles.tsj"),
-            "\"image\":\"textures\\/tiles.png\"",
-            "\"image\":\"art\\/tiles.png\""));
-        workspace.Write(
-            "assets/scenes/room.tmj",
-            Mutate(SceneDocumentFixtures.Read("room.tmj"), "\"source\":\"tiles.tsj\"", "\"source\":\"../tiles.tsj\""));
+        using SceneDocumentFixtures.Workspace workspace = TilesetAtlas("art\\/tiles.png");
 
         TiledImportException error = Assert.Throws<TiledImportException>(
             () => TiledImporter.Import("assets/scenes/room.tmj", dependencyRoot: "assets"));
 
-        Assert.Contains("would ship as texture 'tiles'", error.Message, StringComparison.Ordinal);
+        Assert.Contains("names a texture by its path under", error.Message, StringComparison.Ordinal);
         Assert.Contains("textures", error.Message, StringComparison.Ordinal);
+    }
+
+    // A nested atlas keeps its directories: the name is the image's path under the textures root,
+    // so the document names exactly the file the build ships.
+    [Fact]
+    public void Import_NamesANestedAtlasByItsPathUnderTheTexturesRoot()
+    {
+        using SceneDocumentFixtures.Workspace workspace = TilesetAtlas("textures\\/terrain\\/cave.png");
+
+        SceneDocument document = TiledImporter.Import("assets/scenes/room.tmj", dependencyRoot: "assets");
+
+        Assert.Equal(new TextureHandle("terrain/cave", ".png"), TileMapOf(document).Grid.Texture);
+        Assert.Contains(
+            "\"texture\": \"terrain/cave.png\"",
+            SceneDocumentFile.ToJson(document),
+            StringComparison.Ordinal);
+    }
+
+    // A map under assets/scenes drawing its tileset from assets/, whose atlas the caller names.
+    private static SceneDocumentFixtures.Workspace TilesetAtlas(string image)
+    {
+        SceneDocumentFixtures.Workspace workspace = new();
+        Directory.CreateDirectory("assets/scenes");
+        workspace.Write("assets/tiles.tsj", Mutate(
+            SceneDocumentFixtures.Read("tiles.tsj"),
+            "\"image\":\"textures\\/tiles.png\"",
+            $"\"image\":\"{image}\""));
+        workspace.Write(
+            "assets/scenes/room.tmj",
+            Mutate(SceneDocumentFixtures.Read("room.tmj"), "\"source\":\"tiles.tsj\"", "\"source\":\"../tiles.tsj\""));
+
+        return workspace;
     }
 
     [Fact]

@@ -11,16 +11,23 @@
     <ProjectReference Include="../TiledGame.Game/TiledGame.Game.csproj" />
   </ItemGroup>
 
-  <!-- The consumer proof: with nothing set beyond the package reference, the map under
-       asset-sources/scenes arrived beside the executable through the packed targets and tool. -->
+  <!-- The consumer proof: with nothing set beyond the package reference, the maps under
+       asset-sources/scenes arrived beside the executable through the packed targets and tool, each
+       at its path under the scenes root, and the nested one names its atlas by the atlas's own
+       path under the textures root. -->
   <Target Name="TiledGameAssertRoomShipped" AfterTargets="Build">
     <PropertyGroup>
       <_TiledGameRoom>$(OutDir)assets/scenes/room.scene.json</_TiledGameRoom>
+      <_TiledGameSideRoom>$(OutDir)assets/scenes/halls/side-room.scene.json</_TiledGameSideRoom>
     </PropertyGroup>
     <Error Condition="!Exists('$(_TiledGameRoom)')"
            Text="JAG.Capsule.Tiled shipped no document for asset-sources/scenes/room.tmj (expected '$(_TiledGameRoom)')." />
     <Error Condition="!$([System.IO.File]::ReadAllText('$(_TiledGameRoom)').Contains('&quot;tool&quot;: &quot;tiled&quot;'))"
            Text="'$(_TiledGameRoom)' does not carry the Tiled map as its provenance." />
+    <Error Condition="!Exists('$(_TiledGameSideRoom)')"
+           Text="JAG.Capsule.Tiled shipped no document for asset-sources/scenes/halls/side-room.tmj (expected '$(_TiledGameSideRoom)')." />
+    <Error Condition="!$([System.IO.File]::ReadAllText('$(_TiledGameSideRoom)').Contains('&quot;texture&quot;: &quot;terrain/tiles.png&quot;'))"
+           Text="'$(_TiledGameSideRoom)' does not name its atlas by its path under the textures root." />
   </Target>
 
 </Project>

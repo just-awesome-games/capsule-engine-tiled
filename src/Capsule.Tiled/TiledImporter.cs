@@ -23,7 +23,7 @@ public static class TiledImporter
     public const string CollisionProperty = "collision";
 
     // The asset-source domain a tileset's atlas has to be filed under. A tile map names its texture
-    // by file name, so what is filed there is what the document says.
+    // by its path under this root, so where the atlas is filed is what the document says.
     private const string TextureDirectory = "textures";
 
     // Tiled's name for the String property type, which it omits when writing one.
@@ -215,8 +215,9 @@ public static class TiledImporter
             indexByGid);
     }
 
-    // The atlas's file name is the texture handle, so where the file sits decides what a scene
-    // document can name: the build ships assets/textures/<file> from asset-sources/textures alone.
+    // The atlas's path under the textures root is the texture handle's name, so where the file
+    // sits decides what a scene document can name: the build ships assets/textures/<path> from
+    // asset-sources/textures alone, and a nested atlas keeps its directories.
     private static TextureHandle TextureOf(
         TiledTileset tileset,
         string name,
@@ -224,12 +225,12 @@ public static class TiledImporter
         string? dependencyRoot)
     {
         string image = Path.GetFullPath(Path.Combine(tilesetDirectory, tileset.Image!));
-        string stem = Path.GetFileNameWithoutExtension(image);
+        string? texturesRoot = dependencyRoot is null ? null : Path.Combine(dependencyRoot, TextureDirectory);
 
-        if (dependencyRoot is not null && !IsWithin(image, Path.Combine(dependencyRoot, TextureDirectory)))
+        if (texturesRoot is not null && !IsWithin(image, texturesRoot))
         {
             throw new TiledImportException(
-                $"tileset '{name}' draws from '{tileset.Image}', which resolves to '{image}' and would ship as texture '{stem}'; move the image under '{Path.Combine(dependencyRoot, TextureDirectory)}' so the build ships it.");
+                $"tileset '{name}' draws from '{tileset.Image}', which resolves to '{image}'; a scene document names a texture by its path under '{texturesRoot}', so move the image under that root.");
         }
 
         // Which extensions the textures domain admits is the build's allow-list to hold; a name a
@@ -238,10 +239,16 @@ public static class TiledImporter
         if (extension.Length == 0)
         {
             throw new TiledImportException(
-                $"tileset '{name}' draws from '{tileset.Image}'; a scene document names a texture by its file name, so the image needs an extension.");
+                $"tileset '{name}' draws from '{tileset.Image}'; a scene document names a texture by its path under '{TextureDirectory}', extension included, so the image needs one.");
         }
 
-        return new TextureHandle(stem, extension);
+        // Without a dependency root there is no textures root to measure against — the build always
+        // passes one, and a bare importer run keeps the atlas's stem.
+        string handle = texturesRoot is null
+            ? Path.GetFileNameWithoutExtension(image)
+            : Path.GetRelativePath(texturesRoot, image).Replace('\\', '/')[..^extension.Length];
+
+        return new TextureHandle(handle, extension);
     }
 
     private static bool IsWithin(string path, string root)
