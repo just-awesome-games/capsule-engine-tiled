@@ -3,8 +3,7 @@
 A release is an annotated `v<major>.<minor>.<patch>` tag on `main`. Pushing the tag runs
 `.github/workflows/packages.yml`, which builds and tests the module in package mode against the
 pinned Capsule release, packs `JAG.Capsule.Tiled` at that version, and pushes it to NuGet.org.
-Nothing else publishes. The studio's `jag capsule-tiled promote` (in `jag-studios-ops/shell/jag`)
-runs steps 4–6 unattended; this page is the whole release done by hand.
+Nothing else publishes.
 
 ## 1. Pull in a new Capsule release (skip if the pin is unchanged)
 
@@ -94,8 +93,8 @@ curl -s -o /dev/null -w "%{http_code}\n" https://api.nuget.org/v3-flatcontainer/
 
 ## 7. Move the consumers
 
-Each game pins `CapsuleTiledVersion` in its `Directory.Build.props`; bump it beside
-`CapsuleVersion` and `dotnet restore --force-evaluate` there.
+A game consuming the package pins `CapsuleTiledVersion` in its `Directory.Build.props`; bump it
+beside `CapsuleVersion` and `dotnet restore --force-evaluate` there.
 
 ## Undoing a mistake
 
