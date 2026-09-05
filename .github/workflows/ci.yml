@@ -19,6 +19,10 @@ jobs:
   # names, the way it is developed (D-studio-technical-021).
   source:
     runs-on: ubuntu-latest
+    # Source mode is carried by the environment rather than a flag per step, because dotnet format
+    # takes no MSBuild properties and would otherwise evaluate the project in package mode.
+    env:
+      CapsuleSourcePath: ../capsule-engine
     steps:
       - uses: actions/checkout@v7
         with:
@@ -44,11 +48,11 @@ jobs:
 
       - name: Restore
         working-directory: capsule-engine-tiled
-        run: dotnet restore -p:CapsuleSourcePath=../capsule-engine
+        run: dotnet restore
 
       - name: Build
         working-directory: capsule-engine-tiled
-        run: dotnet build --configuration Release --no-restore -p:CapsuleSourcePath=../capsule-engine
+        run: dotnet build --configuration Release --no-restore
 
       - name: Format
         working-directory: capsule-engine-tiled
@@ -56,7 +60,7 @@ jobs:
 
       - name: Test
         working-directory: capsule-engine-tiled
-        run: dotnet test --configuration Release --no-build -p:CapsuleSourcePath=../capsule-engine
+        run: dotnet test --configuration Release --no-build
 
   # The release lane: the pinned Capsule package from NuGet, the committed lock files, and the pack
   # a consumer would install. Runs on demand ahead of a release (RELEASING.md), not on every push:
