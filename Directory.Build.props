@@ -7,7 +7,7 @@
     <!-- The engine release this module is built and tested against. Package mode pins it exactly;
          a source clone named by CapsuleSourcePath (usually in the ignored Directory.Build.local.props)
          replaces it with project references for development against the sibling engine. -->
-    <CapsuleVersion>0.5.3</CapsuleVersion>
+    <CapsuleVersion>0.6.0</CapsuleVersion>
     <CapsuleSourceRoot Condition="'$(CapsuleUsePackages)' != 'true' and '$(CapsuleSourcePath)' != ''">$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', '$(CapsuleSourcePath)'))</CapsuleSourceRoot>
     <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>

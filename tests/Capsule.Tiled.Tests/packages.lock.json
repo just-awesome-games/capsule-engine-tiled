@@ -4,15 +4,15 @@
     "net10.0": {
       "JAG.Capsule": {
         "type": "Direct",
-        "requested": "[0.5.3, 0.5.3]",
-        "resolved": "0.5.3",
-        "contentHash": "qQ8KmtqMswDuer3oiXcoUDvbAMaBlEItcom37PmFFL1js9PaGEAvPSlRP7E9C0J4jf72AeqOHxib6gydSHoUPw=="
+        "requested": "[0.6.0, 0.6.0]",
+        "resolved": "0.6.0",
+        "contentHash": "bQSW4Yu+HXmTgRry2zkRgp67AQ0t/mp7ivU6PYicJrG8R/T6HYkMGBdhrS7gqTTLdun70RLoSCyLThevP8i9qw=="
       },
       "JAG.Capsule.Build": {
         "type": "Direct",
-        "requested": "[0.5.3, 0.5.3]",
-        "resolved": "0.5.3",
-        "contentHash": "0+FD695goOU7txox8Nd/CZDydVf3S1EpO/IiURR8NzcM7a9n1+eTX+C9qOCAzrbg21Wntvu5mYmE+0Tmky58Ng=="
+        "requested": "[0.6.0, 0.6.0]",
+        "resolved": "0.6.0",
+        "contentHash": "b84/L3WgkrWY6rNpsKEiqNTOnm+Cu3kYfNlfDeelOro1sPe2nvCnE5slW+Xx61I7TfYuaPALD69RrgQrCnEzQQ=="
       },
       "Microsoft.NET.Test.Sdk": {
         "type": "Direct",
@@ -108,7 +108,7 @@
       "JAG.Capsule.Tiled": {
         "type": "Project",
         "dependencies": {
-          "JAG.Capsule": "[0.5.3, 0.5.3]"
+          "JAG.Capsule": "[0.6.0, 0.6.0]"
         }
       }
     }

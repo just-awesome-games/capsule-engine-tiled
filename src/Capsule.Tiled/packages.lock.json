@@ -4,9 +4,9 @@
     "net10.0": {
       "JAG.Capsule": {
         "type": "Direct",
-        "requested": "[0.5.3, 0.5.3]",
-        "resolved": "0.5.3",
-        "contentHash": "qQ8KmtqMswDuer3oiXcoUDvbAMaBlEItcom37PmFFL1js9PaGEAvPSlRP7E9C0J4jf72AeqOHxib6gydSHoUPw=="
+        "requested": "[0.6.0, 0.6.0]",
+        "resolved": "0.6.0",
+        "contentHash": "bQSW4Yu+HXmTgRry2zkRgp67AQ0t/mp7ivU6PYicJrG8R/T6HYkMGBdhrS7gqTTLdun70RLoSCyLThevP8i9qw=="
       }
     }
   }
