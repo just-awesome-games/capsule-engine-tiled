@@ -31,6 +31,7 @@ internal sealed class TiledLayer
     // difference is not visible to a typed member.
     public JsonElement Data { get; set; }
     public TiledObject[]? Objects { get; set; }
+    public TiledProperty[]? Properties { get; set; }
 }
 
 // One shape for both cases: the map's tilesets array carries firstgid plus either an inline tileset
@@ -63,9 +64,16 @@ internal sealed class TiledTile
 
     public string? ResolvedClass => string.IsNullOrWhiteSpace(Class) ? Type : Class;
 
-    public TiledProperty? Property(string name)
+    public TiledProperty? Property(string name) => TiledProperties.Find(Properties, name);
+}
+
+// A custom property is looked up by name wherever Tiled allows one — a tile, a layer, an object —
+// and the same lookup serves all three.
+internal static class TiledProperties
+{
+    internal static TiledProperty? Find(TiledProperty[]? properties, string name)
     {
-        foreach (TiledProperty property in Properties ?? [])
+        foreach (TiledProperty property in properties ?? [])
         {
             if (string.Equals(property.Name, name, StringComparison.Ordinal))
             {
@@ -100,6 +108,7 @@ internal sealed class TiledObject
     // Present only on a tile object — one placed from a tileset — and carrying Tiled's flip bits in
     // its top nibble. Its absence is what tells a point or a rectangle from a tile.
     public uint? Gid { get; set; }
+    public TiledProperty[]? Properties { get; set; }
 
     public string? ResolvedClass => string.IsNullOrWhiteSpace(Class) ? Type : Class;
 }

@@ -22,12 +22,17 @@ public static class TiledImporter
 
     private const string CollisionProperty = "collision";
 
+    private const string ZIndexProperty = "zIndex";
+
     // The asset-source domain a tileset's atlas is filed under; a document names its texture by the
     // path under it.
     private const string TextureDirectory = "textures";
 
     // Tiled's name for the String property type, which it omits when writing one.
     private const string StringPropertyType = "string";
+
+    // Tiled's name for the Int property type, which it always writes.
+    private const string IntPropertyType = "int";
 
     // Tiled packs flip and rotation into the top nibble of a gid.
     private const uint OrientationFlags = 0xF000_0000u;
@@ -413,10 +418,14 @@ public static class TiledImporter
             switch (layer.Type)
             {
                 case "tilelayer":
-                    entries.Add(new TileMapPlacement(nextEntityId++, ReadGrid(layer, map, tilesets)));
+                    entries.Add(new TileMapPlacement(
+                        nextEntityId++,
+                        ReadGrid(layer, map, tilesets),
+                        ZIndexOf(layer.Properties, $"tile layer '{layer.Name}'")));
                     break;
 
                 case "objectgroup":
+                    int? layerBand = ZIndexOf(layer.Properties, $"object layer '{layer.Name}'");
                     foreach (TiledObject placed in layer.Objects ?? [])
                     {
                         string? objectClass = placed.ResolvedClass;
@@ -426,7 +435,7 @@ public static class TiledImporter
                                 $"object {placed.Id} on layer '{layer.Name}' has no Class; every object is typed by its Class.");
                         }
 
-                        entries.Add(Placement(placed, objectClass, layer, tilesets));
+                        entries.Add(Placement(placed, objectClass, layer, tilesets, layerBand));
                     }
 
                     break;
@@ -446,11 +455,15 @@ public static class TiledImporter
         TiledObject placed,
         string objectClass,
         TiledLayer layer,
-        Tileset[] tilesets)
+        Tileset[] tilesets,
+        int? layerBand)
     {
+        // The object's own band wins over the one its layer bands the whole group at.
+        int? zIndex = ZIndexOf(placed.Properties, $"object {placed.Id} on layer '{layer.Name}'") ?? layerBand;
+
         if (placed.Gid is not { } gid)
         {
-            return new EntityPlacement(placed.Id, objectClass, (float)placed.X, (float)placed.Y);
+            return new EntityPlacement(placed.Id, objectClass, (float)placed.X, (float)placed.Y, ZIndex: zIndex);
         }
 
         if ((gid & OrientationFlags) != 0)
@@ -469,7 +482,34 @@ public static class TiledImporter
             (float)placed.X,
             (float)placed.Y,
             (float)(placed.Width / drawn.TileSize),
-            (float)(placed.Height / drawn.TileSize));
+            (float)(placed.Height / drawn.TileSize),
+            zIndex);
+    }
+
+    // The draw band a placement authors. An absent property is null, never 0: zero is a band like
+    // any other, and reading absence as zero would band every unbanded placement there, overriding
+    // the default its class owns with a value the document never authored.
+    private static int? ZIndexOf(TiledProperty[]? properties, string owner)
+    {
+        if (TiledProperties.Find(properties, ZIndexProperty) is not { } property)
+        {
+            return null;
+        }
+
+        string declared = property.Type ?? StringPropertyType;
+        if (!string.Equals(declared, IntPropertyType, StringComparison.Ordinal))
+        {
+            throw new TiledImportException(
+                $"{owner} declares '{ZIndexProperty}' as a '{declared}' property; it has to be an int property, or be left off entirely.");
+        }
+
+        if (property.Value.ValueKind != JsonValueKind.Number || !property.Value.TryGetInt32(out int zIndex))
+        {
+            throw new TiledImportException(
+                $"{owner} has a '{ZIndexProperty}' property of '{property.Value}'; it has to be a whole number an int holds, or be left off entirely.");
+        }
+
+        return zIndex;
     }
 
     // One layer paints from one tileset, because a grid cuts its cells from one texture. A layer

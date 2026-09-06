@@ -23,9 +23,21 @@ There is nothing to configure. The module activates where Capsule imports scenes
 
 The importer reads `.tmj` maps that are orthogonal, finite, square-tiled, CSV-encoded and unflipped. A tileset tile's Class is the tile type, its local tile id is the type's `cell`, and its optional `layer` and `collidableFaces` properties map to the scene document's palette fields.
 
+A tile layer, an object layer, and an object each take an optional custom `zIndex` int property: the draw band the placement takes in the document, higher drawing later. An object layer's band is the default for the objects on it, and an object's own `zIndex` overrides it. Where nothing authors one the document carries no band at all and the entity keeps the one its class sets, so `0` is a band an author asks for, never the absence of one. The authored layer stack is already the draw order among the map's own layers; a band is what places them against the entities a game spawns at runtime.
+
 An object's Class is its entry `type` and its position is its `x` and `y`. A tile object — one dragged out of a tileset, so it carries a gid — also imports a `scale`: its width and height over the tile size of the tileset its gid resolves to, written only when that is not identity. A flipped or rotated tile object is refused. Points and rectangles carry no gid and import as position alone; their size means nothing to Capsule.
 
 Tilesets are image tilesets only — a collection of separate images is refused. A tileset's image is resolved against the `.tsj` and must sit under the game's `asset-sources/textures/`; the layer's `texture` is the image's path under that root, forward slashes and extension included, so `textures/terrain/cave.png` is named `terrain/cave.png`. Its `columns` are copied, and its tile size must be square and equal to the map's. One tile layer paints from one tileset, because a grid cuts its cells from one texture; a layer spanning two is refused naming both, and a layer painting nothing imports as an entry with no texture and the `empty` type alone. Every other constraint is reported by the importer at the failing file.
+
+### Property types
+
+Capsule's vocabulary ships as Tiled custom property types, so the names above are picked from a dropdown rather than spelled. They need Tiled 1.9 or later: custom types arrived in 1.8, and scoping a class to a layer arrived with the Class field on every data type in 1.9.
+
+The build seeds `<project>.tiled-project` beside the maps whenever the scenes root holds no `.tiled-project` at all — open that one in Tiled and the types are there. It is never overwritten afterwards; the file is the game's from the moment it lands, and Tiled rewrites it as folders and types are added. For a project already kept there, Project → Import Types once, from `capsule-property-types.json` in the package's `buildTransitive/`.
+
+Two types ship. `CapsuleCollidableFaces` is a flags enum of `left`, `right`, `top` and `bottom` stored as a string: give a tile's `collidableFaces` property that type and the sides are checkboxes. `CapsuleLayer` is a class used as a layer's Class, which brings `zIndex` with it, so a whole tile layer or object layer is banded from the Class dropdown.
+
+Nothing ships for tiles or objects themselves, because Capsule has already spent their Class: a tile's Class is its tile type and an object's Class is its entry `type`. A tile's `layer` is a plain string property, as collision layer names are the game's, and an object's own `zIndex` is a plain int property overriding the band its layer sets.
 
 Tiled's Windows GUI executable writes no console output even on success. Use `tmxrasterizer` when a headless PNG preview is needed.
 

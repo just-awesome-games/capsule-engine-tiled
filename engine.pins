@@ -2,4 +2,4 @@
 # the same change that needs the engine commit, after that commit is on the engine's main. The
 # package-mode lane and a NuGet release are the Creative Director's deliberate promotions
 # (D-studio-technical-021; RELEASING.md).
-CAPSULE_ENGINE_COMMIT=6890315a0afbd850b1ebd471bdbaeebd6c2c1dd0
+CAPSULE_ENGINE_COMMIT=d11fd9adc514f91431add1100bdd9b8ce0984cd4

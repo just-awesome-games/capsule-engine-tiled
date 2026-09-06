@@ -32,8 +32,13 @@
     <ProjectReference Include="$(CapsuleSourceRoot)/src/Capsule.Scenes/Capsule.Scenes.csproj" />
   </ItemGroup>
 
+  <!-- The targets, the project template the targets seed, and the same property types standalone
+       for Tiled's Project > Import Types. All three sit beside each other in buildTransitive/,
+       because the seed target resolves the template against its own directory. -->
   <ItemGroup>
     <None Include="../../build/JAG.Capsule.Tiled.targets" Pack="true" PackagePath="buildTransitive/" />
+    <None Include="../../build/capsule.tiled-project" Pack="true" PackagePath="buildTransitive/" />
+    <None Include="../../build/capsule-property-types.json" Pack="true" PackagePath="buildTransitive/" />
   </ItemGroup>
 
   <!-- The whole output directory, not the entry assembly: the tool loads Capsule.Scenes and its

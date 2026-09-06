@@ -104,6 +104,28 @@
     </ItemGroup>
   </Target>
 
+  <!-- Capsule's Tiled vocabulary, delivered by default: capsule.tiled-project carries the property
+       types (the CapsuleCollidableFaces enum and the CapsuleLayer class) and names '.' as its
+       folder, so opening it in Tiled shows the maps beside it with the types already defined.
+
+       Seeded only where the scenes root has no .tiled-project at all, and never overwritten: the
+       file is the developer's from the moment it lands, and Tiled rewrites it whenever they add a
+       type or a folder of their own. A project they already keep there wins outright — import the
+       types into it once from capsule-property-types.json instead. -->
+  <Target Name="CapsuleTiledSeedProject"
+          Condition="'$(CapsuleImportScenes)' == 'true'"
+          DependsOnTargets="CapsuleTiledInit"
+          BeforeTargets="CapsuleTiledDeriveSceneDocuments">
+
+    <ItemGroup>
+      <_CapsuleTiledExistingProject Include="$(CapsuleAssetSourcesDir)/scenes/*.tiled-project" />
+    </ItemGroup>
+
+    <Copy Condition="'@(CapsuleTiledScene)' != '' and '@(_CapsuleTiledExistingProject)' == ''"
+          SourceFiles="$(MSBuildThisFileDirectory)capsule.tiled-project"
+          DestinationFiles="$(CapsuleAssetSourcesDir)/scenes/$(MSBuildProjectName).tiled-project" />
+  </Target>
+
   <!-- Partially incremental: maps correlate one-to-one with the derived documents, so MSBuild
        re-runs this with only the stale ones in @(CapsuleTiledScene) and the batch goes to one
        process. The tilesets, stamps and importer assemblies correlate with nothing, so touching

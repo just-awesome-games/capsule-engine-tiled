@@ -42,6 +42,21 @@
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- The shipped property types, read back by the specs that hold them to the names the importer
+       reads. Flattened into Fixtures/ so they sit beside the maps the rest of the suite uses. -->
+  <ItemGroup>
+    <None Include="../../build/capsule.tiled-project;../../build/capsule-property-types.json"
+          Link="Fixtures/%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- The seed spec drives this project's own targets over a scratch asset-sources tree, so it
+       needs the repository and the mode this assembly was built in. -->
+  <ItemGroup>
+    <AssemblyMetadata Include="RepositoryRoot" Value="$(MSBuildThisFileDirectory)../.." />
+    <AssemblyMetadata Include="CapsuleUsePackages" Value="$(CapsuleUsePackages)" />
+  </ItemGroup>
+
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
