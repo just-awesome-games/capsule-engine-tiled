@@ -336,6 +336,57 @@ public sealed class TiledImportTests
         """);
 
     [Fact]
+    public void Import_BandsOnlyThePlacementsThatAuthorAZIndex()
+    {
+        string map = WithZIndex(SceneDocumentFixtures.Read("room.tmj"), "\"name\":\"terrain\",", "int", "-10");
+        map = WithZIndex(map, "\"type\":\"player\",", "int", "5");
+
+        using SceneDocumentFixtures.Workspace workspace = new();
+        workspace.Write("tiles.tsj", SceneDocumentFixtures.Read("tiles.tsj"));
+        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map));
+
+        Assert.Equal(-10, TileMapOf(document).ZIndex);
+        Assert.Equal(5, document.Entries[1].Entity!.Value.ZIndex);
+
+        // The coin authors nothing, so the document says nothing and its class keeps the default.
+        Assert.Null(document.Entries[2].Entity!.Value.ZIndex);
+    }
+
+    [Fact]
+    public void Import_TakesAnObjectLayersZIndexAsTheDefaultItsObjectsOverride()
+    {
+        string map = WithZIndex(SceneDocumentFixtures.Read("room.tmj"), "\"name\":\"things\",", "int", "3");
+        map = WithZIndex(map, "\"type\":\"player\",", "int", "7");
+
+        using SceneDocumentFixtures.Workspace workspace = new();
+        workspace.Write("tiles.tsj", SceneDocumentFixtures.Read("tiles.tsj"));
+        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map));
+
+        Assert.Null(TileMapOf(document).ZIndex);
+        Assert.Equal(7, document.Entries[1].Entity!.Value.ZIndex);
+        Assert.Equal(3, document.Entries[2].Entity!.Value.ZIndex);
+    }
+
+    [Theory]
+    [InlineData("\"name\":\"terrain\",", "float", "1.5", "tile layer 'terrain' declares 'zIndex' as a 'float'")]
+    [InlineData("\"name\":\"things\",", "string", "\"2\"", "object layer 'things' declares 'zIndex' as a 'string'")]
+    [InlineData("\"type\":\"player\",", "int", "4294967296", "object 3 on layer 'things' has a 'zIndex' property of '4294967296'")]
+    public void Import_RejectsAZIndexThatIsNotAnInt(string anchor, string type, string value, string expected)
+    {
+        TiledImportException error = Import(
+            WithZIndex(SceneDocumentFixtures.Read("room.tmj"), anchor, type, value),
+            SceneDocumentFixtures.Read("tiles.tsj"));
+
+        Assert.Contains(expected, error.Message, StringComparison.Ordinal);
+    }
+
+    // A custom property on the layer or object the anchor line opens, as Tiled writes one.
+    private static string WithZIndex(string map, string anchor, string type, string value) => Mutate(
+        map,
+        anchor,
+        $"\"properties\":[{{\"name\":\"zIndex\",\"type\":\"{type}\",\"value\":{value}}}],{anchor}");
+
+    [Fact]
     public void Import_RejectsAGridWhoseAreaOverflowsAnInt()
     {
         string map = Mutate(SceneDocumentFixtures.Read("room.tmj"), "\"width\":4", "\"width\":65536");
