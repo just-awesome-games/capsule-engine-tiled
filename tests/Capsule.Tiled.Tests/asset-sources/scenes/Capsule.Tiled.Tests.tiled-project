@@ -1,0 +1,40 @@
+{
+  "automappingRulesFile": "",
+  "commands": [],
+  "extensionsPath": "extensions",
+  "folders": [
+    "."
+  ],
+  "propertyTypes": [
+    {
+      "id": 1,
+      "name": "CapsuleCollidableFaces",
+      "type": "enum",
+      "storageType": "string",
+      "values": [
+        "left",
+        "right",
+        "top",
+        "bottom"
+      ],
+      "valuesAsFlags": true
+    },
+    {
+      "id": 2,
+      "name": "CapsuleLayer",
+      "type": "class",
+      "color": "#ff4a90d9",
+      "drawFill": true,
+      "useAs": [
+        "layer"
+      ],
+      "members": [
+        {
+          "name": "zIndex",
+          "type": "int",
+          "value": 0
+        }
+      ]
+    }
+  ]
+}

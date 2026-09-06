@@ -100,7 +100,7 @@ jobs:
         run: |
           nupkg=$(ls artifacts/packages/JAG.Capsule.Tiled.*.nupkg)
           unzip -l "$nupkg"
-          for entry in buildTransitive/JAG.Capsule.Tiled.targets tools/net10.0/any/Capsule.Tiled.dll; do
+          for entry in buildTransitive/JAG.Capsule.Tiled.targets buildTransitive/capsule.tiled-project buildTransitive/capsule-property-types.json tools/net10.0/any/Capsule.Tiled.dll; do
             if ! unzip -l "$nupkg" | grep -q " $entry\$"; then
               echo "::error::$nupkg is missing $entry — a consumer's build would not run the importer."
               exit 1
