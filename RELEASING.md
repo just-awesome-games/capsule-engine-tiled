@@ -2,7 +2,7 @@
 
 Releases are deliberate: the Creative Director decides when, and a release exists to promote a
 batch worth shipping or because a consumer must bump (D-studio-technical-021). Day to day the
-module and its consumers build from source at the commit `engine.pins` names; CI's `packages` lane
+module and its consumers build from source at the engine's `main` head; CI's `packages` lane
 runs on demand (`workflow_dispatch`) ahead of a release, never on every push.
 
 A release is an annotated `v<major>.<minor>.<patch>` tag on `main`. Pushing the tag runs

@@ -15,8 +15,9 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
-  # The standing lane: the module built from source beside the engine at the commit engine.pins
-  # names, the way it is developed (D-studio-technical-021).
+  # The standing lane: the module built from source beside the engine at its main head, the way it
+  # is developed, with no pin in the loop (D-studio-technical-021). An engine change the module
+  # needs is pushed before the module change.
   source:
     runs-on: ubuntu-latest
     # Source mode is carried by the environment rather than a flag per step, because dotnet format
@@ -28,18 +29,10 @@ jobs:
         with:
           path: capsule-engine-tiled
 
-      - name: Read engine pins
-        id: pins
-        shell: bash
-        working-directory: capsule-engine-tiled
-        run: |
-          source engine.pins
-          echo "capsule=$CAPSULE_ENGINE_COMMIT" >> "$GITHUB_OUTPUT"
-
       - uses: actions/checkout@v7
         with:
           repository: just-awesome-games/capsule-engine
-          ref: ${{ steps.pins.outputs.capsule }}
+          ref: main
           path: capsule-engine
 
       - uses: actions/setup-dotnet@v6
