@@ -26,7 +26,7 @@ public static class TiledImporter
 
     // The asset-source domain a tileset's atlas is filed under; a document names its texture by the
     // path under it.
-    private const string TextureDirectory = "textures";
+    private const string TextureDirectory = "Textures";
 
     // Tiled's name for the String property type, which it omits when writing one.
     private const string StringPropertyType = "string";

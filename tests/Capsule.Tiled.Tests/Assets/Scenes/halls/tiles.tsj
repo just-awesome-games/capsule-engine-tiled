@@ -1,5 +1,5 @@
 { "columns":2,
- "image":"..\/textures\/tiles.png",
+ "image":"..\/..\/Textures\/terrain\/tiles.png",
  "imageheight":16,
  "imagewidth":32,
  "margin":0,

@@ -59,7 +59,7 @@
         {
          "columns":4,
          "firstgid":1,
-         "image":"textures\/tiles.png",
+         "image":"Textures\/tiles.png",
          "imageheight":16,
          "imagewidth":64,
          "margin":0,

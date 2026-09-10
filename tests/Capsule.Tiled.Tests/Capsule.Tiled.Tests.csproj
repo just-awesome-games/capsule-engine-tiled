@@ -1,16 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Two kinds of spec: the importer driven directly over fixture maps, and the build integration
-       — this project imports scenes like a game shell, so its own asset-sources/scenes maps must
-       arrive at assets/scenes/<key>.scene.json beside the test binary through the seam the package
-       hooks, in source mode and in package mode alike. -->
+       — this project imports scenes like a game's logic library, so its own Assets/Scenes maps
+       must arrive at assets/scenes/<key>.scene.json beside the test binary through the seam the
+       package hooks, in source mode and in package mode alike.
+
+       CapsuleAssetSourcesDir is named although it now matches Capsule's default: the pinned
+       release the package-mode lane builds against still looks a directory above the project. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Capsule.Tiled.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <CapsuleImportScenes>true</CapsuleImportScenes>
-    <CapsuleAssetSourcesDir>asset-sources</CapsuleAssetSourcesDir>
+    <CapsuleAssetSourcesDir>Assets</CapsuleAssetSourcesDir>
     <CapsuleTileSize>16</CapsuleTileSize>
   </PropertyGroup>
 
@@ -50,7 +53,7 @@
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!-- The seed spec drives this project's own targets over a scratch asset-sources tree, so it
+  <!-- The seed spec drives this project's own targets over a scratch authoring tree, so it
        needs the repository and the mode this assembly was built in. -->
   <ItemGroup>
     <AssemblyMetadata Include="RepositoryRoot" Value="$(MSBuildThisFileDirectory)../.." />

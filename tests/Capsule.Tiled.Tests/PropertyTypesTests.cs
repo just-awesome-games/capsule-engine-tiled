@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Reflection;
 using System.Text.Json.Nodes;
 using Capsule.Scenes.Documents;
 
@@ -7,6 +6,7 @@ namespace Capsule.Tiled.Tests;
 
 // The shipped Tiled vocabulary. Its whole job is to spell what the importer reads, so these specs
 // hold the two files to the importer's property names and to each other.
+[Collection(SceneWorkspaceCollection.Name)]
 public sealed class PropertyTypesTests
 {
     private const string TypesFile = "capsule-property-types.json";
@@ -66,11 +66,11 @@ public sealed class PropertyTypesTests
     public void TheBuildSeedsTheProjectOnceAndNeverOverwritesIt()
     {
         using SceneDocumentFixtures.Workspace workspace = new();
-        Directory.CreateDirectory("sources/scenes");
-        workspace.Write("sources/scenes/room.tmj", SceneDocumentFixtures.Read("room.tmj"));
-        workspace.Write("sources/scenes/tiles.tsj", SceneDocumentFixtures.Read("tiles.tsj"));
+        Directory.CreateDirectory("sources/Scenes");
+        workspace.Write("sources/Scenes/room.tmj", SceneDocumentFixtures.Read("room.tmj"));
+        workspace.Write("sources/Scenes/tiles.tsj", SceneDocumentFixtures.Read("tiles.tsj"));
         string sources = Path.GetFullPath("sources");
-        string seeded = Path.Combine(sources, "scenes", "Capsule.Tiled.Tests.tiled-project");
+        string seeded = Path.Combine(sources, "Scenes", "Capsule.Tiled.Tests.tiled-project");
 
         Seed(sources);
         Assert.Equal(SceneDocumentFixtures.Read(ProjectFile), File.ReadAllText(seeded));
@@ -83,7 +83,7 @@ public sealed class PropertyTypesTests
 
     private static void Seed(string assetSourcesDir)
     {
-        string root = Path.GetFullPath(Metadata("RepositoryRoot"));
+        string root = Path.GetFullPath(SceneDocumentFixtures.Metadata("RepositoryRoot"));
         ProcessStartInfo start = new("dotnet")
         {
             WorkingDirectory = root,
@@ -95,9 +95,9 @@ public sealed class PropertyTypesTests
         start.ArgumentList.Add(Path.Combine(root, "tests", "Capsule.Tiled.Tests", "Capsule.Tiled.Tests.csproj"));
         start.ArgumentList.Add("-t:CapsuleTiledSeedProject");
         start.ArgumentList.Add($"-p:CapsuleAssetSourcesDir={assetSourcesDir}");
-        if (Metadata("CapsuleUsePackages").Length > 0)
+        if (SceneDocumentFixtures.Metadata("CapsuleUsePackages").Length > 0)
         {
-            start.ArgumentList.Add($"-p:CapsuleUsePackages={Metadata("CapsuleUsePackages")}");
+            start.ArgumentList.Add($"-p:CapsuleUsePackages={SceneDocumentFixtures.Metadata("CapsuleUsePackages")}");
         }
 
         using Process msbuild = Process.Start(start)!;
@@ -106,12 +106,6 @@ public sealed class PropertyTypesTests
 
         Assert.True(msbuild.ExitCode == 0, output);
     }
-
-    private static string Metadata(string key) =>
-        typeof(PropertyTypesTests).Assembly
-            .GetCustomAttributes<AssemblyMetadataAttribute>()
-            .FirstOrDefault(attribute => string.Equals(attribute.Key, key, StringComparison.Ordinal))
-            ?.Value ?? string.Empty;
 
     private static JsonNode TypeNamed(string name) => Assert.Single(
         Types(TypesFile),

@@ -29,18 +29,26 @@
   <Target Name="CapsuleTiledInit"
           Condition="'$(CapsuleImportScenes)' == 'true'"
           DependsOnTargets="CapsuleAssetSourcesInit">
+    <!-- Every authoring glob honours Capsule's development-only marker: a directory holding a
+         .capsuleignore contributes nothing to a shipping build. @(_CapsuleDevelopmentOnly) is
+         Capsule's, populated in a static item group under CapsuleShipping, so it is final by the
+         time this target runs whichever order the two targets files were imported in. -->
     <ItemGroup>
-      <CapsuleTiledScene Include="$(CapsuleAssetSourcesDir)/scenes/**/*.tmj" />
+      <CapsuleTiledScene Include="$(CapsuleAssetSourcesDir)/Scenes/**/*.tmj"
+                         Exclude="@(_CapsuleDevelopmentOnly)" />
 
       <!-- Not a source of its own: a map's tilesets are read during its import, so they are the
            other half of what a derived document is up to date with respect to. -->
-      <CapsuleTiledTileset Include="$(CapsuleAssetSourcesDir)/**/*.tsj" />
+      <CapsuleTiledTileset Include="$(CapsuleAssetSourcesDir)/**/*.tsj"
+                           Exclude="@(_CapsuleDevelopmentOnly)" />
     </ItemGroup>
 
-    <!-- The key a map's document claims: its path under the scenes root, forward slashes and no
-         extension, so two maps of one stem in different directories are two keys. Its own
-         ItemGroup, and qualified: %(RecursiveDir) on the Include above would batch over the
-         target rather than name the item being defined. -->
+    <!-- The key a map's document claims, spelled as the tree spells it: its path under the scenes
+         root, forward slashes and no extension, so two maps of one stem in different directories
+         are two keys. Capsule normalizes it, so this is not the shipped key and no output path is
+         derived from it beyond this module's own obj/. Its own ItemGroup, and qualified:
+         %(RecursiveDir) on the Include above would batch over the target rather than name the item
+         being defined. -->
     <ItemGroup>
       <CapsuleTiledScene>
         <Key>$([System.String]::Copy('%(CapsuleTiledScene.RecursiveDir)').Replace('\', '/'))%(CapsuleTiledScene.Filename)</Key>
@@ -118,12 +126,12 @@
           BeforeTargets="CapsuleTiledDeriveSceneDocuments">
 
     <ItemGroup>
-      <_CapsuleTiledExistingProject Include="$(CapsuleAssetSourcesDir)/scenes/*.tiled-project" />
+      <_CapsuleTiledExistingProject Include="$(CapsuleAssetSourcesDir)/Scenes/*.tiled-project" />
     </ItemGroup>
 
     <Copy Condition="'@(CapsuleTiledScene)' != '' and '@(_CapsuleTiledExistingProject)' == ''"
           SourceFiles="$(MSBuildThisFileDirectory)capsule.tiled-project"
-          DestinationFiles="$(CapsuleAssetSourcesDir)/scenes/$(MSBuildProjectName).tiled-project" />
+          DestinationFiles="$(CapsuleAssetSourcesDir)/Scenes/$(MSBuildProjectName).tiled-project" />
   </Target>
 
   <!-- Partially incremental: maps correlate one-to-one with the derived documents, so MSBuild

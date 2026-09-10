@@ -1,7 +1,17 @@
+using System.Reflection;
+
 namespace Capsule.Tiled.Tests;
 
 internal static class SceneDocumentFixtures
 {
+    // The build state the specs that drive this repository's own targets need: where the
+    // repository is, and which mode this assembly was built in.
+    internal static string Metadata(string key) =>
+        typeof(SceneDocumentFixtures).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(attribute => string.Equals(attribute.Key, key, StringComparison.Ordinal))
+            ?.Value ?? string.Empty;
+
     internal static string Path(string name) =>
         System.IO.Path.Combine(AppContext.BaseDirectory, "Fixtures", name);
 

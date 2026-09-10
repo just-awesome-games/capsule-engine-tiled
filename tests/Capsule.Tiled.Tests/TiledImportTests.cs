@@ -48,7 +48,7 @@ public sealed class TiledImportTests
     }
 
     [Theory]
-    [InlineData("\"image\":\"textures\\/tiles.png\",", "\"image\":\"\",", "tileset 'terrain' is a collection of images")]
+    [InlineData("\"image\":\"Textures\\/tiles.png\",", "\"image\":\"\",", "tileset 'terrain' is a collection of images")]
     [InlineData("\"columns\":4,", "\"columns\":0,", "tileset 'terrain' declares 0 columns")]
     [InlineData("\"columns\":4,", "\"columns\":3,", "3 columns of 16px over a 64px image")]
     [InlineData("\"tileheight\":16,", "\"tileheight\":8,", "tileset 'terrain' has 16x8 tiles")]
@@ -71,13 +71,13 @@ public sealed class TiledImportTests
             () => TiledImporter.Import("assets/scenes/room.tmj", dependencyRoot: "assets"));
 
         Assert.Contains("names a texture by its path under", error.Message, StringComparison.Ordinal);
-        Assert.Contains("textures", error.Message, StringComparison.Ordinal);
+        Assert.Contains("Textures", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Import_NamesANestedAtlasByItsPathUnderTheTexturesRoot()
     {
-        using SceneDocumentFixtures.Workspace workspace = TilesetAtlas("textures\\/terrain\\/cave.png");
+        using SceneDocumentFixtures.Workspace workspace = TilesetAtlas("Textures\\/terrain\\/cave.png");
 
         SceneDocument document = TiledImporter.Import("assets/scenes/room.tmj", dependencyRoot: "assets");
 
@@ -95,7 +95,7 @@ public sealed class TiledImportTests
         Directory.CreateDirectory("assets/scenes");
         workspace.Write("assets/tiles.tsj", Mutate(
             SceneDocumentFixtures.Read("tiles.tsj"),
-            "\"image\":\"textures\\/tiles.png\"",
+            "\"image\":\"Textures\\/tiles.png\"",
             $"\"image\":\"{image}\""));
         workspace.Write(
             "assets/scenes/room.tmj",
