@@ -4,9 +4,9 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Capsule.Assets;
-using Capsule.Collision;
+using Capsule.Physics;
 using Capsule.Scenes.Documents;
-using Capsule.Scenes.Tiles;
+using Capsule.Tiles;
 
 namespace Capsule.Tiled;
 

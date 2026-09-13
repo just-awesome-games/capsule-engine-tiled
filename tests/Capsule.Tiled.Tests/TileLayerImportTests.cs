@@ -1,6 +1,6 @@
-using Capsule.Collision;
+using Capsule.Physics;
 using Capsule.Scenes.Documents;
-using Capsule.Scenes.Tiles;
+using Capsule.Tiles;
 
 namespace Capsule.Tiled.Tests;
 

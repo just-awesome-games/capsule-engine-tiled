@@ -16,7 +16,7 @@ This is not optional: Git ignores `.githooks/` until it is configured, and an un
 
 ## Build
 
-The gates are the four commands in `.githooks/pre-commit`; CI in `.github/workflows/ci.yml` runs them against the pinned Capsule packages and against a source clone of the engine, and packs the module.
+The gates are the four commands in `.githooks/pre-commit`; CI in `.github/workflows/ci.yml` runs them from source at the engine's `main` head on every push, and on demand against the pinned Capsule package, packing the module.
 
 ## Expectations
 
