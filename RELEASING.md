@@ -18,7 +18,7 @@ Wait until NuGet.org serves that version (HTTP 200; 404 means still indexing):
 
 ```bash
 for p in jag.capsule jag.capsule.build; do
-  curl -s -o /dev/null -w "$p %{http_code}\n" "https://api.nuget.org/v3-flatcontainer/$p/0.6.0/$p.0.6.0.nupkg"
+  curl -s -o /dev/null -w "$p %{http_code}\n" "https://api.nuget.org/v3-flatcontainer/$p/0.7.0/$p.0.7.0.nupkg"
 done
 ```
 
@@ -55,7 +55,7 @@ sibling engine clone named in `Directory.Build.local.props`.
 
 ```bash
 git add -A
-git commit -m "Pin Capsule 0.6.0"
+git commit -m "Pin Capsule 0.7.0"
 git push origin main
 gh run list --branch main --workflow ci.yml --limit 1     # wait for "success" on both lanes
 gh run watch <run-id> --exit-status
