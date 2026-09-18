@@ -4,15 +4,15 @@
     "net10.0": {
       "JAG.Capsule": {
         "type": "Direct",
-        "requested": "[0.7.0, 0.7.0]",
-        "resolved": "0.7.0",
-        "contentHash": "hmVZretujgvA+dwUKGThNfyZs7r7c6CLeqjrUOFmw7P+jB3QFCEhPnYtm7ht+/Vf3a96AfXh42i5nxRO1xPn0w=="
+        "requested": "[0.8.0, 0.8.0]",
+        "resolved": "0.8.0",
+        "contentHash": "n1+efkJbFzNB31/VMVVjLAABy8s21kr6w/N7DeWuO2R3D7tIUlROGORVHjXIE2VcZ7dIoMqPQkGjz/sghqIhiA=="
       },
       "JAG.Capsule.Build": {
         "type": "Direct",
-        "requested": "[0.7.0, 0.7.0]",
-        "resolved": "0.7.0",
-        "contentHash": "0VOuGdJWi3Yuz4PLOcIsOa5tLtLdD/wbM5f2XVm10uWNlxRB1V9pEfuzPTBzRLooBIqmRhfpFc3CneHMx5YRUw=="
+        "requested": "[0.8.0, 0.8.0]",
+        "resolved": "0.8.0",
+        "contentHash": "ZKpqN6OrLwlY9OOBD+E9MRE/BrBQsXtoZy+fOlTvZk4dxnYAdJpwYSocC/ylnd5H03EmxplVVre1n/ocNKBtVg=="
       },
       "Microsoft.NET.Test.Sdk": {
         "type": "Direct",
@@ -108,7 +108,7 @@
       "JAG.Capsule.Tiled": {
         "type": "Project",
         "dependencies": {
-          "JAG.Capsule": "[0.7.0, 0.7.0]"
+          "JAG.Capsule": "[0.8.0, 0.8.0]"
         }
       }
     }
