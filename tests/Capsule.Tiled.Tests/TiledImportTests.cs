@@ -1,4 +1,5 @@
 using Capsule.Assets;
+using Capsule.Rendering;
 using Capsule.Scenes.Documents;
 
 namespace Capsule.Tiled.Tests;
@@ -229,6 +230,7 @@ public sealed class TiledImportTests
     [InlineData("\"source\":\"tiles.tsj\"", "\"source\":\"tiles.tsx\"", "XML")]
     [InlineData("\"source\":\"tiles.tsj\"", "\"source\":\"missing.tsj\"", "is missing")]
     [InlineData("\"data\":[0, 0, 0, 0, 1, 1, 2, 0, 1, 1, 1, 4],", "\"data\":\"AAAA\",\"encoding\":\"base64\",", "CSV")]
+    [InlineData("\"infinite\":false", "\"backgroundcolor\":\"#80101820\",\"infinite\":false", "The background must be opaque")]
     public void Import_RejectsWhatItCannotRepresent(string from, string to, string expected)
     {
         TiledImportException error = ImportMutated(from, to, mutateTileset: false);
@@ -385,6 +387,57 @@ public sealed class TiledImportTests
         map,
         anchor,
         $"\"properties\":[{{\"name\":\"zIndex\",\"type\":\"{type}\",\"value\":{value}}}],{anchor}");
+
+    // Tiled writes an opaque Background Color as #rrggbb and a color property as #aarrggbb.
+    [Fact]
+    public void Import_CarriesTheMapsSceneSettingsIntoTheDocument()
+    {
+        string map = Mutate(
+            SceneDocumentFixtures.Read("room.tmj"),
+            "\"orientation\":\"orthogonal\",",
+            "\"backgroundcolor\":\"#101820\","
+                + "\"properties\":["
+                + "{\"name\":\"ambient\",\"type\":\"color\",\"value\":\"#ff484c68\"},"
+                + "{\"name\":\"baseScene\",\"type\":\"string\",\"value\":\"jag/rooms/room-scene\"},"
+                + "{\"name\":\"camera\",\"type\":\"string\",\"value\":\"jag/rooms/room-camera\"},"
+                + "{\"name\":\"sampling\",\"type\":\"string\",\"value\":\"point\"}],"
+                + "\"orientation\":\"orthogonal\",");
+
+        using SceneDocumentFixtures.Workspace workspace = new();
+        workspace.Write("tiles.tsj", SceneDocumentFixtures.Read("tiles.tsj"));
+        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map));
+
+        Assert.Equal(
+            new SceneSettings
+            {
+                BaseScene = "jag/rooms/room-scene",
+                Camera = "jag/rooms/room-camera",
+                ClearColor = new ColorRgba(16, 24, 32),
+                Ambient = new ColorRgba(72, 76, 104),
+                Sampling = TextureSampling.Point,
+            },
+            document.Settings);
+    }
+
+    [Theory]
+    [InlineData("baseScene", "int", "1", "the map declares 'baseScene' as a 'int' property")]
+    [InlineData("camera", "int", "1", "the map declares 'camera' as a 'int' property")]
+    [InlineData("baseScene", "string", "7", "the map has a 'baseScene' property of '7'")]
+    [InlineData("ambient", "string", "\"#ff484c68\"", "the map declares 'ambient' as a 'string' property")]
+    public void Import_RejectsAMapPropertyOfTheWrongType(string name, string type, string value, string expected)
+    {
+        TiledImportException error = Import(
+            WithMapProperty(SceneDocumentFixtures.Read("room.tmj"), name, type, value),
+            SceneDocumentFixtures.Read("tiles.tsj"));
+
+        Assert.Contains(expected, error.Message, StringComparison.Ordinal);
+    }
+
+    // A custom property on the map itself, as Tiled writes one.
+    private static string WithMapProperty(string map, string name, string type, string value) => Mutate(
+        map,
+        "\"orientation\":\"orthogonal\",",
+        $"\"properties\":[{{\"name\":\"{name}\",\"type\":\"{type}\",\"value\":{value}}}],\"orientation\":\"orthogonal\",");
 
     [Fact]
     public void Import_RejectsAGridWhoseAreaOverflowsAnInt()

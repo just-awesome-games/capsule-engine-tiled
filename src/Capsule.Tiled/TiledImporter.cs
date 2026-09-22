@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Capsule.Assets;
 using Capsule.Physics;
+using Capsule.Rendering;
 using Capsule.Scenes.Documents;
 using Capsule.Tiles;
 
@@ -23,6 +24,17 @@ public static class TiledImporter
     private const string CollisionProperty = "collision";
 
     private const string ZIndexProperty = "zIndex";
+
+    private const string BaseSceneProperty = "baseScene";
+
+    private const string CameraProperty = "camera";
+
+    private const string AmbientProperty = "ambient";
+
+    private const string SamplingProperty = "sampling";
+
+    // Tiled's name for the Color property type.
+    private const string ColorPropertyType = "color";
 
     // The asset-source domain a tileset's atlas is filed under; a document names its texture by the
     // path under it.
@@ -60,9 +72,19 @@ public static class TiledImporter
             mapPath.Replace('\\', '/'),
             Convert.ToHexStringLower(sourceHash.GetHashAndReset()));
 
+        // A map's size is its tiles, so the document authors no size of its own.
+        SceneSettings settings = new()
+        {
+            BaseScene = MapStringPropertyOf(map.Properties, BaseSceneProperty),
+            Camera = MapStringPropertyOf(map.Properties, CameraProperty),
+            ClearColor = OpaqueColor(map.BackgroundColor, mapPath, "Background Color", "The background"),
+            Ambient = MapColorPropertyOf(map.Properties, AmbientProperty, mapPath),
+            Sampling = MapSamplingOf(map.Properties, mapPath),
+        };
+
         try
         {
-            return new SceneDocument(entries, nextEntityId, source);
+            return new SceneDocument(entries, nextEntityId, source, settings);
         }
         catch (Exception ex) when (ex is SceneDocumentFormatException or ArgumentException)
         {
@@ -510,6 +532,96 @@ public static class TiledImporter
         }
 
         return zIndex;
+    }
+
+    // baseScene and camera are optional strings the map itself declares; absent is null. The engine
+    // refuses a value that is not a key, so an empty one fails the import there.
+    private static string? MapStringPropertyOf(TiledProperty[]? properties, string name)
+    {
+        if (TiledProperties.Find(properties, name) is not { } property)
+        {
+            return null;
+        }
+
+        string declared = property.Type ?? StringPropertyType;
+        if (!string.Equals(declared, StringPropertyType, StringComparison.Ordinal))
+        {
+            throw new TiledImportException(
+                $"the map declares '{name}' as a '{declared}' property; set Map > Map Properties > {name} to a string property, or leave it off entirely.");
+        }
+
+        if (property.Value.ValueKind != JsonValueKind.String)
+        {
+            throw new TiledImportException(
+                $"the map has a '{name}' property of '{property.Value}'; set Map > Map Properties > {name} to the key text, or leave it off entirely.");
+        }
+
+        return property.Value.GetString();
+    }
+
+    // Tiled writes a map colour property as "#aarrggbb". The type is checked the way a string
+    // property's is.
+    private static ColorRgba? MapColorPropertyOf(TiledProperty[]? properties, string name, string mapPath)
+    {
+        if (TiledProperties.Find(properties, name) is not { } property)
+        {
+            return null;
+        }
+
+        string declared = property.Type ?? StringPropertyType;
+        if (!string.Equals(declared, ColorPropertyType, StringComparison.Ordinal))
+        {
+            throw new TiledImportException(
+                $"the map declares '{name}' as a '{declared}' property; set Map > Map Properties > {name} to a color property, or leave it off entirely.");
+        }
+
+        string? color = property.Value.ValueKind == JsonValueKind.String ? property.Value.GetString() : property.Value.ToString();
+
+        return OpaqueColor(color, mapPath, $"'{name}' colour", $"The '{name}' colour");
+    }
+
+    // The engine names the accepted spellings when it reads the document, but a typed setting
+    // cannot carry a misspelling that far. The two spellings are the document format's own.
+    private static TextureSampling? MapSamplingOf(TiledProperty[]? properties, string mapPath) =>
+        MapStringPropertyOf(properties, SamplingProperty) switch
+        {
+            null => null,
+            "linear" => TextureSampling.Linear,
+            "point" => TextureSampling.Point,
+            { } other => throw new TiledImportException(
+                $"'{mapPath}' has a '{SamplingProperty}' property of '{other}'; set it to \"linear\" or \"point\", or leave it off entirely."),
+        };
+
+    // Tiled writes "#rrggbb" for an opaque colour and "#aarrggbb" otherwise. The alpha moves last for
+    // ColorRgba.FromHex. A scene's colours are opaque, so any alpha but ff is refused.
+    private static ColorRgba? OpaqueColor(string? color, string mapPath, string owner, string subject)
+    {
+        if (color is null)
+        {
+            return null;
+        }
+
+        ColorRgba parsed;
+        try
+        {
+            parsed = ColorRgba.FromHex(color.Length == 9 && color[0] == '#'
+                ? string.Concat("#".AsSpan(), color.AsSpan(3), color.AsSpan(1, 2))
+                : color);
+        }
+        catch (FormatException ex)
+        {
+            throw new TiledImportException(
+                $"'{mapPath}' has a {owner} of '{color}', which is not a colour Tiled writes; pick one in Tiled's colour picker, or leave it off entirely.",
+                ex);
+        }
+
+        if (parsed.A != byte.MaxValue)
+        {
+            throw new TiledImportException(
+                $"'{mapPath}' has a translucent {owner} '{color}'. {subject} must be opaque: set its alpha to 255.");
+        }
+
+        return parsed;
     }
 
     // One layer paints from one tileset, because a grid cuts its cells from one texture. A layer
