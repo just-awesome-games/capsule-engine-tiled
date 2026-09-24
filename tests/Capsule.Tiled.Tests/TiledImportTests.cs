@@ -64,27 +64,29 @@ public sealed class TiledImportTests
     }
 
     [Fact]
-    public void Import_RefusesAnImageOutsideTheTexturesDomain()
+    public void Import_RefusesAnImageOutsideTheAssetRoot()
     {
-        using SceneDocumentFixtures.Workspace workspace = TilesetAtlas("art\\/tiles.png");
+        using SceneDocumentFixtures.Workspace workspace = TilesetAtlas("..\\/art\\/tiles.png");
 
         TiledImportException error = Assert.Throws<TiledImportException>(
             () => TiledImporter.Import("assets/scenes/room.tmj", dependencyRoot: "assets"));
 
-        Assert.Contains("names a texture by its path under", error.Message, StringComparison.Ordinal);
-        Assert.Contains("Textures", error.Message, StringComparison.Ordinal);
+        Assert.Contains("move the image under that root", error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Import_NamesANestedAtlasByItsPathUnderTheTexturesRoot()
+    // An image anywhere under the asset root is named by its path there.
+    [Theory]
+    [InlineData("Textures\\/terrain\\/cave.png", "Textures/terrain/cave")]
+    [InlineData("art\\/terrain\\/cave.png", "art/terrain/cave")]
+    public void Import_NamesANestedAtlasByItsPathUnderTheAssetRoot(string image, string key)
     {
-        using SceneDocumentFixtures.Workspace workspace = TilesetAtlas("Textures\\/terrain\\/cave.png");
+        using SceneDocumentFixtures.Workspace workspace = TilesetAtlas(image);
 
         SceneDocument document = TiledImporter.Import("assets/scenes/room.tmj", dependencyRoot: "assets");
 
-        Assert.Equal(new TextureHandle("terrain/cave", ".png"), TileMapOf(document).Grid.Texture);
+        Assert.Equal(new TextureHandle(key, ".png"), TileMapOf(document).Grid.Texture);
         Assert.Contains(
-            "\"texture\": \"terrain/cave.png\"",
+            $"\"texture\": \"{key}.png\"",
             SceneDocumentFile.ToJson(document),
             StringComparison.Ordinal);
     }

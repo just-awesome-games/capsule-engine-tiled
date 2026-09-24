@@ -1,6 +1,6 @@
 # Capsule Tiled
 
-Capsule Tiled imports [Tiled](https://www.mapeditor.org/) maps into [Capsule Engine](https://github.com/just-awesome-games/capsule-engine) scenes at build time. Each map under a game's scene sources becomes a scene document the game loads by name.
+Capsule Tiled imports [Tiled](https://www.mapeditor.org/) maps into [Capsule Engine](https://github.com/just-awesome-games/capsule-engine) scenes at build time. Each map under a game's authoring tree becomes a scene document the game loads by name.
 
 ## Quick start
 
@@ -11,9 +11,9 @@ Capsule Tiled imports [Tiled](https://www.mapeditor.org/) maps into [Capsule Eng
    <PackageReference Include="JAG.Capsule.Tiled" Version="[0.6.0]" PrivateAssets="all" />
    ```
 
-2. Save maps as `.tmj` and tilesets as `.tsj` under the logic project's `Assets/Scenes/`. Tileset images go under `Assets/Textures/`.
+2. Save maps as `.tmj`, tilesets as `.tsj` and tileset images anywhere under the logic project's `Assets/`.
 
-3. Build. A map's key is its path under `Scenes/`, normalized by Capsule's [scene rules](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/scenes.md). `Scenes/Highway/Room02.tmj` is keyed `highway/room-02`.
+3. Build. A map's key is its path under `Assets/`, normalized by Capsule's [asset rules](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/assets.md#named-assets). `Scenes/Highway/Room02.tmj` is keyed `scenes/highway/room-02`.
 
 The package has no settings of its own. It runs where Capsule imports scenes (`CapsuleImportScenes`) and reads maps from `CapsuleAssetSourcesDir`. A map whose tile size differs from `CapsuleTileSize` fails the build. Maps under a directory holding a `.capsuleignore` build but never publish. An import error names the file that failed.
 
@@ -29,7 +29,7 @@ Maps are orthogonal, finite, square-tiled, CSV-encoded and unflipped. A tileset 
 | Map `baseScene` string property | `baseScene`, the abstract `Scene` subclass key |
 | Map `camera` string property | `camera`, the `Camera` subclass key |
 | Tile layer | a tile map entry drawn from one tileset |
-| Tileset image path under `Assets/Textures/` | tile map `texture`, for example `Terrain/Cave.png` |
+| Tileset image path under `Assets/` | tile map `texture`, for example `Textures/Terrain/Cave.png` |
 | Tileset columns | tile map `columns` |
 | Tile Class and local tile id | tile type `type` and `cell` |
 | Tile `layer` string property | tile type `layer` |
@@ -42,7 +42,7 @@ An object's `zIndex` overrides its layer's. A placement with no `zIndex` keeps i
 
 ## Property types
 
-The build seeds `<project>.tiled-project` beside the maps when the scenes root holds no `.tiled-project`. Opening it in Tiled 1.9 or later adds the `CapsuleLayer` class, which gives a layer's Class dropdown a `zIndex`. The build never overwrites the file. An existing project imports the same type through Project > Import Types, from `capsule-property-types.json` in the package's `buildTransitive/`.
+The build seeds `<project>.tiled-project` at the root of `Assets/` while no `.tiled-project` exists under it. Opening it in Tiled 1.9 or later adds the `CapsuleLayer` class, which gives a layer's Class dropdown a `zIndex`. The build never overwrites the file. An existing project imports the same type through Project > Import Types, from `capsule-property-types.json` in the package's `buildTransitive/`.
 
 ## Developing
 

@@ -40,16 +40,17 @@ public sealed class PropertyTypesTests
         Assert.Equal("int", member["type"]!.GetValue<string>());
     }
 
-    // The seed lands where a developer opens it. A second build leaves the edited file alone.
+    // The seed lands at the asset root, holding every map wherever it is filed. A second build leaves
+    // the edited file alone.
     [Fact]
     public void TheBuildSeedsTheProjectOnceAndNeverOverwritesIt()
     {
         using SceneDocumentFixtures.Workspace workspace = new();
-        Directory.CreateDirectory("sources/Scenes");
-        workspace.Write("sources/Scenes/room.tmj", SceneDocumentFixtures.Read("room.tmj"));
-        workspace.Write("sources/Scenes/tiles.tsj", SceneDocumentFixtures.Read("tiles.tsj"));
+        Directory.CreateDirectory("sources/Levels");
+        workspace.Write("sources/Levels/room.tmj", SceneDocumentFixtures.Read("room.tmj"));
+        workspace.Write("sources/Levels/tiles.tsj", SceneDocumentFixtures.Read("tiles.tsj"));
         string sources = Path.GetFullPath("sources");
-        string seeded = Path.Combine(sources, "Scenes", "Capsule.Tiled.Tests.tiled-project");
+        string seeded = Path.Combine(sources, "Capsule.Tiled.Tests.tiled-project");
 
         Seed(sources);
         Assert.Equal(SceneDocumentFixtures.Read(ProjectFile), File.ReadAllText(seeded));

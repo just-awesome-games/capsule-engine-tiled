@@ -10,11 +10,11 @@ namespace Capsule.Tiled.Tests;
 public sealed class BuildIntegrationTests
 {
     private static string Shipped(string key) =>
-        Path.Combine(AppContext.BaseDirectory, "assets", "scenes", key + ".scene.json");
+        Path.Combine(AppContext.BaseDirectory, "assets", key + ".scene.json");
 
     [Theory]
-    [InlineData("room")]
-    [InlineData("halls/room")]
+    [InlineData("scenes/room")]
+    [InlineData("scenes/halls/room")]
     public void TheBuildShipsAMapAsACanonicalSceneDocumentAtItsKey(string key)
     {
         string path = Shipped(key);
@@ -24,8 +24,8 @@ public sealed class BuildIntegrationTests
     }
 
     [Theory]
-    [InlineData("room", "Assets/Scenes/room.tmj")]
-    [InlineData("halls/room", "Assets/Scenes/halls/room.tmj")]
+    [InlineData("scenes/room", "Assets/Scenes/room.tmj")]
+    [InlineData("scenes/halls/room", "Assets/Scenes/halls/room.tmj")]
     public void TheShippedDocumentKeepsItsMapAsItsProvenance(string key, string source)
     {
         SceneDocument document = SceneDocumentFile.Load(Shipped(key));
@@ -35,12 +35,12 @@ public sealed class BuildIntegrationTests
     }
 
     [Fact]
-    public void TheShippedDocumentNamesANestedAtlasByItsPathUnderTextures()
+    public void TheShippedDocumentNamesANestedAtlasByItsPathUnderAssets()
     {
-        SceneDocument document = SceneDocumentFile.Load(Shipped("halls/room"));
+        SceneDocument document = SceneDocumentFile.Load(Shipped("scenes/halls/room"));
 
         Assert.Equal(
-            new TextureHandle("terrain/tiles", ".png"),
+            new TextureHandle("textures/terrain/tiles", ".png"),
             document.Entries[0].TileMap!.Value.Grid.Texture);
     }
 
@@ -49,10 +49,10 @@ public sealed class BuildIntegrationTests
     [Fact]
     public void TheBuildNormalizesAnAuthoredSpellingIntoTheShippedKeyAndHandle()
     {
-        SceneDocument document = SceneDocumentFile.Load(Shipped("upper-halls/room-02"));
+        SceneDocument document = SceneDocumentFile.Load(Shipped("scenes/upper-halls/room-02"));
 
         Assert.Equal(
-            new TextureHandle("cave-walls/cave-tiles", ".png"),
+            new TextureHandle("textures/cave-walls/cave-tiles", ".png"),
             document.Entries[0].TileMap!.Value.Grid.Texture);
     }
 
@@ -61,10 +61,10 @@ public sealed class BuildIntegrationTests
     [Fact]
     public void AMapUnderAMarkedDirectoryShipsOnlyOutsideAShippingBuild()
     {
-        string path = Shipped("dev/scratch");
+        string path = Shipped("scenes/dev/scratch");
 
         Assert.True(File.Exists(path), $"expected the build to ship {path}");
-        Assert.DoesNotContain("dev/scratch", HandedToCapsule(shipping: true));
+        Assert.DoesNotContain("Scenes/dev/scratch", HandedToCapsule(shipping: true));
     }
 
     // Read off the hand-over target. A shipping build of this project would fight the test host for

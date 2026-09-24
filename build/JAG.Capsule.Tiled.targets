@@ -1,6 +1,6 @@
 <Project>
 
-  <!-- Every *.tmj under the game's scene sources becomes a *.scene.json under obj/ that is handed
+  <!-- Every *.tmj under the game's authoring tree becomes a *.scene.json under obj/ that is handed
        to Capsule. This file defines no property of its own.
 
        The Capsule contracts it relies on:
@@ -35,7 +35,7 @@
     <!-- Every glob excludes Capsule's development-only files. Capsule fills
          @(_CapsuleDevelopmentOnly) statically and it is final here in either import order. -->
     <ItemGroup>
-      <CapsuleTiledScene Include="$(CapsuleAssetSourcesDir)/Scenes/**/*.tmj"
+      <CapsuleTiledScene Include="$(CapsuleAssetSourcesDir)/**/*.tmj"
                          Exclude="@(_CapsuleDevelopmentOnly)" />
 
       <!-- Tilesets are inputs to the maps that read them, not sources of their own. -->
@@ -43,8 +43,8 @@
                            Exclude="@(_CapsuleDevelopmentOnly)" />
     </ItemGroup>
 
-    <!-- A map's key is its path under the scenes root with forward slashes and no extension.
-         Capsule normalizes it into the shipped key. This ItemGroup is separate and qualified because
+    <!-- A map's key is its path under the asset root with forward slashes and no extension. Capsule
+         normalizes it into the shipped key. This ItemGroup is separate and qualified because
          %(RecursiveDir) on the Include above would batch over the target. -->
     <ItemGroup>
       <CapsuleTiledScene>
@@ -109,21 +109,22 @@
     </ItemGroup>
   </Target>
 
-  <!-- Seeds capsule.tiled-project, which carries the CapsuleLayer type and opens on its own folder.
-       The seed lands only where the scenes root has no .tiled-project and never overwrites one.
-       The file belongs to the developer once it lands. -->
+  <!-- Seeds capsule.tiled-project, which carries the CapsuleLayer type and opens on its own folder,
+       at the asset root, so it holds every map wherever the game files it. The seed lands only while
+       no .tiled-project exists anywhere under that root. The file belongs to the developer once it
+       lands. -->
   <Target Name="CapsuleTiledSeedProject"
           Condition="'$(CapsuleImportScenes)' == 'true'"
           DependsOnTargets="CapsuleTiledInit"
           BeforeTargets="CapsuleTiledDeriveSceneDocuments">
 
     <ItemGroup>
-      <_CapsuleTiledExistingProject Include="$(CapsuleAssetSourcesDir)/Scenes/*.tiled-project" />
+      <_CapsuleTiledExistingProject Include="$(CapsuleAssetSourcesDir)/**/*.tiled-project" />
     </ItemGroup>
 
     <Copy Condition="'@(CapsuleTiledScene)' != '' and '@(_CapsuleTiledExistingProject)' == ''"
           SourceFiles="$(MSBuildThisFileDirectory)capsule.tiled-project"
-          DestinationFiles="$(CapsuleAssetSourcesDir)/Scenes/$(MSBuildProjectName).tiled-project" />
+          DestinationFiles="$(CapsuleAssetSourcesDir)/$(MSBuildProjectName).tiled-project" />
   </Target>
 
   <!-- Partially incremental. Maps correspond one-to-one with documents, and MSBuild passes only the

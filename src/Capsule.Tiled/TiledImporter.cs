@@ -38,9 +38,6 @@ internal static class TiledImporter
 
     private const string ColorPropertyType = "color";
 
-    // A document names a tileset's atlas by its path under this asset-source directory.
-    private const string TextureDirectory = "Textures";
-
     // Tiled omits the type when it writes a string property.
     private const string StringPropertyType = "string";
 
@@ -228,7 +225,7 @@ internal static class TiledImporter
             indexByGid);
     }
 
-    // The handle's name is the atlas's path under the textures root, directories included.
+    // The handle's name is the atlas's path under the asset root, directories included.
     private static TextureHandle TextureOf(
         TiledTileset tileset,
         string name,
@@ -236,27 +233,27 @@ internal static class TiledImporter
         string? dependencyRoot)
     {
         string image = Path.GetFullPath(Path.Combine(tilesetDirectory, tileset.Image!));
-        string? texturesRoot = dependencyRoot is null ? null : Path.Combine(dependencyRoot, TextureDirectory);
 
-        if (texturesRoot is not null && !IsWithin(image, texturesRoot))
+        if (dependencyRoot is not null && !IsWithin(image, dependencyRoot))
         {
             throw new TiledImportException(
-                $"tileset '{name}' draws from '{tileset.Image}', which resolves to '{image}'; a scene document names a texture by its path under '{texturesRoot}', so move the image under that root.");
+                $"tileset '{name}' draws from '{tileset.Image}', which resolves to '{image}'; a scene document names a texture by its path under '{dependencyRoot}', so move the image under that root.");
         }
 
         string extension = Path.GetExtension(image);
         if (extension.Length == 0)
         {
             throw new TiledImportException(
-                $"tileset '{name}' draws from '{tileset.Image}'; a scene document names a texture by its path under '{TextureDirectory}', extension included, so the image needs one.");
+                $"tileset '{name}' draws from '{tileset.Image}'; a scene document names a texture by its path, extension included, so the image needs one.");
         }
 
         // A run with no dependency root names the atlas by its stem. The build always passes a root.
-        string handle = texturesRoot is null
-            ? Path.GetFileNameWithoutExtension(image)
-            : Path.GetRelativePath(texturesRoot, image).Replace('\\', '/')[..^extension.Length];
+        if (dependencyRoot is null)
+        {
+            return new TextureHandle(Path.GetFileNameWithoutExtension(image), extension);
+        }
 
-        return new TextureHandle(handle, extension);
+        return new TextureHandle(Path.GetRelativePath(dependencyRoot, image).Replace('\\', '/')[..^extension.Length], extension);
     }
 
     private static bool IsWithin(string path, string root)
