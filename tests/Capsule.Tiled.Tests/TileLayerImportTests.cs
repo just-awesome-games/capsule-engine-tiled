@@ -1,4 +1,3 @@
-using Capsule.Physics;
 using Capsule.Scenes.Documents;
 using Capsule.Tiles;
 
@@ -14,17 +13,21 @@ public sealed class TileLayerImportTests
             "{\"name\":\"layer\",\"type\":\"string\",\"value\":\" solid \"},");
 
         Assert.Equal("solid", Palette(document)[1].Layer);
-        Assert.Equal(CellFaces2D.All, Palette(document)[1].CollidableFaces);
+        Assert.False(Palette(document)[1].OneWay);
         Assert.Null(Palette(document)[2].Layer);
     }
 
-    [Fact]
-    public void Import_ReadsATilesCollidableFacesProperty()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Import_ReadsATilesOneWayAndSolidSidesProperties(bool solidSides)
     {
         SceneDocument document = ImportWithTileProperty(
-            "{\"name\":\"layer\",\"type\":\"string\",\"value\":\"platform\"},{\"name\":\"collidableFaces\",\"type\":\"string\",\"value\":\" top , \"},");
+            "{\"name\":\"layer\",\"type\":\"string\",\"value\":\"platform\"},{\"name\":\"oneWay\",\"type\":\"bool\",\"value\":true},"
+            + (solidSides ? "{\"name\":\"solidSides\",\"type\":\"bool\",\"value\":true}," : string.Empty));
 
-        Assert.Equal(CellFaces2D.Top, Palette(document)[1].CollidableFaces);
+        Assert.True(Palette(document)[1].OneWay);
+        Assert.Equal(solidSides, Palette(document)[1].SolidSides);
     }
 
     [Fact]
@@ -45,7 +48,17 @@ public sealed class TileLayerImportTests
 
         Assert.Contains("no longer reads", error.Message, StringComparison.Ordinal);
         Assert.Contains("'layer'", error.Message, StringComparison.Ordinal);
-        Assert.Contains("'collidableFaces'", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Import_RejectsATileStillCarryingACollidableFacesProperty()
+    {
+        TiledImportException error = Assert.Throws<TiledImportException>(
+            () => ImportWithTileProperty(
+                "{\"name\":\"layer\",\"type\":\"string\",\"value\":\"platform\"},{\"name\":\"collidableFaces\",\"type\":\"string\",\"value\":\"top\"},"));
+
+        Assert.Contains("'collidableFaces' property, which Capsule no longer reads", error.Message, StringComparison.Ordinal);
+        Assert.Contains("'oneWay'", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -55,53 +68,6 @@ public sealed class TileLayerImportTests
             () => ImportWithTileProperty("{\"name\":\"layer\",\"type\":\"string\",\"value\":\"solid,platform\"},"));
 
         Assert.Contains("naming 2 layers", error.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Import_RejectsACollidableFacesPropertyThatSpellsSomethingElse()
-    {
-        TiledImportException error = Assert.Throws<TiledImportException>(
-            () => ImportWithTileProperty(
-                "{\"name\":\"layer\",\"type\":\"string\",\"value\":\"platform\"},{\"name\":\"collidableFaces\",\"type\":\"string\",\"value\":\"sideways\"},"));
-
-        Assert.Contains("naming 'sideways'", error.Message, StringComparison.Ordinal);
-        Assert.Contains("left, right, top, bottom", error.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Import_RejectsCollidableFacesOnATileWithNoLayer()
-    {
-        TiledImportException error = Assert.Throws<TiledImportException>(
-            () => ImportWithTileProperty("{\"name\":\"collidableFaces\",\"type\":\"string\",\"value\":\"top\"},"));
-
-        Assert.Contains("no 'layer'", error.Message, StringComparison.Ordinal);
-    }
-
-    // Present and naming nothing is an authoring mistake, not a default: read as absent, an empty
-    // collidableFaces would silently ship a solid tile.
-    [Theory]
-    [InlineData("")]
-    [InlineData(" , , ")]
-    public void Import_RejectsACollidableFacesPropertyThatNamesNothing(string authored)
-    {
-        TiledImportException error = Assert.Throws<TiledImportException>(
-            () => ImportWithTileProperty(
-                $"{{\"name\":\"layer\",\"type\":\"string\",\"value\":\"platform\"}},{{\"name\":\"collidableFaces\",\"type\":\"string\",\"value\":\"{authored}\"}},"));
-
-        Assert.Contains("naming nothing", error.Message, StringComparison.Ordinal);
-        Assert.Contains("remove the property", error.Message, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData(" , , ")]
-    public void AnEmptyCollidableFacesPropertyWithNoLayer_StillReachesTheFacesWithoutLayerRefusal(string authored)
-    {
-        TiledImportException error = Assert.Throws<TiledImportException>(
-            () => ImportWithTileProperty(
-                $"{{\"name\":\"collidableFaces\",\"type\":\"string\",\"value\":\"{authored}\"}},"));
-
-        Assert.Contains("no 'layer'", error.Message, StringComparison.Ordinal);
     }
 
     [Theory]

@@ -19,6 +19,9 @@ public static class TiledImporter
 
     private const string LayerProperty = "layer";
 
+    private const string OneWayProperty = "oneWay";
+    private const string SolidSidesProperty = "solidSides";
+
     private const string CollidableFacesProperty = "collidableFaces";
 
     private const string CollisionProperty = "collision";
@@ -45,6 +48,9 @@ public static class TiledImporter
 
     // Tiled's name for the Int property type, which it always writes.
     private const string IntPropertyType = "int";
+
+    // Tiled's name for the Bool property type, which it always writes.
+    private const string BoolPropertyType = "bool";
 
     // Tiled packs flip and rotation into the top nibble of a gid.
     private const uint OrientationFlags = 0xF000_0000u;
@@ -311,7 +317,12 @@ public static class TiledImporter
 
             string? layer = LayerOf(authored);
             indexByGid[tileset.FirstGid + tile.Id] = palette.Count;
-            palette.Add(new TileDefinition(tileClass, tile.Id, layer, FacesOf(authored, layer)));
+            palette.Add(new TileDefinition(
+                tileClass,
+                tile.Id,
+                layer,
+                OneWay: BoolOf(authored, OneWayProperty),
+                SolidSides: BoolOf(authored, SolidSidesProperty)));
         }
 
         return [.. palette];
@@ -322,7 +333,13 @@ public static class TiledImporter
         if (authored.Property(CollisionProperty) is not null)
         {
             throw new TiledImportException(
-                $"{authored} has a '{CollisionProperty}' property, which Capsule no longer reads; name the collision layer the tile is on in a '{LayerProperty}' property, and which of its sides collide in a '{CollidableFacesProperty}' one.");
+                $"{authored} has a '{CollisionProperty}' property, which Capsule no longer reads; name the collision layer the tile is on in a '{LayerProperty}' property.");
+        }
+
+        if (authored.Property(CollidableFacesProperty) is not null)
+        {
+            throw new TiledImportException(
+                $"{authored} has a '{CollidableFacesProperty}' property, which Capsule no longer reads; a tile that blocks only from above takes a bool '{OneWayProperty}' property set to true instead.");
         }
 
         if (authored.Property(ColorProperty) is not null)
@@ -353,38 +370,24 @@ public static class TiledImporter
         };
     }
 
-    private static CellFaces2D FacesOf(AuthoredTile authored, string? layer)
+    // A tile's bool property, oneWay or solidSides. Absent is false. The engine refuses oneWay on a
+    // tile with no layer, and solidSides on one that is not oneWay.
+    private static bool BoolOf(AuthoredTile authored, string propertyName)
     {
-        string expected = $"a comma-separated list of {string.Join(", ", TileFaceNames.All)}";
-        if (!TryListOf(authored, CollidableFacesProperty, expected, out string[] names))
+        if (authored.Property(propertyName) is not { } property)
         {
-            return CellFaces2D.All;
+            return false;
         }
 
-        // Asked of the property's presence, not of what it holds: an empty one on a tile with no
-        // layer is refused here rather than passing as absent.
-        if (layer is null)
-        {
-            throw new TiledImportException(
-                $"{authored} has '{CollidableFacesProperty}' but no '{LayerProperty}'; a tile that collides as nothing has no sides to declare.");
-        }
-
-        if (names.Length == 0)
+        string declared = property.Type ?? StringPropertyType;
+        if (!string.Equals(declared, BoolPropertyType, StringComparison.Ordinal)
+            || property.Value.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
         {
             throw new TiledImportException(
-                $"{authored} has a '{CollidableFacesProperty}' property naming nothing; give it at least one of {string.Join(", ", TileFaceNames.All)}, or remove the property to collide on every side.");
+                $"{authored} declares '{propertyName}' as a '{declared}' property; it has to be a bool property, or be left off entirely.");
         }
 
-        CellFaces2D faces = CellFaces2D.None;
-        foreach (string name in names)
-        {
-            faces |= TileFaceNames.TryParse(name, out CellFaces2D one)
-                ? one
-                : throw new TiledImportException(
-                    $"{authored} has '{CollidableFacesProperty}' naming '{name}'; it has to be {expected}, or be left off entirely.");
-        }
-
-        return faces;
+        return property.Value.GetBoolean();
     }
 
     // A comma-separated string property, trimmed, with blank entries dropped. Returns whether the

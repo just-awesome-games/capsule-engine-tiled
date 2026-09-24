@@ -21,7 +21,7 @@ There is nothing to configure. The module activates where Capsule imports scenes
 
 ## Tiled subset
 
-The importer reads `.tmj` maps that are orthogonal, finite, square-tiled, CSV-encoded and unflipped. A tileset tile's Class is the tile type, its local tile id is the type's `cell`, and its optional `layer` and `collidableFaces` properties map to the scene document's palette fields.
+The importer reads `.tmj` maps that are orthogonal, finite, square-tiled, CSV-encoded and unflipped. A tileset tile's Class is the tile type, its local tile id is the type's `cell`, and its optional `layer` string and `oneWay` and `solidSides` bool properties map to the scene document's palette fields.
 
 A tile layer, an object layer, and an object each take an optional custom `zIndex` int property: the draw band the placement takes in the document, higher drawing later. An object layer's band is the default for the objects on it, and an object's own `zIndex` overrides it. Where nothing authors one the document carries no band at all and the entity keeps the one its class sets, so `0` is a band an author asks for, never the absence of one. The authored layer stack is already the draw order among the map's own layers; a band is what places them against the entities a game spawns at runtime.
 
@@ -37,7 +37,7 @@ Capsule's vocabulary ships as Tiled custom property types, so the names above ar
 
 The build seeds `<project>.tiled-project` beside the maps whenever the scenes root holds no `.tiled-project` at all — open that one in Tiled and the types are there. It is never overwritten afterwards; the file is the game's from the moment it lands, and Tiled rewrites it as folders and types are added. For a project already kept there, Project → Import Types once, from `capsule-property-types.json` in the package's `buildTransitive/`.
 
-Two types ship. `CapsuleCollidableFaces` is a flags enum of `left`, `right`, `top` and `bottom` stored as a string: give a tile's `collidableFaces` property that type and the sides are checkboxes. `CapsuleLayer` is a class used as a layer's Class, which brings `zIndex` with it, so a whole tile layer or object layer is banded from the Class dropdown.
+One type ships. `CapsuleLayer` is a class used as a layer's Class, which brings `zIndex` with it, so a whole tile layer or object layer is banded from the Class dropdown.
 
 Nothing ships for tiles or objects themselves, because Capsule has already spent their Class: a tile's Class is its tile type and an object's Class is its entry `type`. A tile's `layer` is a plain string property, as collision layer names are the game's, and an object's own `zIndex` is a plain int property overriding the band its layer sets. Nothing ships for the map either: `baseScene` and `camera` are plain string properties, because Capsule's classes are named by key, not picked from a dropdown.
 

@@ -23,14 +23,14 @@
          "id":1,
          "properties":[
                 {
-                 "name":"collidableFaces",
-                 "type":"string",
-                 "value":"top"
-                },
-                {
                  "name":"layer",
                  "type":"string",
                  "value":"platform"
+                },
+                {
+                 "name":"oneWay",
+                 "type":"bool",
+                 "value":true
                 }],
          "type":"ledge"
         }],

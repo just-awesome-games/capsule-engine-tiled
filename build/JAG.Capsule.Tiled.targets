@@ -113,7 +113,7 @@
   </Target>
 
   <!-- Capsule's Tiled vocabulary, delivered by default: capsule.tiled-project carries the property
-       types (the CapsuleCollidableFaces enum and the CapsuleLayer class) and names '.' as its
+       type (the CapsuleLayer class) and names '.' as its
        folder, so opening it in Tiled shows the maps beside it with the types already defined.
 
        Seeded only where the scenes root has no .tiled-project at all, and never overwritten: the

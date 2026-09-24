@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text.Json.Nodes;
-using Capsule.Scenes.Documents;
 
 namespace Capsule.Tiled.Tests;
 
@@ -25,22 +24,6 @@ public sealed class PropertyTypesTests
         Assert.Equal(
             ["."],
             Project()["folders"]!.AsArray().Select(static folder => folder!.GetValue<string>()).ToArray());
-    }
-
-    [Fact]
-    public void TheCollidableFacesEnumSpellsExactlyTheFacesTheImporterParses()
-    {
-        JsonNode faces = TypeNamed("CapsuleCollidableFaces");
-
-        Assert.Equal("enum", faces["type"]!.GetValue<string>());
-
-        // The importer reads a comma-separated string and trims it, which is how Tiled writes a
-        // string-storage flags enum. Saved as numbers the value would be a bitfield it cannot read.
-        Assert.Equal("string", faces["storageType"]!.GetValue<string>());
-        Assert.True(faces["valuesAsFlags"]!.GetValue<bool>());
-        Assert.Equal(
-            TileFaceNames.All,
-            faces["values"]!.AsArray().Select(static value => value!.GetValue<string>()).ToArray());
     }
 
     [Fact]
