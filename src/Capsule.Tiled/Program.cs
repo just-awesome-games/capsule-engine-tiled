@@ -4,14 +4,14 @@ namespace Capsule.Tiled;
 
 internal static class Program
 {
-    // JAG.Capsule.Tiled.targets is the only caller; the arguments are positional in this order.
+    // JAG.Capsule.Tiled.targets is the only caller. The arguments are positional in this order.
     private const string Usage = """
         Capsule.Tiled --out <dir> [--dependency-root <dir>] [--tile-size <px>] --scenes-from <list.txt>
 
-          Translates every map named in <list.txt> (one 'key|path' per line, the path relative to
-          the working directory) into <dir>/<key>.scene.json. --dependency-root confines external
-          tilesets and their images to a tracked tree; --tile-size is the size the game declares.
-          Exit 0 when all succeeded, 1 when any failed, 2 on a usage error.
+          Translates every map named in <list.txt> into <dir>/<key>.scene.json. Each line is
+          'key|path', with the path relative to the working directory. --dependency-root confines
+          external tilesets and their images to a tracked tree. --tile-size is the size the game
+          declares. Exit 0 when all succeeded, 1 when any failed, 2 on a usage error.
         """;
 
     private static int Main(string[] args)

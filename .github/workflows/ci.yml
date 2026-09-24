@@ -15,13 +15,11 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
-  # The standing lane: the module built from source beside the engine at its main head, the way it
-  # is developed, with no pin in the loop (D-studio-technical-021). An engine change the module
-  # needs is pushed before the module change.
+  # The module built from source beside the engine's main head, with no pin. An engine change the
+  # module needs is pushed first.
   source:
     runs-on: ubuntu-latest
-    # Source mode is carried by the environment rather than a flag per step, because dotnet format
-    # takes no MSBuild properties and would otherwise evaluate the project in package mode.
+    # Source mode is set in the environment because dotnet format takes no MSBuild properties.
     env:
       CapsuleSourcePath: ../capsule-engine
     steps:
@@ -55,9 +53,8 @@ jobs:
         working-directory: capsule-engine-tiled
         run: dotnet test --configuration Release --no-build
 
-  # The release lane: the pinned Capsule package from NuGet, the committed lock files, and the pack
-  # a consumer would install. Runs on demand ahead of a release (RELEASING.md), not on every push:
-  # between releases the pinned package is expected to lag the engine's main.
+  # The pinned Capsule package, the committed lock files and the pack a consumer installs. It runs
+  # on demand ahead of a release because the pin lags the engine's main between releases.
   packages:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -95,7 +92,7 @@ jobs:
           unzip -l "$nupkg"
           for entry in buildTransitive/JAG.Capsule.Tiled.targets buildTransitive/capsule.tiled-project buildTransitive/capsule-property-types.json tools/net10.0/any/Capsule.Tiled.dll; do
             if ! unzip -l "$nupkg" | grep -q " $entry\$"; then
-              echo "::error::$nupkg is missing $entry — a consumer's build would not run the importer."
+              echo "::error::$nupkg is missing $entry. A consumer's build would not run the importer."
               exit 1
             fi
           done

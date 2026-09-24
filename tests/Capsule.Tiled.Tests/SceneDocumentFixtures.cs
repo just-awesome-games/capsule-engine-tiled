@@ -4,8 +4,7 @@ namespace Capsule.Tiled.Tests;
 
 internal static class SceneDocumentFixtures
 {
-    // The build state the specs that drive this repository's own targets need: where the
-    // repository is, and which mode this assembly was built in.
+    // The repository root and build mode, for specs that drive this repository's targets.
     internal static string Metadata(string key) =>
         typeof(SceneDocumentFixtures).Assembly
             .GetCustomAttributes<AssemblyMetadataAttribute>()
@@ -57,7 +56,7 @@ internal static class SceneDocumentFixtures
             return name;
         }
 
-        // Out of the tree before deleting it: a working directory cannot be removed on Windows.
+        // Windows cannot remove a working directory. Leave the tree before deleting it.
         public void Dispose()
         {
             Directory.SetCurrentDirectory(_entryDirectory);

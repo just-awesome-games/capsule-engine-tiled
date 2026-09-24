@@ -1,11 +1,7 @@
 namespace Capsule.Tiled;
 
-public sealed class TiledImportException : Exception
+internal sealed class TiledImportException : Exception
 {
-    public TiledImportException()
-    {
-    }
-
     public TiledImportException(string message)
         : base(message)
     {

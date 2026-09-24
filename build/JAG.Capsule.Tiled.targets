@@ -1,21 +1,24 @@
 <Project>
 
-  <!-- Tiled scene authoring for a Capsule game: every *.tmj under the game's scene sources becomes
-       a *.scene.json under obj/, handed to Capsule's scene-document hook. Inert unless
-       CapsuleImportScenes is true, and it defines no property of its own.
+  <!-- Every *.tmj under the game's scene sources becomes a *.scene.json under obj/ that is handed
+       to Capsule. This file defines no property of its own.
 
-       Everything reading a Capsule property must happen inside a target: NuGet imports this file
-       before JAG.Capsule.Build's targets, so CapsuleImportScenes and CapsuleAssetSourcesDir are
-       not final at evaluation time. The hand-over is BeforeTargets for the same reason. -->
+       The Capsule contracts it relies on:
+       - Properties: CapsuleImportScenes, CapsuleAssetSourcesDir, CapsuleTileSize, CapsuleDotNetHost.
+       - Targets: CapsuleAssetSourcesInit, and CapsuleCollectSceneDocuments as the hand-over seam.
+       - Items: _CapsuleDevelopmentOnly, and CapsuleSceneDocument with CapsuleDocumentKey metadata.
+
+       NuGet imports this file before JAG.Capsule.Build's targets. Capsule properties are not final
+       at evaluation time, and everything that reads one runs inside a target. -->
 
   <PropertyGroup>
     <CapsuleTiledToolProject Condition="'$(CapsuleTiledToolProject)' == '' and Exists('$(MSBuildThisFileDirectory)../src/Capsule.Tiled/Capsule.Tiled.csproj')">$(MSBuildThisFileDirectory)../src/Capsule.Tiled/Capsule.Tiled.csproj</CapsuleTiledToolProject>
     <CapsuleTiledToolAssembly Condition="'$(CapsuleTiledToolAssembly)' == '' and Exists('$(MSBuildThisFileDirectory)../tools/net10.0/any/Capsule.Tiled.dll')">$(MSBuildThisFileDirectory)../tools/net10.0/any/Capsule.Tiled.dll</CapsuleTiledToolAssembly>
   </PropertyGroup>
 
-  <!-- Source mode only, where the consuming repository's Directory.Build.targets imports the
-       engine ahead of this file and the property is already final. The tool rides the game's
-       restore and build graph but contributes nothing to its output or publish set. -->
+  <!-- Source mode only. There the consuming repository imports the engine ahead of this file and
+       CapsuleImportScenes is final. The tool joins the game's build graph and adds nothing to its
+       output or publish set. -->
   <ItemGroup Condition="'$(CapsuleTiledToolProject)' != '' and '$(CapsuleImportScenes)' == 'true'">
     <ProjectReference Include="$(CapsuleTiledToolProject)"
                       ReferenceOutputAssembly="false"
@@ -29,26 +32,20 @@
   <Target Name="CapsuleTiledInit"
           Condition="'$(CapsuleImportScenes)' == 'true'"
           DependsOnTargets="CapsuleAssetSourcesInit">
-    <!-- Every authoring glob honours Capsule's development-only marker: a directory holding a
-         .capsuleignore contributes nothing to a shipping build. @(_CapsuleDevelopmentOnly) is
-         Capsule's, populated in a static item group under CapsuleShipping, so it is final by the
-         time this target runs whichever order the two targets files were imported in. -->
+    <!-- Every glob excludes Capsule's development-only files. Capsule fills
+         @(_CapsuleDevelopmentOnly) statically and it is final here in either import order. -->
     <ItemGroup>
       <CapsuleTiledScene Include="$(CapsuleAssetSourcesDir)/Scenes/**/*.tmj"
                          Exclude="@(_CapsuleDevelopmentOnly)" />
 
-      <!-- Not a source of its own: a map's tilesets are read during its import, so they are the
-           other half of what a derived document is up to date with respect to. -->
+      <!-- Tilesets are inputs to the maps that read them, not sources of their own. -->
       <CapsuleTiledTileset Include="$(CapsuleAssetSourcesDir)/**/*.tsj"
                            Exclude="@(_CapsuleDevelopmentOnly)" />
     </ItemGroup>
 
-    <!-- The key a map's document claims, spelled as the tree spells it: its path under the scenes
-         root, forward slashes and no extension, so two maps of one stem in different directories
-         are two keys. Capsule normalizes it, so this is not the shipped key and no output path is
-         derived from it beyond this module's own obj/. Its own ItemGroup, and qualified:
-         %(RecursiveDir) on the Include above would batch over the target rather than name the item
-         being defined. -->
+    <!-- A map's key is its path under the scenes root with forward slashes and no extension.
+         Capsule normalizes it into the shipped key. This ItemGroup is separate and qualified because
+         %(RecursiveDir) on the Include above would batch over the target. -->
     <ItemGroup>
       <CapsuleTiledScene>
         <Key>$([System.String]::Copy('%(CapsuleTiledScene.RecursiveDir)').Replace('\', '/'))%(CapsuleTiledScene.Filename)</Key>
@@ -58,8 +55,8 @@
     <Error Condition="'@(CapsuleTiledScene)' != '' and '$(CapsuleTiledToolProject)' == '' and '$(CapsuleTiledToolAssembly)' == ''"
            Text="Capsule.Tiled: the Tiled importer is unavailable. Reference the JAG.Capsule.Tiled package, or import build/JAG.Capsule.Tiled.targets from a capsule-engine-tiled source clone." />
 
-    <!-- The out directory carries no trailing separator: it is spliced into a command line, where
-         a trailing one would escape the closing quote on Windows. -->
+    <!-- The out directory has no trailing separator. On Windows one would escape the closing quote
+         on the command line. -->
     <PropertyGroup>
       <CapsuleTiledProjectDir>$([MSBuild]::EnsureTrailingSlash('$(MSBuildProjectDirectory)'))</CapsuleTiledProjectDir>
       <CapsuleTiledObjDir>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'capsule-tiled'))</CapsuleTiledObjDir>
@@ -74,25 +71,25 @@
 
     <MakeDir Directories="$(CapsuleTiledObjDir)" Condition="'@(CapsuleTiledScene)' != ''" />
 
-    <!-- MSBuild's incrementality is file-based, so the declared size needs a file: without this
-         stamp, changing CapsuleTileSize would leave documents derived under the old one current. -->
+    <!-- MSBuild incrementality is file-based. This stamp makes a CapsuleTileSize change re-derive
+         every document. -->
     <WriteLinesToFile Condition="'@(CapsuleTiledScene)' != ''"
                       File="$(CapsuleTiledTileSizeStamp)"
                       Lines="$(CapsuleTileSize)"
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true" />
 
-    <!-- A file list is itself an input. Without it, deleting or renaming a tileset removes
-         that path from Inputs and can make a stale derived document appear current. -->
+    <!-- The tileset list is an input. A deleted or renamed tileset leaves Inputs, and without this
+         stamp a stale document would look current. -->
     <WriteLinesToFile Condition="'@(CapsuleTiledScene)' != ''"
                       File="$(CapsuleTiledDependencyStamp)"
                       Lines="@(CapsuleTiledTileset->'%(FullPath)')"
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true" />
 
-    <!-- Resolved here, not where it is used: the importer is an input to every derived document,
-         and a target's Inputs are evaluated after its DependsOnTargets but before its own tasks.
-         RemoveProperties must match the set the ProjectReference above drops. -->
+    <!-- The importer is an input to every derived document. A target evaluates its Inputs before
+         its own tasks run, and the path resolves here. RemoveProperties matches the set the
+         ProjectReference above drops. -->
     <MSBuild Projects="$(CapsuleTiledToolProject)"
              Condition="'$(CapsuleTiledToolProject)' != '' and '@(CapsuleTiledScene)' != ''"
              Targets="GetTargetPath"
@@ -105,21 +102,16 @@
       <_CapsuleTiledTool Include="$(CapsuleTiledToolAssembly)" />
     </ItemGroup>
 
-    <!-- The importer is the assembly graph it loads, not its entry point: an implementation-only
-         change in Capsule.Scenes rebuilds that assembly without recompiling the tool. -->
+    <!-- Every assembly beside the importer is an input. An implementation-only change in
+         Capsule.Scenes rebuilds that assembly without recompiling the tool. -->
     <ItemGroup>
       <_CapsuleTiledToolAssembly Include="%(_CapsuleTiledTool.RootDir)%(_CapsuleTiledTool.Directory)*.dll" />
     </ItemGroup>
   </Target>
 
-  <!-- Capsule's Tiled vocabulary, delivered by default: capsule.tiled-project carries the property
-       type (the CapsuleLayer class) and names '.' as its
-       folder, so opening it in Tiled shows the maps beside it with the types already defined.
-
-       Seeded only where the scenes root has no .tiled-project at all, and never overwritten: the
-       file is the developer's from the moment it lands, and Tiled rewrites it whenever they add a
-       type or a folder of their own. A project they already keep there wins outright — import the
-       types into it once from capsule-property-types.json instead. -->
+  <!-- Seeds capsule.tiled-project, which carries the CapsuleLayer type and opens on its own folder.
+       The seed lands only where the scenes root has no .tiled-project and never overwrites one.
+       The file belongs to the developer once it lands. -->
   <Target Name="CapsuleTiledSeedProject"
           Condition="'$(CapsuleImportScenes)' == 'true'"
           DependsOnTargets="CapsuleTiledInit"
@@ -134,10 +126,9 @@
           DestinationFiles="$(CapsuleAssetSourcesDir)/Scenes/$(MSBuildProjectName).tiled-project" />
   </Target>
 
-  <!-- Partially incremental: maps correlate one-to-one with the derived documents, so MSBuild
-       re-runs this with only the stale ones in @(CapsuleTiledScene) and the batch goes to one
-       process. The tilesets, stamps and importer assemblies correlate with nothing, so touching
-       any of them re-derives the lot. An empty Inputs skips the target outright. -->
+  <!-- Partially incremental. Maps correspond one-to-one with documents, and MSBuild passes only the
+       stale ones to a single process. A touched tileset, stamp or importer assembly re-derives every
+       map. -->
   <Target Name="CapsuleTiledDeriveSceneDocuments"
           Condition="'$(CapsuleImportScenes)' == 'true'"
           DependsOnTargets="CapsuleTiledInit;ResolveProjectReferences"
@@ -147,11 +138,9 @@
     <Error Condition="!Exists('@(_CapsuleTiledTool)')"
            Text="Capsule.Tiled: the Tiled importer was not built (expected '@(_CapsuleTiledTool)')." />
 
-    <!-- The batch goes through a file, not the command line: Exec runs through cmd, whose
-         8191-character limit a couple of hundred paths blow past. Each line is the key, '|', then
-         the path relative to the importing project — the tool runs from there and stamps that path
-         into the document's source block verbatim. A key is path segments and a path carries no
-         '|' on any platform Capsule targets. -->
+    <!-- The batch goes through a file because cmd limits a command line to 8191 characters. Each
+         line is 'key|path', with the path relative to the importing project. The tool runs from
+         there and stamps that path into the document's source block. No key or path holds '|'. -->
     <ItemGroup>
       <_CapsuleTiledSceneArg Include="@(CapsuleTiledScene)">
         <ProjectRelativePath>$([MSBuild]::MakeRelative($(CapsuleTiledProjectDir), %(FullPath)))</ProjectRelativePath>
@@ -162,23 +151,22 @@
                       Lines="@(_CapsuleTiledSceneArg->'%(Key)|%(ProjectRelativePath)')"
                       Overwrite="true" />
 
-    <!-- LogStandardErrorAsError surfaces the tool's per-source messages verbatim as build errors,
-         each already anchored to the map that failed. -->
+    <!-- Each line the tool writes to stderr names its map and becomes a build error. -->
     <Exec Command="&quot;$(CapsuleDotNetHost)&quot; &quot;@(_CapsuleTiledTool)&quot; --out &quot;$(CapsuleTiledOutDir)&quot; $(CapsuleTiledDependencyRootArg)$(CapsuleTiledTileSizeArg)--scenes-from &quot;$(CapsuleTiledBatchFile)&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"
           LogStandardErrorAsError="true"
           StandardOutputImportance="normal" />
   </Target>
 
-  <!-- The hand-over to Capsule. Separate from the derivation so the documents are handed over on
-       an up-to-date build too, where that is skipped entirely. -->
+  <!-- The hand-over to Capsule. It is separate from the derivation and also runs on an up-to-date
+       build. -->
   <Target Name="CapsuleTiledCollectSceneDocuments"
           Condition="'$(CapsuleImportScenes)' == 'true'"
           DependsOnTargets="CapsuleTiledDeriveSceneDocuments"
           BeforeTargets="CapsuleCollectSceneDocuments">
 
-    <!-- Named in two steps: %() in the metadata below batches over the item the Include names, so
-         a transform there would resolve %(Key) against the derived document rather than the map. -->
+    <!-- Two steps, because %(Key) in a transform below would resolve against the derived document
+         instead of the map. -->
     <ItemGroup>
       <_CapsuleTiledDerived Include="@(CapsuleTiledScene->'$(CapsuleTiledDerivedDir)%(Key).scene.json')" />
     </ItemGroup>

@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk" TreatAsLocalProperty="PublishAot;SelfContained;RuntimeIdentifier">
 
-  <!-- One package: the build targets that hook Capsule's scene-document seam, and the process they
-       run to translate a *.tmj map into a *.scene.json document. No game references the assembly;
-       it ships unlisted under tools/ and only the targets invoke it. -->
+  <!-- One package holds the build targets and the process they run. The assembly ships under tools/
+       and only the targets invoke it. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -13,16 +12,18 @@
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <IncludeSymbols>false</IncludeSymbols>
-    <!-- Nothing here is a reference a consumer compiles against, so it carries no API reference. -->
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <!-- Local, never global, with TreatAsLocalProperty on the Project element: a consumer's
-         NativeAOT publish reaches this project through NuGet's restore walk too, which strips
-         nothing, and without the guard would evaluate the tool for the publish's runtime. -->
+    <!-- Local through TreatAsLocalProperty. NuGet's restore walk reaches this project from a
+         consumer's NativeAOT publish and would otherwise evaluate the tool for that runtime. -->
     <PublishAot>false</PublishAot>
     <SelfContained>false</SelfContained>
     <RuntimeIdentifier></RuntimeIdentifier>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);IncludeCapsuleTiledTool</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Capsule.Tiled.Tests" />
+  </ItemGroup>
 
   <ItemGroup Condition="'$(CapsuleSourceRoot)' == ''">
     <PackageReference Include="JAG.Capsule" Version="[$(CapsuleVersion)]" />
@@ -32,17 +33,16 @@
     <ProjectReference Include="$(CapsuleSourceRoot)/src/Capsule.Scenes/Capsule.Scenes.csproj" />
   </ItemGroup>
 
-  <!-- The targets, the project template the targets seed, and the same property types standalone
-       for Tiled's Project > Import Types. All three sit beside each other in buildTransitive/,
-       because the seed target resolves the template against its own directory. -->
+  <!-- The seed target resolves the project template against its own directory. All three files
+       sit together in buildTransitive/. -->
   <ItemGroup>
     <None Include="../../build/JAG.Capsule.Tiled.targets" Pack="true" PackagePath="buildTransitive/" />
     <None Include="../../build/capsule.tiled-project" Pack="true" PackagePath="buildTransitive/" />
     <None Include="../../build/capsule-property-types.json" Pack="true" PackagePath="buildTransitive/" />
   </ItemGroup>
 
-  <!-- The whole output directory, not the entry assembly: the tool loads Capsule.Scenes and its
-       spine, and those ship beside it so the process resolves without a game's package graph. -->
+  <!-- The whole output directory ships. The tool resolves Capsule.Scenes and its dependencies
+       without a game's package graph. -->
   <Target Name="IncludeCapsuleTiledTool">
     <ItemGroup>
       <TfmSpecificPackageFile Include="$(OutDir)*.dll" PackagePath="tools/net10.0/any/" />

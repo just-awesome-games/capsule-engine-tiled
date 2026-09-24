@@ -1,9 +1,8 @@
 # Releasing Capsule Tiled
 
-Releases are deliberate: the Creative Director decides when, and a release exists to promote a
-batch worth shipping or because a consumer must bump (D-studio-technical-021). Day to day the
-module and its consumers build from source at the engine's `main` head; CI's `packages` lane
-runs on demand (`workflow_dispatch`) ahead of a release, never on every push.
+A release promotes a batch worth shipping or serves a consumer that must bump. Day to day the
+module and its consumers build from source at the engine's `main` head. CI's `packages` lane runs
+on demand (`workflow_dispatch`) ahead of a release, never on every push.
 
 A release is an annotated `v<major>.<minor>.<patch>` tag on `main`. Pushing the tag runs
 `.github/workflows/packages.yml`, which builds and tests the module in package mode against the
@@ -12,9 +11,9 @@ Nothing else publishes.
 
 ## 1. Pull in a new Capsule release (skip if the pin is unchanged)
 
-The module pins one exact engine version in `Directory.Build.props` — `<CapsuleVersion>`.
+`<CapsuleVersion>` in `Directory.Build.props` pins one exact engine version.
 
-Wait until NuGet.org serves that version (HTTP 200; 404 means still indexing):
+Wait until NuGet.org serves that version (HTTP 200). A 404 means it is still indexing:
 
 ```bash
 for p in jag.capsule jag.capsule.build; do
@@ -34,9 +33,8 @@ Fix whatever the new engine broke (a moved namespace, a changed document seam) i
 
 ## 2. Run the package-mode gates
 
-These are what CI's `packages` lane runs. A source-mode restore (which the pre-commit hook runs)
-rewrites `obj/project.assets.json`, so always restore in package mode immediately before building
-in it.
+CI's `packages` lane runs these. A source-mode restore, which the pre-commit hook runs, rewrites
+`obj/project.assets.json`. Restore in package mode immediately before building in it.
 
 ```bash
 dotnet restore -p:CapsuleUsePackages=true
@@ -90,8 +88,8 @@ curl -s -o /dev/null -w "%{http_code}\n" https://api.nuget.org/v3-flatcontainer/
 
 ## 7. Move the consumers
 
-A game consuming the package pins `CapsuleTiledVersion` in its `Directory.Build.props`; bump it
-beside `CapsuleVersion` and `dotnet restore --force-evaluate` there.
+A game consuming the package pins `CapsuleTiledVersion` in its `Directory.Build.props`. Bump it
+beside `CapsuleVersion` and run `dotnet restore --force-evaluate` there.
 
 ## Undoing a mistake
 

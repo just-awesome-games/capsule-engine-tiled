@@ -11,9 +11,9 @@ using Capsule.Tiles;
 
 namespace Capsule.Tiled;
 
-public static class TiledImporter
+internal static class TiledImporter
 {
-    public const string ToolName = "tiled";
+    internal const string ToolName = "tiled";
 
     private const string ColorProperty = "color";
 
@@ -36,26 +36,22 @@ public static class TiledImporter
 
     private const string SamplingProperty = "sampling";
 
-    // Tiled's name for the Color property type.
     private const string ColorPropertyType = "color";
 
-    // The asset-source domain a tileset's atlas is filed under; a document names its texture by the
-    // path under it.
+    // A document names a tileset's atlas by its path under this asset-source directory.
     private const string TextureDirectory = "Textures";
 
-    // Tiled's name for the String property type, which it omits when writing one.
+    // Tiled omits the type when it writes a string property.
     private const string StringPropertyType = "string";
 
-    // Tiled's name for the Int property type, which it always writes.
     private const string IntPropertyType = "int";
 
-    // Tiled's name for the Bool property type, which it always writes.
     private const string BoolPropertyType = "bool";
 
     // Tiled packs flip and rotation into the top nibble of a gid.
     private const uint OrientationFlags = 0xF000_0000u;
 
-    public static SceneDocument Import(string mapPath, int? tileSize = null, string? dependencyRoot = null)
+    internal static SceneDocument Import(string mapPath, int? tileSize = null, string? dependencyRoot = null)
     {
         byte[] mapBytes = File.ReadAllBytes(mapPath);
         TiledMap map = Deserialize(mapBytes, mapPath, TiledJsonContext.Default.TiledMap);
@@ -68,8 +64,8 @@ public static class TiledImporter
         sourceHash.AppendData(mapBytes);
         Tileset[] tilesets = LoadTilesets(map, mapDirectory, resolvedDependencyRoot, sourceHash);
 
-        // Tiled mints ids for objects alone; tile layers take theirs from the next one Tiled would
-        // hand out, so the document keeps one collision-free id space.
+        // Tiled mints ids for objects only. Tile layers continue from its next object id, and the
+        // document keeps one id space.
         int nextEntityId = map.NextObjectId;
         List<SceneDocumentEntry> entries = ReadEntries(map, tilesets, ref nextEntityId);
 
@@ -78,7 +74,7 @@ public static class TiledImporter
             mapPath.Replace('\\', '/'),
             Convert.ToHexStringLower(sourceHash.GetHashAndReset()));
 
-        // A map's size is its tiles, so the document authors no size of its own.
+        // The document authors no size. A map's size is its tiles.
         SceneSettings settings = new()
         {
             BaseScene = MapStringPropertyOf(map.Properties, BaseSceneProperty),
@@ -124,8 +120,7 @@ public static class TiledImporter
                 $"'{mapPath}' has {map.TileWidth}px tiles but the game declares {declared}px; set Map > Map Properties > Tile Width and Tile Height to {declared}, or change CapsuleTileSize.");
         }
 
-        // Widened before anything is sized off it: an int product wraps, and the wrapped value
-        // would size the tile array rather than fail here.
+        // Widened to long. A wrapped int product would size the tile array instead of failing here.
         long area = (long)map.Width * map.Height;
         if (map.Width <= 0 || map.Height <= 0 || area > Array.MaxLength)
         {
@@ -154,7 +149,7 @@ public static class TiledImporter
                 || extension.Equals(".tmx", StringComparison.OrdinalIgnoreCase))
             {
                 throw new TiledImportException(
-                    $"tileset '{entry.Source}' is XML; Capsule reads JSON tilesets only — re-save it from Tiled as .tsj.");
+                    $"tileset '{entry.Source}' is XML; Capsule reads JSON tilesets only. Re-save it from Tiled as .tsj.");
             }
 
             string path = Path.GetFullPath(Path.Combine(mapDirectory, entry.Source));
@@ -179,7 +174,7 @@ public static class TiledImporter
 
         resolved.Sort(static (left, right) => left.Tileset.FirstGid.CompareTo(right.Tileset.FirstGid));
 
-        // Class names are unique across the whole map, not per tileset: a tile type is identity.
+        // A tile type is an identity. Class names are unique across the whole map.
         Dictionary<string, string> tilesetByClass = new(StringComparer.Ordinal);
         Tileset[] tilesets = new Tileset[resolved.Count];
         for (int i = 0; i < tilesets.Length; i++)
@@ -202,7 +197,7 @@ public static class TiledImporter
         if (string.IsNullOrEmpty(tileset.Image))
         {
             throw new TiledImportException(
-                $"tileset '{name}' is a collection of images; Capsule imports image tilesets only — make it a single-image tileset in Tiled.");
+                $"tileset '{name}' is a collection of images; Capsule imports image tilesets only. Make it a single-image tileset in Tiled.");
         }
 
         if (tileset.Columns < 1)
@@ -256,8 +251,7 @@ public static class TiledImporter
                 $"tileset '{name}' draws from '{tileset.Image}'; a scene document names a texture by its path under '{TextureDirectory}', extension included, so the image needs one.");
         }
 
-        // With no dependency root there is no textures root to measure against, so a bare importer
-        // run keeps the atlas's stem. The build always passes one.
+        // A run with no dependency root names the atlas by its stem. The build always passes a root.
         string handle = texturesRoot is null
             ? Path.GetFileNameWithoutExtension(image)
             : Path.GetRelativePath(texturesRoot, image).Replace('\\', '/')[..^extension.Length];
@@ -281,8 +275,8 @@ public static class TiledImporter
         hash.AppendData(bytes);
     }
 
-    // Every Class in the tileset enters the palette, painted or not, in tile-id order: painting a
-    // new type must not renumber the types a scene's tiles already index.
+    // Every Class in the tileset enters the palette in tile-id order, painted or not. Painting a new
+    // type never renumbers the types a scene's tiles already index.
     private static TileDefinition[] BuildPalette(
         TiledTileset tileset,
         string tilesetName,
@@ -349,8 +343,7 @@ public static class TiledImporter
         }
     }
 
-    // The collision layer a tile is on. Trimmed: the whitespace Tiled's property editor leaves
-    // behind is not part of the name.
+    // The collision layer a tile is on, trimmed of the whitespace Tiled's property editor leaves.
     private static string? LayerOf(AuthoredTile authored)
     {
         if (!TryListOf(authored, LayerProperty, "one collision layer name", out string[] names))
@@ -360,8 +353,7 @@ public static class TiledImporter
 
         return names.Length switch
         {
-            // Authored and empty is not absent: read as absent it would ship a tile that silently
-            // never collides.
+            // An empty property is an error. Read as absent, it would ship a tile that never collides.
             0 => throw new TiledImportException(
                 $"{authored} has a '{LayerProperty}' property naming nothing; give it one collision layer name, or remove the property."),
             1 => names[0],
@@ -391,8 +383,7 @@ public static class TiledImporter
     }
 
     // A comma-separated string property, trimmed, with blank entries dropped. Returns whether the
-    // property was present, not whether it named anything: only the caller knows which default an
-    // absent one takes. Tiled omits the type of a string property, so an absent type is that type.
+    // property was present. The caller owns the default for an absent one.
     private static bool TryListOf(AuthoredTile authored, string propertyName, string expected, out string[] names)
     {
         names = [];
@@ -431,9 +422,7 @@ public static class TiledImporter
         return true;
     }
 
-    // Dispatched on layer type, never layer name: what a layer is called is a game's convention.
-    // Entries keep the authored layer order, so a foreground tile layer stays above the object
-    // layers it follows.
+    // Layers dispatch on type, never on name. Entries keep the authored layer order.
     private static List<SceneDocumentEntry> ReadEntries(TiledMap map, Tileset[] tilesets, ref int nextEntityId)
     {
         List<SceneDocumentEntry> entries = [];
@@ -474,8 +463,8 @@ public static class TiledImporter
         return entries;
     }
 
-    // A tile object's box over the cell it was dragged from is its scale. Every other object is a
-    // point or a rectangle, whose size Capsule has no meaning for, so only its position imports.
+    // A tile object's size over its tileset's tile size is its scale. A point or rectangle imports
+    // its position alone.
     private static EntityPlacement Placement(
         TiledObject placed,
         string objectClass,
@@ -483,7 +472,7 @@ public static class TiledImporter
         Tileset[] tilesets,
         int? layerBand)
     {
-        // The object's own band wins over the one its layer bands the whole group at.
+        // An object's own band overrides its layer's.
         int? zIndex = ZIndexOf(placed.Properties, $"object {placed.Id} on layer '{layer.Name}'") ?? layerBand;
 
         if (placed.Gid is not { } gid)
@@ -511,9 +500,8 @@ public static class TiledImporter
             zIndex);
     }
 
-    // The draw band a placement authors. An absent property is null, never 0: zero is a band like
-    // any other, and reading absence as zero would band every unbanded placement there, overriding
-    // the default its class owns with a value the document never authored.
+    // The draw band a placement authors. An absent property is null, never 0. The entity's class
+    // owns the default band.
     private static int? ZIndexOf(TiledProperty[]? properties, string owner)
     {
         if (TiledProperties.Find(properties, ZIndexProperty) is not { } property)
@@ -537,8 +525,7 @@ public static class TiledImporter
         return zIndex;
     }
 
-    // baseScene and camera are optional strings the map itself declares; absent is null. The engine
-    // refuses a value that is not a key, so an empty one fails the import there.
+    // An optional map string, null when absent. The engine refuses a value that is not a key.
     private static string? MapStringPropertyOf(TiledProperty[]? properties, string name)
     {
         if (TiledProperties.Find(properties, name) is not { } property)
@@ -562,8 +549,7 @@ public static class TiledImporter
         return property.Value.GetString();
     }
 
-    // Tiled writes a map colour property as "#aarrggbb". The type is checked the way a string
-    // property's is.
+    // Tiled writes a map colour property as "#aarrggbb".
     private static ColorRgba? MapColorPropertyOf(TiledProperty[]? properties, string name, string mapPath)
     {
         if (TiledProperties.Find(properties, name) is not { } property)
@@ -583,8 +569,8 @@ public static class TiledImporter
         return OpaqueColor(color, mapPath, $"'{name}' colour", $"The '{name}' colour");
     }
 
-    // The engine names the accepted spellings when it reads the document, but a typed setting
-    // cannot carry a misspelling that far. The two spellings are the document format's own.
+    // A typed setting cannot carry a misspelling to the engine's check. The two spellings are the
+    // document format's.
     private static TextureSampling? MapSamplingOf(TiledProperty[]? properties, string mapPath) =>
         MapStringPropertyOf(properties, SamplingProperty) switch
         {
@@ -596,7 +582,7 @@ public static class TiledImporter
         };
 
     // Tiled writes "#rrggbb" for an opaque colour and "#aarrggbb" otherwise. The alpha moves last for
-    // ColorRgba.FromHex. A scene's colours are opaque, so any alpha but ff is refused.
+    // ColorRgba.FromHex. A scene's colours are opaque.
     private static ColorRgba? OpaqueColor(string? color, string mapPath, string owner, string subject)
     {
         if (color is null)
@@ -627,9 +613,8 @@ public static class TiledImporter
         return parsed;
     }
 
-    // One layer paints from one tileset, because a grid cuts its cells from one texture. A layer
-    // that paints nothing keeps the empty palette and names no texture at all. Each gid is resolved
-    // as it is read, so nothing but the cell array is held for the layer.
+    // A grid cuts its cells from one texture, and a layer paints from one tileset. A layer that
+    // paints nothing keeps the empty palette and names no texture. Only the cell array is held.
     private static TileGrid ReadGrid(TiledLayer layer, TiledMap map, Tileset[] tilesets)
     {
         RequireReadableTileData(layer, map);
@@ -725,8 +710,7 @@ public static class TiledImporter
     private static TiledImportException TileCountMismatch(TiledLayer layer, TiledMap map, int count, string qualifier) =>
         new($"tile layer '{layer.Name}' carries {qualifier} {count} tiles but {map.Width}x{map.Height} requires {map.Width * map.Height}.");
 
-    // The tilesets are in ascending firstgid order, so the owner is the last one starting at or
-    // below the gid, and the first one starting above it ends the search.
+    // Tilesets are in ascending firstgid order. The owner is the last one starting at or below the gid.
     private static Tileset? OwnerOf(uint gid, Tileset[] tilesets)
     {
         Tileset? owner = null;
@@ -760,7 +744,7 @@ public static class TiledImporter
         catch (JsonException ex)
         {
             throw new TiledImportException(
-                string.Create(CultureInfo.InvariantCulture, $"'{path}' is not readable Tiled JSON — {ex.Message}"),
+                string.Create(CultureInfo.InvariantCulture, $"'{path}' is not readable Tiled JSON: {ex.Message}"),
                 ex);
         }
 

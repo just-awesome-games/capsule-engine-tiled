@@ -1,9 +1,6 @@
 #!/bin/sh
-# The local gate: a locked restore, the build, the format check and the tests on every commit,
-# in source mode against the sibling capsule-engine clone.
-# ci.yml adds what a commit cannot afford: the same four gates in package mode against the
-# pinned Capsule release, the pack and its layout assertion, and the source lane against
-# capsule-engine@main.
+# A locked restore, the build, the format check and the tests, in source mode against the sibling
+# capsule-engine clone. ci.yml runs the package-mode gates and the pack.
 # Activate once with: git config core.hooksPath .githooks
 set -u
 
@@ -19,8 +16,8 @@ run() {
     fi
 }
 
-# Locked restore first, and every later step with --no-restore: an implicit unlocked restore
-# would regenerate a drifted lock file locally instead of failing the way CI does.
+# Later steps pass --no-restore. An implicit unlocked restore would rewrite a drifted lock file
+# instead of failing as CI does.
 run "locked restore" dotnet restore --locked-mode
 run "build" dotnet build --no-restore
 run "format check" dotnet format --verify-no-changes --no-restore

@@ -3,8 +3,7 @@ using System.Text.Json.Nodes;
 
 namespace Capsule.Tiled.Tests;
 
-// The shipped Tiled vocabulary. Its whole job is to spell what the importer reads, so these specs
-// hold the two files to the importer's property names and to each other.
+// Holds the shipped property types to the importer's names and to each other.
 [Collection(SceneWorkspaceCollection.Name)]
 public sealed class PropertyTypesTests
 {
@@ -33,9 +32,7 @@ public sealed class PropertyTypesTests
 
         Assert.Equal("class", layer["type"]!.GetValue<string>());
 
-        // A tile's Class is its Capsule tile type and an object's Class is its entry type, so a
-        // class scoped to either would be read as that type. Only a layer's Class is Capsule's to
-        // spend.
+        // A tile's or an object's Class is already its Capsule type. Only a layer's Class is free.
         Assert.Equal(["layer"], layer["useAs"]!.AsArray().Select(static use => use!.GetValue<string>()).ToArray());
 
         JsonNode member = Assert.Single(layer["members"]!.AsArray())!;
@@ -43,8 +40,7 @@ public sealed class PropertyTypesTests
         Assert.Equal("int", member["type"]!.GetValue<string>());
     }
 
-    // The whole seed, driven over a scratch scenes root: it lands where a developer opens it, and
-    // the second build leaves the one they have since edited alone.
+    // The seed lands where a developer opens it. A second build leaves the edited file alone.
     [Fact]
     public void TheBuildSeedsTheProjectOnceAndNeverOverwritesIt()
     {

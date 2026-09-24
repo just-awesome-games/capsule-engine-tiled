@@ -1,61 +1,58 @@
 # Capsule Tiled
 
-Tiled scene authoring for [Capsule Engine](https://github.com/just-awesome-games/capsule-engine). Install the package, save maps under the game's scene sources, build: every map becomes a Capsule scene document the game loads by name.
-
-Capsule's build wires one scene format, `*.scene.json`. This module translates Tiled's `.tmj` maps into it under `obj/` at build time and hands them to Capsule, which validates, canonicalizes, and ships them exactly as it does a hand-authored document. Without the package, Tiled files under a Capsule game's sources are ignored.
+Capsule Tiled imports [Tiled](https://www.mapeditor.org/) maps into [Capsule Engine](https://github.com/just-awesome-games/capsule-engine) scenes at build time. Each map under a game's scene sources becomes a scene document the game loads by name.
 
 ## Quick start
 
-1. Reference the package beside Capsule's build package, in the same place, as build-only tooling:
+1. Reference the package beside Capsule's build package:
 
    ```xml
-   <PackageReference Include="JAG.Capsule.Build" Version="[0.5.1]" PrivateAssets="all" />
-   <PackageReference Include="JAG.Capsule.Tiled" Version="[0.1.1]" PrivateAssets="all" />
+   <PackageReference Include="JAG.Capsule.Build" Version="[0.8.0]" PrivateAssets="all" />
+   <PackageReference Include="JAG.Capsule.Tiled" Version="[0.6.0]" PrivateAssets="all" />
    ```
 
-2. Save maps as `.tmj` and tilesets as `.tsj` anywhere under the logic project's `Assets/Scenes/`. Tileset images live under `Assets/Textures/`, as every texture does.
+2. Save maps as `.tmj` and tilesets as `.tsj` under the logic project's `Assets/Scenes/`. Tileset images go under `Assets/Textures/`.
 
-3. Build. A map's key is its normalized path under `Scenes/`, so `Scenes/Highway/Room02.tmj` is keyed `highway/room-02` and ships at `assets/scenes/highway/room-02.scene.json` beside the executable — Capsule's [scene authoring](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/scenes.md) states the normalization rule and how a scene class claims a document. Two maps of one stem in different directories are two keys.
+3. Build. A map's key is its path under `Scenes/`, normalized by Capsule's [scene rules](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/scenes.md). `Scenes/Highway/Room02.tmj` is keyed `highway/room-02`.
 
-There is nothing to configure. The module activates where Capsule imports scenes (the logic project does; any other project sets `CapsuleImportScenes`), looks where Capsule looks (`CapsuleAssetSourcesDir`), and enforces the tile size a game declares with `CapsuleTileSize`. A map at the wrong grid fails the build with the map named. Capsule's development-only marker holds here too: maps and tilesets under a directory holding a `.capsuleignore` are part of every ordinary build and of no publish. Import problems are reported at the failing file as build errors.
+The package has no settings of its own. It runs where Capsule imports scenes (`CapsuleImportScenes`) and reads maps from `CapsuleAssetSourcesDir`. A map whose tile size differs from `CapsuleTileSize` fails the build. Maps under a directory holding a `.capsuleignore` build but never publish. An import error names the file that failed.
 
 ## Tiled subset
 
-The importer reads `.tmj` maps that are orthogonal, finite, square-tiled, CSV-encoded and unflipped. A tileset tile's Class is the tile type, its local tile id is the type's `cell`, and its optional `layer` string and `oneWay` and `solidSides` bool properties map to the scene document's palette fields.
+Maps are orthogonal, finite, square-tiled, CSV-encoded and unflipped. A tileset is a single image whose tile size equals the map's. Anything else fails the build.
 
-A tile layer, an object layer, and an object each take an optional custom `zIndex` int property: the draw band the placement takes in the document, higher drawing later. An object layer's band is the default for the objects on it, and an object's own `zIndex` overrides it. Where nothing authors one the document carries no band at all and the entity keeps the one its class sets, so `0` is a band an author asks for, never the absence of one. The authored layer stack is already the draw order among the map's own layers; a band is what places them against the entities a game spawns at runtime.
+| Tiled | Scene document |
+| --- | --- |
+| Map Background Color | `clearColor`, opaque |
+| Map `ambient` color property | `ambient`, opaque |
+| Map `sampling` string property, `linear` or `point` | `sampling` |
+| Map `baseScene` string property | `baseScene`, the abstract `Scene` subclass key |
+| Map `camera` string property | `camera`, the `Camera` subclass key |
+| Tile layer | a tile map entry drawn from one tileset |
+| Tileset image path under `Assets/Textures/` | tile map `texture`, for example `Terrain/Cave.png` |
+| Tileset columns | tile map `columns` |
+| Tile Class and local tile id | tile type `type` and `cell` |
+| Tile `layer` string property | tile type `layer` |
+| Tile `oneWay` and `solidSides` bool properties | tile type `oneWay` and `solidSides` |
+| Object Class and position | entry `type`, `x` and `y` |
+| Tile object size over its tile size | entry `scale` |
+| `zIndex` int property on a tile layer, object layer or object | entry `zIndex` |
 
-The map itself takes two optional custom string properties, `baseScene` and `camera`, each naming a C# class Capsule resolves by key: `baseScene` is the abstract `Scene` subclass the generated scene derives from, and `camera` is the concrete `Camera` subclass it opens on. The map's Background Color becomes the scene's `clearColor`, an `ambient` color property its `ambient`, and a `sampling` string property of `linear` or `point` its `sampling`, with both colours opaque.
+An object's `zIndex` overrides its layer's. A placement with no `zIndex` keeps its class's band.
 
-An object's Class is its entry `type` and its position is its `x` and `y`. A tile object — one dragged out of a tileset, so it carries a gid — also imports a `scale`: its width and height over the tile size of the tileset its gid resolves to, written only when that is not identity. A flipped or rotated tile object is refused. Points and rectangles carry no gid and import as position alone; their size means nothing to Capsule.
+## Property types
 
-Tilesets are image tilesets only — a collection of separate images is refused. A tileset's image is resolved against the `.tsj` and must sit under the game's `Assets/Textures/`; the layer's `texture` is the image's path under that root in any spelling, forward slashes and extension included, so `Textures/Terrain/Cave.png` is named `Terrain/Cave.png` and ships keyed `terrain/cave.png`. Its `columns` are copied, and its tile size must be square and equal to the map's. One tile layer paints from one tileset, because a grid cuts its cells from one texture; a layer spanning two is refused naming both, and a layer painting nothing imports as an entry with no texture and the `empty` type alone. Every other constraint is reported by the importer at the failing file.
-
-### Property types
-
-Capsule's vocabulary ships as Tiled custom property types, so the names above are picked from a dropdown rather than spelled. They need Tiled 1.9 or later: custom types arrived in 1.8, and scoping a class to a layer arrived with the Class field on every data type in 1.9.
-
-The build seeds `<project>.tiled-project` beside the maps whenever the scenes root holds no `.tiled-project` at all — open that one in Tiled and the types are there. It is never overwritten afterwards; the file is the game's from the moment it lands, and Tiled rewrites it as folders and types are added. For a project already kept there, Project → Import Types once, from `capsule-property-types.json` in the package's `buildTransitive/`.
-
-One type ships. `CapsuleLayer` is a class used as a layer's Class, which brings `zIndex` with it, so a whole tile layer or object layer is banded from the Class dropdown.
-
-Nothing ships for tiles or objects themselves, because Capsule has already spent their Class: a tile's Class is its tile type and an object's Class is its entry `type`. A tile's `layer` is a plain string property, as collision layer names are the game's, and an object's own `zIndex` is a plain int property overriding the band its layer sets. Nothing ships for the map either: `baseScene` and `camera` are plain string properties, because Capsule's classes are named by key, not picked from a dropdown.
-
-Tiled's Windows GUI executable writes no console output even on success. Use `tmxrasterizer` when a headless PNG preview is needed.
-
-## How it hooks in
-
-`build/JAG.Capsule.Tiled.targets` ships in the package's `buildTransitive/` and does three things: globs `Scenes/**/*.tmj` and every `.tsj` beneath the sources — both excluding `@(_CapsuleDevelopmentOnly)`, the item Capsule fills with everything under a marked directory — runs the packed `Capsule.Tiled` process once per build over the stale maps, and adds each derived document to Capsule's `CapsuleSceneDocument` item — carrying its authored path as `%(CapsuleDocumentKey)`, which Capsule normalizes into the shipped key — from a target hooked before the engine's `CapsuleCollectSceneDocuments`. Every Capsule property is read inside a target, because NuGet imports this package's targets before Capsule's. The shipped document keeps the map as its provenance — `source.path` names the `.tmj`, and its hash covers the map and the tilesets it references. Nothing derived is committed.
+The build seeds `<project>.tiled-project` beside the maps when the scenes root holds no `.tiled-project`. Opening it in Tiled 1.9 or later adds the `CapsuleLayer` class, which gives a layer's Class dropdown a `zIndex`. The build never overwrites the file. An existing project imports the same type through Project > Import Types, from `capsule-property-types.json` in the package's `buildTransitive/`.
 
 ## Developing
 
-Install the .NET SDK selected by [`global.json`](global.json), then once per clone:
+Install the .NET SDK selected by [`global.json`](global.json), then enable the hooks once per clone:
 
 ```text
 git config core.hooksPath .githooks
 ```
 
-The module pins the Capsule release it is built against (`CapsuleVersion` in `Directory.Build.props`). To develop against a sibling `capsule-engine` clone, create the ignored `Directory.Build.local.props`:
+`Directory.Build.props` pins the Capsule release (`CapsuleVersion`). To build against a sibling `capsule-engine` clone, create the ignored `Directory.Build.local.props`:
 
 ```xml
 <Project>
@@ -65,6 +62,6 @@ The module pins the Capsule release it is built against (`CapsuleVersion` in `Di
 </Project>
 ```
 
-`-p:CapsuleUsePackages=true` on any command forces the pinned package graph for a run that must verify it. The gates are the four commands in `.githooks/pre-commit`; CI runs them from source at the engine's `main` head on every push, and on demand ahead of a release runs them against the pinned package, packs the module, and asserts the pack carries the `buildTransitive/` targets and the packed tool a consumer's build needs. A release is a `v*` tag, which `.github/workflows/packages.yml` publishes to NuGet.org. [RELEASING.md](RELEASING.md) is the release by hand, engine bump included.
+`-p:CapsuleUsePackages=true` forces the pinned packages. The gates are the four commands in `.githooks/pre-commit`. [RELEASING.md](RELEASING.md) is the release procedure.
 
 Capsule Tiled is licensed under the [MIT License](LICENSE).

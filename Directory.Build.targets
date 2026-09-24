@@ -1,7 +1,7 @@
 <Project>
 
-  <!-- Source mode: the sibling engine clone supplies Capsule's build targets, exactly as a game
-       consuming Capsule from source does. Package mode gets them from JAG.Capsule.Build. -->
+  <!-- In source mode the sibling engine clone supplies Capsule's build targets. Package mode gets
+       them from JAG.Capsule.Build. -->
   <PropertyGroup Condition="'$(CapsuleSourceRoot)' != ''">
     <CapsuleBuildTargets>$(CapsuleSourceRoot)/build/Capsule.Build.targets</CapsuleBuildTargets>
   </PropertyGroup>
@@ -9,8 +9,8 @@
   <Import Project="$(CapsuleBuildTargets)"
           Condition="'$(CapsuleSourceRoot)' != '' and Exists('$(CapsuleBuildTargets)')" />
 
-  <!-- This repository's own targets, imported the way a consuming game gets them from the package,
-       so the test project below is the module's consumer proof. -->
+  <!-- The module's own targets, imported as a game gets them from the package. The test project is
+       their consumer. -->
   <Import Project="$(MSBuildThisFileDirectory)build/JAG.Capsule.Tiled.targets" />
 
   <Target Name="CapsuleRequireSourceOverride" BeforeTargets="Restore;Build">

@@ -1,12 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Two kinds of spec: the importer driven directly over fixture maps, and the build integration
-       — this project imports scenes like a game's logic library, so its own Assets/Scenes maps
-       must arrive at assets/scenes/<key>.scene.json beside the test binary through the seam the
-       package hooks, in source mode and in package mode alike.
+  <!-- The project imports scenes like a game's logic library. Its Assets/Scenes maps ship beside
+       the test binary through the module's own targets.
 
-       CapsuleAssetSourcesDir is named although it now matches Capsule's default: the pinned
-       release the package-mode lane builds against still looks a directory above the project. -->
+       CapsuleAssetSourcesDir is explicit for a pinned release whose default looks a directory
+       above the project. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Capsule.Tiled.Tests</RootNamespace>
@@ -39,22 +37,19 @@
     <ProjectReference Include="../../src/Capsule.Tiled/Capsule.Tiled.csproj" />
   </ItemGroup>
 
-  <!-- The importer resolves paths relative to its inputs, so the fixture maps, their tileset and
-       the golden document sit beside each other in the test output. -->
+  <!-- The importer resolves paths relative to its inputs. Fixtures keep their layout in the output. -->
   <ItemGroup>
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!-- The shipped property types, read back by the specs that hold them to the names the importer
-       reads. Flattened into Fixtures/ so they sit beside the maps the rest of the suite uses. -->
+  <!-- The shipped property types, copied into Fixtures/ beside the maps. -->
   <ItemGroup>
     <None Include="../../build/capsule.tiled-project;../../build/capsule-property-types.json"
           Link="Fixtures/%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!-- The seed spec drives this project's own targets over a scratch authoring tree, so it
-       needs the repository and the mode this assembly was built in. -->
+  <!-- The seed spec builds a scratch tree with this repository's targets and build mode. -->
   <ItemGroup>
     <AssemblyMetadata Include="RepositoryRoot" Value="$(MSBuildThisFileDirectory)../.." />
     <AssemblyMetadata Include="CapsuleUsePackages" Value="$(CapsuleUsePackages)" />
