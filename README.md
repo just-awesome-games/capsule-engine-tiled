@@ -34,11 +34,15 @@ Maps are orthogonal, finite, square-tiled, CSV-encoded and unflipped. A tileset 
 | Tile Class and local tile id | tile type `type` and `cell` |
 | Tile `layer` string property | tile type `layer` |
 | Tile `oneWay` and `solidSides` bool properties | tile type `oneWay` and `solidSides` |
+| Tile Collision Editor holding one unrotated convex polygon of 3 or 4 points, or one rectangle, on a tile with a `layer` | tile type `shape`; an empty editor, or a rectangle covering the tile, is the whole tile |
 | Object Class and position | entry `type`, `x` and `y` |
 | Tile object size over its tile size | entry `scale` |
 | `zIndex` int property on a tile layer, object layer or object | entry `zIndex` |
+| Tile layer or object layer Parallax Factor other than 1, 1 | entry `scrollFactor` on the tile map or on each of the layer's objects |
 
 An object's `zIndex` overrides its layer's. A placement with no `zIndex` keeps its class's band.
+
+A tile layer painted from a tileset with any `layer` tile keeps a Parallax Factor of 1, 1. The map's Parallax Origin stays at 0, 0. Tiled measures parallax from the view's centre and Capsule from the camera's top-left corner, so a Tiled preview of a parallax layer is offset from the game's by the layer's `1 - factor` times half the view.
 
 ## Property types
 

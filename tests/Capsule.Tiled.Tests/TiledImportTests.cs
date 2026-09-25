@@ -1,3 +1,4 @@
+using System.Numerics;
 using Capsule.Assets;
 using Capsule.Rendering;
 using Capsule.Scenes.Documents;
@@ -389,6 +390,67 @@ public sealed class TiledImportTests
         map,
         anchor,
         $"\"properties\":[{{\"name\":\"zIndex\",\"type\":\"{type}\",\"value\":{value}}}],{anchor}");
+
+    [Fact]
+    public void Import_CarriesALayersParallaxFactorAsTheScrollFactorOfItsPlacements()
+    {
+        string map = WithParallax(SceneDocumentFixtures.Read("room.tmj"), "\"name\":\"terrain\",", "0.5", "1");
+        map = WithParallax(map, "\"name\":\"things\",", "0.25", "0.75");
+
+        using SceneDocumentFixtures.Workspace workspace = new();
+        workspace.Write("tiles.tsj", SceneDocumentFixtures.Read("tiles.tsj"));
+        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map));
+
+        Assert.Equal(new Vector2(0.5f, 1f), TileMapOf(document).ScrollFactor);
+        Assert.Equal(new Vector2(0.25f, 0.75f), document.Entries[1].Entity!.Value.ScrollFactor);
+        Assert.Equal(new Vector2(0.25f, 0.75f), document.Entries[2].Entity!.Value.ScrollFactor);
+    }
+
+    [Fact]
+    public void Import_WritesNoScrollFactorForAnAuthoredParallaxOfOne()
+    {
+        using SceneDocumentFixtures.Workspace workspace = new();
+        workspace.Write("tiles.tsj", SceneDocumentFixtures.Read("tiles.tsj"));
+        SceneDocument document = TiledImporter.Import(workspace.Write(
+            "room.tmj",
+            WithParallax(SceneDocumentFixtures.Read("room.tmj"), "\"name\":\"terrain\",", "1", "1")));
+
+        Assert.Null(TileMapOf(document).ScrollFactor);
+    }
+
+    [Fact]
+    public void Import_RejectsParallaxOnATileLayerWhosePaletteCollides()
+    {
+        TiledImportException error = Import(
+            WithParallax(SceneDocumentFixtures.Read("room.tmj"), "\"name\":\"terrain\",", "0.5", "1"),
+            Mutate(
+                SceneDocumentFixtures.Read("tiles.tsj"),
+                "\"type\":\"hazard\"",
+                "\"properties\":[{\"name\":\"layer\",\"type\":\"string\",\"value\":\"solid\"}],\"type\":\"hazard\""));
+
+        Assert.Contains("tile layer 'terrain' has a Parallax Factor", error.Message, StringComparison.Ordinal);
+        Assert.Contains("'hazard'", error.Message, StringComparison.Ordinal);
+    }
+
+    // Tiled measures parallax from the view's centre, which a camera-corner scrollOrigin cannot express.
+    [Fact]
+    public void Import_RefusesAParallaxOrigin()
+    {
+        TiledImportException error = Import(
+            Mutate(
+                SceneDocumentFixtures.Read("room.tmj"),
+                "\"orientation\":\"orthogonal\",",
+                "\"orientation\":\"orthogonal\",\"parallaxoriginx\":0,\"parallaxoriginy\":96,"),
+            SceneDocumentFixtures.Read("tiles.tsj"));
+
+        Assert.Contains("Parallax Origin of (0, 96)", error.Message, StringComparison.Ordinal);
+    }
+
+    // A layer's Parallax Factor as Tiled writes it.
+    private static string WithParallax(string map, string anchor, string x, string y) => Mutate(
+        map,
+        anchor,
+        $"\"parallaxx\":{x},\"parallaxy\":{y},{anchor}");
 
     // Tiled writes an opaque Background Color as #rrggbb and a color property as #aarrggbb.
     [Fact]

@@ -16,6 +16,11 @@ internal sealed class TiledMap
 
     // "#rrggbb" or "#aarrggbb", and absent when the map sets no Background Color.
     public string? BackgroundColor { get; set; }
+
+    // Tiled measures parallax from the view's centre, which Capsule's corner-based ScrollOrigin
+    // cannot express without the canvas size.
+    public double ParallaxOriginX { get; set; }
+    public double ParallaxOriginY { get; set; }
     public TiledLayer[] Layers { get; set; } = [];
     public TiledTileset[] Tilesets { get; set; } = [];
     public TiledProperty[]? Properties { get; set; }
@@ -29,6 +34,10 @@ internal sealed class TiledLayer
     public int Height { get; set; }
     public string? Encoding { get; set; }
     public string? Compression { get; set; }
+
+    // Tiled omits a factor of 1.
+    public double ParallaxX { get; set; } = 1;
+    public double ParallaxY { get; set; } = 1;
 
     // An array for CSV data and a string for base64. Only CSV is supported.
     public JsonElement Data { get; set; }
@@ -61,6 +70,9 @@ internal sealed class TiledTile
     public string? Class { get; set; }
     public string? Type { get; set; }
     public TiledProperty[]? Properties { get; set; }
+
+    // The Tile Collision Editor's shapes, in pixels from the tile's top-left corner.
+    public TiledLayer? ObjectGroup { get; set; }
 
     public string? ResolvedClass => string.IsNullOrWhiteSpace(Class) ? Type : Class;
 
@@ -103,10 +115,27 @@ internal sealed class TiledObject
     public double Width { get; set; }
     public double Height { get; set; }
 
+    // Degrees clockwise about the object's origin.
+    public double Rotation { get; set; }
+
+    // A rectangle carries none of these. Each other shape carries its own.
+    public TiledPoint[]? Polygon { get; set; }
+    public TiledPoint[]? Polyline { get; set; }
+    public bool Ellipse { get; set; }
+    public bool Point { get; set; }
+    public JsonElement Text { get; set; }
+
     // Present only on a tile object, with Tiled's flip bits in its top nibble. A point or rectangle
     // has none.
     public uint? Gid { get; set; }
     public TiledProperty[]? Properties { get; set; }
 
     public string? ResolvedClass => string.IsNullOrWhiteSpace(Class) ? Type : Class;
+}
+
+// A polygon or polyline point, relative to its object's position.
+internal sealed class TiledPoint
+{
+    public double X { get; set; }
+    public double Y { get; set; }
 }

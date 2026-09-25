@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Globalization;
+using System.Numerics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -115,6 +116,15 @@ internal static class TiledImporter
         {
             throw new TiledImportException(
                 $"'{mapPath}' has {map.TileWidth}px tiles but the game declares {declared}px; set Map > Map Properties > Tile Width and Tile Height to {declared}, or change CapsuleTileSize.");
+        }
+
+        // Tiled's origin is a view-centre point and a document's scrollOrigin a camera-corner one. The
+        // canvas size that converts between them is the game's, not the map's.
+        if (map.ParallaxOriginX != 0 || map.ParallaxOriginY != 0)
+        {
+            throw new TiledImportException(string.Create(
+                CultureInfo.InvariantCulture,
+                $"'{mapPath}' has a Parallax Origin of ({map.ParallaxOriginX}, {map.ParallaxOriginY}); Tiled measures parallax from the view's centre and Capsule from the camera's corner, so the origin has no scene equivalent. Set Map > Map Properties > Parallax Origin to 0, 0."));
         }
 
         // Widened to long. A wrapped int product would size the tile array instead of failing here.
@@ -307,11 +317,20 @@ internal static class TiledImporter
             RequireNoRetiredProperty(authored);
 
             string? layer = LayerOf(authored);
+            // Checked on the authored objects. A whole-tile rectangle writes no shape and still collides.
+            if (layer is null && tile.ObjectGroup?.Objects is { Length: > 0 })
+            {
+                throw new TiledImportException(
+                    $"{authored} has a collision shape but no '{LayerProperty}' property, so it collides as nothing; name the collision layer the tile is on in a '{LayerProperty}' property, or clear its collision in the Tile Collision Editor.");
+            }
+
+            Shape2D? shape = ShapeOf(authored, tileset.TileWidth);
             indexByGid[tileset.FirstGid + tile.Id] = palette.Count;
             palette.Add(new TileDefinition(
                 tileClass,
                 tile.Id,
                 layer,
+                shape,
                 OneWay: BoolOf(authored, OneWayProperty),
                 SolidSides: BoolOf(authored, SolidSidesProperty)));
         }
@@ -357,6 +376,99 @@ internal static class TiledImporter
             _ => throw new TiledImportException(
                 $"{authored} has '{LayerProperty}' naming {names.Length} layers; a tile is on one layer."),
         };
+    }
+
+    // The one polygon or rectangle a tile's Tile Collision Editor holds. None is the whole tile, and so
+    // is a rectangle covering it, which the document writes as no shape. Shape2D owns convexity and
+    // winding.
+    private static Shape2D? ShapeOf(AuthoredTile authored, int tileSize)
+    {
+        TiledObject[] objects = authored.Tile.ObjectGroup?.Objects ?? [];
+        if (objects.Length == 0)
+        {
+            return null;
+        }
+
+        if (objects.Length > 1)
+        {
+            throw new TiledImportException(
+                $"{authored} has {objects.Length} objects in its collision; a tile collides as one shape. Merge them in the Tile Collision Editor into one polygon of 3 or 4 points, or one rectangle.");
+        }
+
+        TiledObject drawn = objects[0];
+        string? refused = drawn switch
+        {
+            { Ellipse: true } => "an ellipse",
+            { Point: true } => "a point",
+            { Polyline: not null } => "a polyline",
+            { Text.ValueKind: JsonValueKind.Object } => "a text object",
+            { Gid: not null } => "a tile object",
+            _ => null,
+        };
+
+        if (refused is not null)
+        {
+            throw new TiledImportException(
+                $"{authored} collides as {refused}; draw its collision in the Tile Collision Editor as one polygon of 3 or 4 points, or one rectangle.");
+        }
+
+        if (drawn.Rotation != 0)
+        {
+            throw new TiledImportException(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{authored} has a collision shape rotated {drawn.Rotation} degrees; set its Rotation to 0 and place its points where the rotated shape sat."));
+        }
+
+        Vector2 origin = new((float)drawn.X, (float)drawn.Y);
+        Span<Vector2> corners = stackalloc Vector2[Shape2D.MaxPoints];
+        int count;
+        if (drawn.Polygon is { } polygon)
+        {
+            if (polygon.Length is < 3 or > Shape2D.MaxPoints)
+            {
+                throw new TiledImportException(
+                    $"{authored} has a collision polygon of {polygon.Length} points; a tile collides as 3 or {Shape2D.MaxPoints}. Redraw it in the Tile Collision Editor.");
+            }
+
+            for (int i = 0; i < polygon.Length; i++)
+            {
+                corners[i] = origin + new Vector2((float)polygon[i].X, (float)polygon[i].Y);
+            }
+
+            count = polygon.Length;
+        }
+        else
+        {
+            Vector2 far = origin + new Vector2((float)drawn.Width, (float)drawn.Height);
+            corners[0] = origin;
+            corners[1] = new Vector2(far.X, origin.Y);
+            corners[2] = far;
+            corners[3] = new Vector2(origin.X, far.Y);
+            count = 4;
+        }
+
+        Shape2D shape;
+        try
+        {
+            shape = Shape2D.Polygon(corners[..count]);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new TiledImportException(
+                $"{authored} has a collision shape Capsule cannot collide as: {ex.Message} Redraw it as a convex polygon of 3 or 4 separate points, or a rectangle with a width and a height.",
+                ex);
+        }
+
+        Aabb2D bounds = shape.Bounds;
+        if (bounds.Min.X < 0f || bounds.Min.Y < 0f || bounds.Max.X > tileSize || bounds.Max.Y > tileSize)
+        {
+            throw new TiledImportException(
+                $"{authored} has a collision shape reaching outside its {tileSize}px tile; keep every point within the tile in the Tile Collision Editor.");
+        }
+
+        return shape.Kind == ShapeKind2D.Box && bounds.Min == Vector2.Zero && bounds.Max == new Vector2(tileSize)
+            ? null
+            : shape;
     }
 
     // A tile's bool property, oneWay or solidSides. Absent is false. The engine refuses oneWay on a
@@ -429,14 +541,27 @@ internal static class TiledImporter
             switch (layer.Type)
             {
                 case "tilelayer":
+                    TileGrid grid = ReadGrid(layer, map, tilesets);
+                    Vector2? tileFactor = ScrollFactorOf(layer);
+
+                    // The engine refuses a scrolled grid whose palette collides, and a layer's palette is its
+                    // tileset's every Class, painted or not.
+                    if (tileFactor is not null && CollidingTile(grid) is { } colliding)
+                    {
+                        throw new TiledImportException(
+                            $"tile layer '{layer.Name}' has a Parallax Factor but paints from a tileset with colliding tiles ('{colliding.Type}' has a '{LayerProperty}' property); a layer that collides cannot scroll apart from the camera. Split the colliding tiles into their own tileset painted on a layer whose Parallax Factor is 1, 1.");
+                    }
+
                     entries.Add(new TileMapPlacement(
                         nextEntityId++,
-                        ReadGrid(layer, map, tilesets),
-                        ZIndexOf(layer.Properties, $"tile layer '{layer.Name}'")));
+                        grid,
+                        ZIndexOf(layer.Properties, $"tile layer '{layer.Name}'"),
+                        tileFactor));
                     break;
 
                 case "objectgroup":
                     int? layerBand = ZIndexOf(layer.Properties, $"object layer '{layer.Name}'");
+                    Vector2? objectFactor = ScrollFactorOf(layer);
                     foreach (TiledObject placed in layer.Objects ?? [])
                     {
                         string? objectClass = placed.ResolvedClass;
@@ -446,7 +571,7 @@ internal static class TiledImporter
                                 $"object {placed.Id} on layer '{layer.Name}' has no Class; every object is typed by its Class.");
                         }
 
-                        entries.Add(Placement(placed, objectClass, layer, tilesets, layerBand));
+                        entries.Add(Placement(placed, objectClass, layer, tilesets, layerBand, objectFactor));
                     }
 
                     break;
@@ -467,14 +592,15 @@ internal static class TiledImporter
         string objectClass,
         TiledLayer layer,
         Tileset[] tilesets,
-        int? layerBand)
+        int? layerBand,
+        Vector2? scrollFactor)
     {
         // An object's own band overrides its layer's.
         int? zIndex = ZIndexOf(placed.Properties, $"object {placed.Id} on layer '{layer.Name}'") ?? layerBand;
 
         if (placed.Gid is not { } gid)
         {
-            return new EntityPlacement(placed.Id, objectClass, (float)placed.X, (float)placed.Y, ZIndex: zIndex);
+            return new EntityPlacement(placed.Id, objectClass, (float)placed.X, (float)placed.Y, ZIndex: zIndex, ScrollFactor: scrollFactor);
         }
 
         if ((gid & OrientationFlags) != 0)
@@ -494,8 +620,28 @@ internal static class TiledImporter
             (float)placed.Y,
             (float)(placed.Width / drawn.TileSize),
             (float)(placed.Height / drawn.TileSize),
-            zIndex);
+            zIndex,
+            scrollFactor);
     }
+
+    private static TileDefinition? CollidingTile(TileGrid grid)
+    {
+        foreach (TileDefinition definition in grid.TileTypes)
+        {
+            if (definition.Layer is not null)
+            {
+                return definition;
+            }
+        }
+
+        return null;
+    }
+
+    // A layer's Parallax Factor. Tiled's default of 1, 1 is absent, as the document writes it.
+    private static Vector2? ScrollFactorOf(TiledLayer layer) =>
+        layer.ParallaxX == 1 && layer.ParallaxY == 1
+            ? null
+            : new Vector2((float)layer.ParallaxX, (float)layer.ParallaxY);
 
     // The draw band a placement authors. An absent property is null, never 0. The entity's class
     // owns the default band.

@@ -1,3 +1,5 @@
+using System.Numerics;
+using Capsule.Physics;
 using Capsule.Scenes.Documents;
 using Capsule.Tiles;
 
@@ -93,12 +95,86 @@ public sealed class TileLayerImportTests
         Assert.Contains("as a 'file' property", error.Message, StringComparison.Ordinal);
     }
 
-    private static SceneDocument ImportWithTileProperty(string property)
+    [Fact]
+    public void Import_TakesACollisionPolygonAsTheTilesShapeOffsetByItsObject()
+    {
+        // Tiled places a polygon object at its first point and writes every point relative to it.
+        Shape2D shape = Palette(ImportWithCollision(
+            "{\"id\":1,\"x\":0,\"y\":16,\"polygon\":[{\"x\":0,\"y\":0},{\"x\":16,\"y\":-16},{\"x\":16,\"y\":0}]}"))[1].Shape!.Value;
+
+        Vector2[] points = [.. Enumerable.Range(0, shape.PointCount).Select(shape.Point)];
+        Assert.Equal(3, points.Length);
+        Assert.Contains(new Vector2(0, 16), points);
+        Assert.Contains(new Vector2(16, 0), points);
+        Assert.Contains(new Vector2(16, 16), points);
+    }
+
+    [Theory]
+    [InlineData(8, true)]
+    [InlineData(0, false)]
+    public void Import_TakesACollisionRectangleAsItsCornersAndOneCoveringTheTileAsTheWholeTile(int top, bool shaped)
+    {
+        TileDefinition ground = Palette(ImportWithCollision(
+            $"{{\"id\":1,\"x\":0,\"y\":{top},\"width\":16,\"height\":{16 - top}}}"))[1];
+
+        Assert.Equal(shaped, ground.Shape is not null);
+        if (ground.Shape is { } shape)
+        {
+            Assert.Equal(new Vector2(0, top), shape.Bounds.Min);
+            Assert.Equal(new Vector2(16, 16), shape.Bounds.Max);
+        }
+    }
+
+    [Fact]
+    public void Import_RejectsMoreThanOneCollisionObject()
+    {
+        TiledImportException error = Assert.Throws<TiledImportException>(() => ImportWithCollision(
+            "{\"id\":1,\"width\":8,\"height\":8},{\"id\":2,\"x\":8,\"width\":8,\"height\":8}"));
+
+        Assert.Contains("tileset 'terrain' tile 0 (Class 'ground') has 2 objects in its collision", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Import_RejectsACollisionEllipse()
+    {
+        TiledImportException error = Assert.Throws<TiledImportException>(() => ImportWithCollision(
+            "{\"id\":1,\"width\":16,\"height\":16,\"ellipse\":true}"));
+
+        Assert.Contains("tileset 'terrain' tile 0 (Class 'ground') collides as an ellipse", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Import_RejectsANonConvexCollisionPolygonNamingTheTile()
+    {
+        TiledImportException error = Assert.Throws<TiledImportException>(() => ImportWithCollision(
+            "{\"id\":1,\"polygon\":[{\"x\":0,\"y\":0},{\"x\":16,\"y\":8},{\"x\":0,\"y\":16},{\"x\":4,\"y\":8}]}"));
+
+        Assert.Contains("tileset 'terrain' tile 0 (Class 'ground') has a collision shape Capsule cannot collide as", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(8)]
+    [InlineData(0)]
+    public void Import_RejectsACollisionShapeOnATileWithNoLayerNamingTheTile(int top)
+    {
+        TiledImportException error = Assert.Throws<TiledImportException>(() => ImportWithCollision(
+            $"{{\"id\":1,\"y\":{top},\"width\":16,\"height\":{16 - top}}}",
+            layer: false));
+
+        Assert.Contains("tileset 'terrain' tile 0 (Class 'ground') has a collision shape but no 'layer' property", error.Message, StringComparison.Ordinal);
+    }
+
+    // The fixture's first tile, drawn in the Tile Collision Editor as these objects.
+    private static SceneDocument ImportWithCollision(string objects, bool layer = true) => ImportWithTileProperty(
+        layer ? "{\"name\":\"layer\",\"type\":\"string\",\"value\":\"solid\"}" : string.Empty,
+        $"\"objectgroup\":{{\"draworder\":\"index\",\"objects\":[{objects}],\"type\":\"objectgroup\",\"x\":0,\"y\":0}},");
+
+    private static SceneDocument ImportWithTileProperty(string property, string members = "")
     {
         // The fixture's first tile carries no properties of its own, so this becomes its whole list.
         string tileset = SceneDocumentFixtures.Read("tiles.tsj").Replace(
             "\"id\":0,\n         \"type\":\"ground\"",
-            $"\"id\":0,\n         \"properties\":[{property.TrimEnd(',')}],\n         \"type\":\"ground\"",
+            $"\"id\":0,\n         {members}\"properties\":[{property.TrimEnd(',')}],\n         \"type\":\"ground\"",
             StringComparison.Ordinal);
 
         Assert.NotEqual(SceneDocumentFixtures.Read("tiles.tsj"), tileset);
