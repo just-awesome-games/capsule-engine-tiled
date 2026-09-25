@@ -1,3 +1,4 @@
+using System.Numerics;
 using Capsule.Rendering;
 using Capsule.Scenes.Documents;
 
@@ -90,17 +91,33 @@ public sealed class MapImportTests
         Assert.Contains(expected, error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Import_RefusesAParallaxOrigin()
+    // The Parallax Origin is the scroll centre as it stands. A map with a parallax layer writes it
+    // even at 0, 0, and a map with neither writes none and leaves the camera its default.
+    [Theory]
+    [InlineData(128, 112, false, true)]
+    [InlineData(0, 0, true, true)]
+    [InlineData(0, 0, false, false)]
+    public void Import_CarriesTheParallaxOriginAsTheScrollCenter(int x, int y, bool parallaxLayer, bool written)
     {
-        TiledImportException error = TiledFixtures.ImportFailure(
-            TiledFixtures.Mutate(
-                TiledFixtures.Read("room.tmj"),
+        string map = TiledFixtures.Read("room.tmj");
+        if (x != 0 || y != 0)
+        {
+            map = TiledFixtures.Mutate(
+                map,
                 "\"orientation\":\"orthogonal\",",
-                "\"orientation\":\"orthogonal\",\"parallaxoriginx\":0,\"parallaxoriginy\":96,"),
-            TiledFixtures.Read("tiles.tsj"));
+                $"\"orientation\":\"orthogonal\",\"parallaxoriginx\":{x},\"parallaxoriginy\":{y},");
+        }
 
-        Assert.Contains("Parallax Origin of (0, 96)", error.Message, StringComparison.Ordinal);
+        if (parallaxLayer)
+        {
+            map = TiledFixtures.Mutate(map, "\"name\":\"things\",", "\"name\":\"things\",\"parallaxx\":0.5,\"parallaxy\":1,");
+        }
+
+        using TiledFixtures.Workspace workspace = new();
+        workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
+        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map), ".");
+
+        Assert.Equal(written ? new Vector2(x, y) : (Vector2?)null, document.Settings.ScrollCenter);
     }
 
     // Tiled writes an opaque Background Color as #rrggbb and a color property as #aarrggbb.

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Numerics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -110,15 +111,6 @@ internal static class TiledImporter
                 $"the map has {map.TileWidth}px tiles but the game declares {declared}px; set Map > Map Properties > Tile Width and Tile Height to {declared}, or change CapsuleTileSize.");
         }
 
-        // Tiled's origin is a view-centre point and a document's scrollOrigin a camera-corner one. The
-        // canvas size that converts between them is the game's, not the map's.
-        if (map.ParallaxOriginX != 0 || map.ParallaxOriginY != 0)
-        {
-            throw new TiledImportException(string.Create(
-                CultureInfo.InvariantCulture,
-                $"the map has a Parallax Origin of ({map.ParallaxOriginX}, {map.ParallaxOriginY}); Tiled measures parallax from the view's centre and Capsule from the camera's corner, so the origin has no scene equivalent. Set Map > Map Properties > Parallax Origin to 0, 0."));
-        }
-
         // Widened to long. A wrapped int product would size the tile array instead of failing here.
         long area = (long)map.Width * map.Height;
         if (map.Width <= 0 || map.Height <= 0 || area > Array.MaxLength)
@@ -139,6 +131,7 @@ internal static class TiledImporter
             Camera = properties.String(CameraProperty),
             ClearColor = map.BackgroundColor is { } background ? properties.OpaqueColor(BackgroundColor, background) : null,
             Ambient = properties.Color(AmbientProperty),
+            ScrollCenter = ScrollCenterOf(map),
 
             // A typed setting cannot carry a misspelling to the engine's check. The two spellings are
             // the document format's.
@@ -151,4 +144,12 @@ internal static class TiledImporter
             },
         };
     }
+
+    // Tiled's Parallax Origin and the scene's scroll centre are both the view centre at which every
+    // layer sits as authored. A map with a parallax layer writes even 0, 0, because the camera's own
+    // default would draw those layers away from where Tiled previews them.
+    private static Vector2? ScrollCenterOf(TiledMap map) =>
+        map.ParallaxOriginX != 0 || map.ParallaxOriginY != 0 || map.Layers.Any(layer => layer.ParallaxX != 1 || layer.ParallaxY != 1)
+            ? new Vector2((float)map.ParallaxOriginX, (float)map.ParallaxOriginY)
+            : null;
 }
