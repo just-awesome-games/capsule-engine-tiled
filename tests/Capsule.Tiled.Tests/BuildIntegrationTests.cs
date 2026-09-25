@@ -71,7 +71,7 @@ public sealed class BuildIntegrationTests
     // its own bin/.
     private static IEnumerable<string> HandedToCapsule(bool shipping)
     {
-        string root = Path.GetFullPath(SceneDocumentFixtures.Metadata("RepositoryRoot"));
+        string root = Path.GetFullPath(TiledFixtures.Metadata("RepositoryRoot"));
         ProcessStartInfo start = new("dotnet")
         {
             WorkingDirectory = root,
@@ -87,9 +87,9 @@ public sealed class BuildIntegrationTests
         // timeout. ReadToEnd would block that long, so the nodes exit with this build.
         start.ArgumentList.Add("-nodeReuse:false");
         start.ArgumentList.Add($"-p:CapsuleShipping={(shipping ? "true" : "false")}");
-        if (SceneDocumentFixtures.Metadata("CapsuleUsePackages").Length > 0)
+        if (TiledFixtures.Metadata("CapsuleUsePackages").Length > 0)
         {
-            start.ArgumentList.Add($"-p:CapsuleUsePackages={SceneDocumentFixtures.Metadata("CapsuleUsePackages")}");
+            start.ArgumentList.Add($"-p:CapsuleUsePackages={TiledFixtures.Metadata("CapsuleUsePackages")}");
         }
 
         using Process msbuild = Process.Start(start)!;

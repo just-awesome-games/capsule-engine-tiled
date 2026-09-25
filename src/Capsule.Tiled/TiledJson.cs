@@ -6,6 +6,7 @@ namespace Capsule.Tiled;
 // case-insensitively, and the C# name is the mapping.
 internal sealed class TiledMap
 {
+    public string? Version { get; set; }
     public string? Orientation { get; set; }
     public bool Infinite { get; set; }
     public int Width { get; set; }
@@ -16,9 +17,6 @@ internal sealed class TiledMap
 
     // "#rrggbb" or "#aarrggbb", and absent when the map sets no Background Color.
     public string? BackgroundColor { get; set; }
-
-    // Tiled measures parallax from the view's centre, which Capsule's corner-based ScrollOrigin
-    // cannot express without the canvas size.
     public double ParallaxOriginX { get; set; }
     public double ParallaxOriginY { get; set; }
     public TiledLayer[] Layers { get; set; } = [];
@@ -51,6 +49,9 @@ internal sealed class TiledTileset
 {
     public int FirstGid { get; set; }
     public string? Source { get; set; }
+
+    // An external tileset's own format version. An inline one has the map's.
+    public string? Version { get; set; }
     public string? Name { get; set; }
 
     // An image tileset's atlas, relative to the tileset document. A collection tileset has none.
@@ -65,35 +66,11 @@ internal sealed class TiledTileset
 internal sealed class TiledTile
 {
     public int Id { get; set; }
-
-    // Tiled 1.9 writes "class" and 1.10 writes "type". Both are read.
-    public string? Class { get; set; }
     public string? Type { get; set; }
     public TiledProperty[]? Properties { get; set; }
 
     // The Tile Collision Editor's shapes, in pixels from the tile's top-left corner.
     public TiledLayer? ObjectGroup { get; set; }
-
-    public string? ResolvedClass => string.IsNullOrWhiteSpace(Class) ? Type : Class;
-
-    public TiledProperty? Property(string name) => TiledProperties.Find(Properties, name);
-}
-
-// One lookup by name for the custom properties of a tile, a layer or an object.
-internal static class TiledProperties
-{
-    internal static TiledProperty? Find(TiledProperty[]? properties, string name)
-    {
-        foreach (TiledProperty property in properties ?? [])
-        {
-            if (string.Equals(property.Name, name, StringComparison.Ordinal))
-            {
-                return property;
-            }
-        }
-
-        return null;
-    }
 }
 
 internal sealed class TiledProperty
@@ -108,7 +85,6 @@ internal sealed class TiledProperty
 internal sealed class TiledObject
 {
     public int Id { get; set; }
-    public string? Class { get; set; }
     public string? Type { get; set; }
     public double X { get; set; }
     public double Y { get; set; }
@@ -129,8 +105,6 @@ internal sealed class TiledObject
     // has none.
     public uint? Gid { get; set; }
     public TiledProperty[]? Properties { get; set; }
-
-    public string? ResolvedClass => string.IsNullOrWhiteSpace(Class) ? Type : Class;
 }
 
 // A polygon or polyline point, relative to its object's position.

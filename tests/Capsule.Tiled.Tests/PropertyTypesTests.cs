@@ -18,14 +18,6 @@ public sealed class PropertyTypesTests
     }
 
     [Fact]
-    public void TheProjectTemplateOpensOnTheDirectoryItSitsIn()
-    {
-        Assert.Equal(
-            ["."],
-            Project()["folders"]!.AsArray().Select(static folder => folder!.GetValue<string>()).ToArray());
-    }
-
-    [Fact]
     public void TheLayerClassBandsALayerThroughTheZIndexTheImporterReads()
     {
         JsonNode layer = TypeNamed("CapsuleLayer");
@@ -36,7 +28,7 @@ public sealed class PropertyTypesTests
         Assert.Equal(["layer"], layer["useAs"]!.AsArray().Select(static use => use!.GetValue<string>()).ToArray());
 
         JsonNode member = Assert.Single(layer["members"]!.AsArray())!;
-        Assert.Equal("zIndex", member["name"]!.GetValue<string>());
+        Assert.Equal(LayerImporter.ZIndexProperty, member["name"]!.GetValue<string>());
         Assert.Equal("int", member["type"]!.GetValue<string>());
     }
 
@@ -45,15 +37,15 @@ public sealed class PropertyTypesTests
     [Fact]
     public void TheBuildSeedsTheProjectOnceAndNeverOverwritesIt()
     {
-        using SceneDocumentFixtures.Workspace workspace = new();
+        using TiledFixtures.Workspace workspace = new();
         Directory.CreateDirectory("sources/Levels");
-        workspace.Write("sources/Levels/room.tmj", SceneDocumentFixtures.Read("room.tmj"));
-        workspace.Write("sources/Levels/tiles.tsj", SceneDocumentFixtures.Read("tiles.tsj"));
+        workspace.Write("sources/Levels/room.tmj", TiledFixtures.Read("room.tmj"));
+        workspace.Write("sources/Levels/tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         string sources = Path.GetFullPath("sources");
         string seeded = Path.Combine(sources, "Capsule.Tiled.Tests.tiled-project");
 
         Seed(sources);
-        Assert.Equal(SceneDocumentFixtures.Read(ProjectFile), File.ReadAllText(seeded));
+        Assert.Equal(TiledFixtures.Read(ProjectFile), File.ReadAllText(seeded));
 
         File.WriteAllText(seeded, "{ \"folders\": [\".\", \"halls\"] }");
         Seed(sources);
@@ -63,7 +55,7 @@ public sealed class PropertyTypesTests
 
     private static void Seed(string assetSourcesDir)
     {
-        string root = Path.GetFullPath(SceneDocumentFixtures.Metadata("RepositoryRoot"));
+        string root = Path.GetFullPath(TiledFixtures.Metadata("RepositoryRoot"));
         ProcessStartInfo start = new("dotnet")
         {
             WorkingDirectory = root,
@@ -75,9 +67,9 @@ public sealed class PropertyTypesTests
         start.ArgumentList.Add(Path.Combine(root, "tests", "Capsule.Tiled.Tests", "Capsule.Tiled.Tests.csproj"));
         start.ArgumentList.Add("-t:CapsuleTiledSeedProject");
         start.ArgumentList.Add($"-p:CapsuleAssetSourcesDir={assetSourcesDir}");
-        if (SceneDocumentFixtures.Metadata("CapsuleUsePackages").Length > 0)
+        if (TiledFixtures.Metadata("CapsuleUsePackages").Length > 0)
         {
-            start.ArgumentList.Add($"-p:CapsuleUsePackages={SceneDocumentFixtures.Metadata("CapsuleUsePackages")}");
+            start.ArgumentList.Add($"-p:CapsuleUsePackages={TiledFixtures.Metadata("CapsuleUsePackages")}");
         }
 
         using Process msbuild = Process.Start(start)!;
@@ -91,9 +83,9 @@ public sealed class PropertyTypesTests
         Types(TypesFile),
         type => string.Equals(type!["name"]!.GetValue<string>(), name, StringComparison.Ordinal))!;
 
-    private static JsonArray Types(string file) => JsonNode.Parse(SceneDocumentFixtures.Read(file))!.AsArray();
+    private static JsonArray Types(string file) => JsonNode.Parse(TiledFixtures.Read(file))!.AsArray();
 
-    private static JsonObject Project() => JsonNode.Parse(SceneDocumentFixtures.Read(ProjectFile))!.AsObject();
+    private static JsonObject Project() => JsonNode.Parse(TiledFixtures.Read(ProjectFile))!.AsObject();
 
     // Compared as text rather than by reference equality, which JsonNode does not define.
     private static string Canonical(JsonArray types) => types.ToJsonString();

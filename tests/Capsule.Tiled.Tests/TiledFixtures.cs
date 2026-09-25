@@ -1,12 +1,14 @@
 using System.Reflection;
+using Capsule.Scenes.Documents;
+using Capsule.Tiles;
 
 namespace Capsule.Tiled.Tests;
 
-internal static class SceneDocumentFixtures
+internal static class TiledFixtures
 {
     // The repository root and build mode, for specs that drive this repository's targets.
     internal static string Metadata(string key) =>
-        typeof(SceneDocumentFixtures).Assembly
+        typeof(TiledFixtures).Assembly
             .GetCustomAttributes<AssemblyMetadataAttribute>()
             .FirstOrDefault(attribute => string.Equals(attribute.Key, key, StringComparison.Ordinal))
             ?.Value ?? string.Empty;
@@ -39,6 +41,28 @@ internal static class SceneDocumentFixtures
 
         return workspace;
     }
+
+    internal static string Mutate(string text, string from, string to)
+    {
+        Assert.Contains(from, text, StringComparison.Ordinal);
+        return text.Replace(from, to, StringComparison.Ordinal);
+    }
+
+    // Imports the map beside the tileset in a fresh workspace and returns the refusal.
+    internal static TiledImportException ImportFailure(string map, string tileset)
+    {
+        using Workspace workspace = new();
+        workspace.Write("tiles.tsj", tileset);
+        string mapPath = workspace.Write("room.tmj", map);
+
+        return Assert.Throws<TiledImportException>(() => TiledImporter.Import(mapPath, "."));
+    }
+
+    internal static TileMapPlacement TileMapOf(SceneDocument document, int index = 0) =>
+        document.Entries[index].TileMap!.Value;
+
+    internal static ReadOnlySpan<TileDefinition> Palette(SceneDocument document) =>
+        document.Entries[0].TileMap!.Value.Grid.TileTypes;
 
     internal sealed class Workspace : IDisposable
     {

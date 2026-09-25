@@ -19,12 +19,6 @@
         },
         {
          "id":2,
-         "properties":[
-                {
-                 "name":"solid",
-                 "type":"bool",
-                 "value":false
-                }],
          "type":"ledge"
         },
         {

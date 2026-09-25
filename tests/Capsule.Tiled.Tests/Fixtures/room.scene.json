@@ -10,7 +10,7 @@
         "tileSize": 16,
         "width": 4,
         "height": 3,
-        "texture": "tiles.png",
+        "texture": "Textures/tiles.png",
         "columns": 4,
         "tileTypes": [
           {
@@ -57,6 +57,6 @@
   "source": {
     "tool": "tiled",
     "path": "room.tmj",
-    "hash": "d22da72e2ac64632b785efd6d9c158bc13b7471350a47c8d264a72d56c559d7e"
+    "hash": "3ab229e701a8dd124479c7765cb64518b7762b6ffbca16961fa48e51efaafad0"
   }
 }

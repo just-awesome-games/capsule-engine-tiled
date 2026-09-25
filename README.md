@@ -19,7 +19,7 @@ The package has no settings of its own. It runs where Capsule imports scenes (`C
 
 ## Tiled subset
 
-Maps are orthogonal, finite, square-tiled, CSV-encoded and unflipped. A tileset is a single image whose tile size equals the map's. Anything else fails the build.
+Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finite, square-tiled, CSV-encoded and unflipped. A tileset is a single image whose tile size equals the map's. Anything else fails the build.
 
 | Tiled | Scene document |
 | --- | --- |
@@ -46,7 +46,7 @@ A tile layer painted from a tileset with any `layer` tile keeps a Parallax Facto
 
 ## Property types
 
-The build seeds `<project>.tiled-project` at the root of `Assets/` while no `.tiled-project` exists under it. Opening it in Tiled 1.9 or later adds the `CapsuleLayer` class, which gives a layer's Class dropdown a `zIndex`. The build never overwrites the file. An existing project imports the same type through Project > Import Types, from `capsule-property-types.json` in the package's `buildTransitive/`.
+The build seeds `<project>.tiled-project` at the root of `Assets/` while no `.tiled-project` exists under it. Opening it in Tiled 1.10 or later adds the `CapsuleLayer` class, which gives a layer's Class dropdown a `zIndex`. The build never overwrites the file. An existing project imports the same type through Project > Import Types, from `capsule-property-types.json` in the package's `buildTransitive/`.
 
 ## Developing
 
