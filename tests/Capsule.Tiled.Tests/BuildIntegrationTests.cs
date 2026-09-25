@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Text.Json.Nodes;
 using Capsule.Assets;
 using Capsule.Scenes.Documents;
@@ -10,7 +11,17 @@ namespace Capsule.Tiled.Tests;
 public sealed class BuildIntegrationTests
 {
     private static string Shipped(string key) =>
-        Path.Combine(AppContext.BaseDirectory, "assets", key + ".scene.json");
+        Path.Combine(AppContext.BaseDirectory, "assets", key + ".scene.json.gz");
+
+    // Capsule ships a scene document gzipped.
+    private static string Inflated(string key)
+    {
+        using StreamReader inflated = new(new GZipStream(File.OpenRead(Shipped(key)), CompressionMode.Decompress));
+
+        return inflated.ReadToEnd();
+    }
+
+    private static SceneDocument Load(string key) => SceneDocumentFile.Parse(Inflated(key));
 
     [Theory]
     [InlineData("scenes/room")]
@@ -20,9 +31,10 @@ public sealed class BuildIntegrationTests
         string path = Shipped(key);
 
         Assert.True(File.Exists(path), $"expected the build to ship {path}");
+        string shipped = Inflated(key);
         Assert.True(JsonNode.DeepEquals(
-            JsonNode.Parse(File.ReadAllText(path)),
-            JsonNode.Parse(SceneDocumentFile.ToJson(SceneDocumentFile.Load(path)))));
+            JsonNode.Parse(shipped),
+            JsonNode.Parse(SceneDocumentFile.ToJson(SceneDocumentFile.Parse(shipped)))));
     }
 
     [Theory]
@@ -30,7 +42,7 @@ public sealed class BuildIntegrationTests
     [InlineData("scenes/halls/room", "Assets/Scenes/halls/room.tmj")]
     public void TheShippedDocumentKeepsItsMapAsItsProvenance(string key, string source)
     {
-        SceneDocument document = SceneDocumentFile.Load(Shipped(key));
+        SceneDocument document = Load(key);
 
         Assert.Equal(TiledImporter.ToolName, document.Source?.Tool);
         Assert.EndsWith(source, document.Source?.Path, StringComparison.Ordinal);
@@ -39,7 +51,7 @@ public sealed class BuildIntegrationTests
     [Fact]
     public void TheShippedDocumentNamesANestedAtlasByItsPathUnderAssets()
     {
-        SceneDocument document = SceneDocumentFile.Load(Shipped("scenes/halls/room"));
+        SceneDocument document = Load("scenes/halls/room");
 
         Assert.Equal(
             new TextureHandle("textures/terrain/tiles", ".png"),
@@ -51,7 +63,7 @@ public sealed class BuildIntegrationTests
     [Fact]
     public void TheBuildNormalizesAnAuthoredSpellingIntoTheShippedKeyAndHandle()
     {
-        SceneDocument document = SceneDocumentFile.Load(Shipped("scenes/upper-halls/room-02"));
+        SceneDocument document = Load("scenes/upper-halls/room-02");
 
         Assert.Equal(
             new TextureHandle("textures/cave-walls/cave-tiles", ".png"),
