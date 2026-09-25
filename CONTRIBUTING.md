@@ -13,4 +13,4 @@ Setup and the commit gates are under [Developing](README.md#developing) in the R
 
 Additional repository rules are in [`AGENTS.md`](AGENTS.md).
 
-By contributing, you agree that your contribution is licensed under the [MIT License](LICENSE).
+By contributing, you agree that your contribution is licensed under the [Mozilla Public License 2.0](LICENSE).

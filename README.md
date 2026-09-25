@@ -69,4 +69,4 @@ git config core.hooksPath .githooks
 
 `-p:CapsuleUsePackages=true` forces the pinned packages. The gates are the four commands in `.githooks/pre-commit`. [RELEASING.md](RELEASING.md) is the release procedure.
 
-Capsule Tiled is licensed under the [MIT License](LICENSE).
+Capsule Tiled is licensed under the [Mozilla Public License 2.0](LICENSE).

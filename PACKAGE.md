@@ -4,4 +4,4 @@ Capsule Tiled imports Tiled maps into [Capsule Engine](https://github.com/just-a
 
 The [quick start](https://github.com/just-awesome-games/capsule-engine-tiled#quick-start) and the [Tiled subset](https://github.com/just-awesome-games/capsule-engine-tiled#tiled-subset) are in the repository README.
 
-Capsule Tiled is licensed under the [MIT License](https://github.com/just-awesome-games/capsule-engine-tiled/blob/main/LICENSE).
+Capsule Tiled is licensed under the [Mozilla Public License 2.0](https://github.com/just-awesome-games/capsule-engine-tiled/blob/main/LICENSE).

@@ -24,7 +24,7 @@
     <VersionPrefix>0.0.0</VersionPrefix>
     <Authors>JAG Studios</Authors>
     <PackageTags>capsule;game-engine;2d;tiled;level-editor</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/just-awesome-games/capsule-engine-tiled</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/just-awesome-games/capsule-engine-tiled</RepositoryUrl>

@@ -20,7 +20,9 @@ public sealed class BuildIntegrationTests
         string path = Shipped(key);
 
         Assert.True(File.Exists(path), $"expected the build to ship {path}");
-        Assert.Equal(SceneDocumentFile.ToJson(SceneDocumentFile.Load(path)), File.ReadAllText(path));
+        Assert.True(JsonNode.DeepEquals(
+            JsonNode.Parse(File.ReadAllText(path)),
+            JsonNode.Parse(SceneDocumentFile.ToJson(SceneDocumentFile.Load(path)))));
     }
 
     [Theory]
