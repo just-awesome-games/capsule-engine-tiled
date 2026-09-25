@@ -19,7 +19,7 @@ The package has no settings of its own. It runs where Capsule imports scenes (`C
 
 ## Tiled subset
 
-Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finite, square-tiled, CSV-encoded and unflipped. A tileset is a single image whose tile size equals the map's. Anything else fails the build.
+Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finite, square-tiled and CSV-encoded, and their tile objects are unflipped. A tileset is a single image whose tile size equals the map's. Anything else fails the build.
 
 | Tiled | Scene document |
 | --- | --- |
@@ -30,6 +30,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Map `camera` string property | `camera`, the `Camera` subclass key |
 | Map Parallax Origin | `scrollCenter`, negated, when the origin is not 0, 0 or any layer has a Parallax Factor other than 1, 1 |
 | Tile layer | a tile map entry drawn from one tileset |
+| Tile layer tile flipped horizontally, vertically or diagonally | tile map `transforms`, which turns its drawing and collision shape alike |
 | Tileset image path under `Assets/` | tile map `texture`, for example `Textures/Terrain/Cave.png` |
 | Tileset columns | tile map `columns` |
 | Tile Class and local tile id | tile type `type` and `cell` |

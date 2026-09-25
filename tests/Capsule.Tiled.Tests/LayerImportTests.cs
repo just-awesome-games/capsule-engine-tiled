@@ -81,7 +81,31 @@ public sealed class LayerImportTests
         TiledImportException error = Assert.Throws<TiledImportException>(() => TiledImporter.Import("room.tmj", "."));
 
         Assert.Contains("flipped or rotated tile object", error.Message, StringComparison.Ordinal);
-        Assert.Contains("unflipped tiles only", error.Message, StringComparison.Ordinal);
+        Assert.Contains("places tile objects unflipped", error.Message, StringComparison.Ordinal);
+    }
+
+    // H, V and D are FlipX, FlipY and Transpose on the painted cell. The tile type stays the one
+    // unflipped tile, and a gid with no flip bit keeps None.
+    [Fact]
+    public void Import_CarriesATileLayersFlipBitsAsCellTransforms()
+    {
+        using TiledFixtures.Workspace workspace = new();
+        workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
+        string map = TiledFixtures.Mutate(
+            TiledFixtures.Read("room.tmj"),
+            "\"data\":[0, 0, 0, 0, 1, 1, 2, 0, 1, 1, 1, 4],",
+            "\"data\":[0, 0, 0, 0, 2147483649, 1073741825, 536870914, 0, 3758096385, 1, 1, 4],");
+
+        SceneDocument unflipped = TiledImporter.Import(workspace.Write("unflipped.tmj", TiledFixtures.Read("room.tmj")), ".");
+        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map), ".");
+
+        Assert.Equal(
+            TiledFixtures.TileMapOf(unflipped).Grid.Tiles.ToArray(),
+            TiledFixtures.TileMapOf(document).Grid.Tiles.ToArray());
+        Assert.Contains(
+            "\"transforms\": [\n          0, 0, 0, 0,\n          1, 2, 4, 0,\n          7, 0, 0, 0\n        ]",
+            SceneDocumentFile.ToJson(document),
+            StringComparison.Ordinal);
     }
 
     // One 32x8 tile object of the 16px tileset, appended to the object layer.

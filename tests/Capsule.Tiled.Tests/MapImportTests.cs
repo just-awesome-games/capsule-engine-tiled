@@ -73,7 +73,7 @@ public sealed class MapImportTests
     [InlineData("\"infinite\":false", "\"infinite\":true", "the map is infinite")]
     [InlineData("\"tileheight\":16", "\"tileheight\":8", "square tiles only")]
     [InlineData("\"type\":\"tilelayer\"", "\"type\":\"imagelayer\"", "unsupported layer type")]
-    [InlineData("1, 1, 1, 4]", "1, 1, 1, 2147483649]", "flipped or rotated")]
+    [InlineData("1, 1, 1, 4]", "1, 1, 1, 268435457]", "turned 120 degrees")]
     [InlineData("1, 1, 1, 4]", "1, 1, 1, 5]", "has no Class")]
     [InlineData("1, 1, 1, 4]", "1, 1, 1, 4, 0]", "requires 12")]
     [InlineData("\"type\":\"coin\"", "\"type\":\"\"", "typed by its Class")]

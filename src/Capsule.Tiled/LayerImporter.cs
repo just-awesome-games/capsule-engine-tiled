@@ -9,8 +9,14 @@ internal static class LayerImporter
 {
     internal const string ZIndexProperty = "zIndex";
 
-    // Tiled packs flip and rotation into the top nibble of a gid.
+    // Tiled packs flip and rotation into the top nibble of a gid. It applies the anti-diagonal flip
+    // first, then the horizontal, then the vertical, the order TileTransform applies Transpose, FlipX
+    // and FlipY.
     private const uint OrientationFlags = 0xF000_0000u;
+    private const uint FlippedHorizontally = 0x8000_0000u;
+    private const uint FlippedVertically = 0x4000_0000u;
+    private const uint FlippedDiagonally = 0x2000_0000u;
+    private const uint RotatedHexagonal120 = 0x1000_0000u;
 
     // Layers dispatch on type, never on name. Entries keep the authored layer order.
     internal static List<SceneDocumentEntry> Read(TiledMap map, ResolvedTileset[] tilesets, ref int nextEntityId)
@@ -93,7 +99,7 @@ internal static class LayerImporter
         if ((gid & OrientationFlags) != 0)
         {
             throw new TiledImportException(
-                $"{owner} is a flipped or rotated tile object; Capsule imports unflipped tiles only.");
+                $"{owner} is a flipped or rotated tile object; Capsule places tile objects unflipped, and flips only the tiles of a tile layer. Clear the object's flip in Tiled and face the entity in its own code.");
         }
 
         ResolvedTileset drawn = OwnerOf(gid, tilesets)
@@ -136,6 +142,7 @@ internal static class LayerImporter
         RequireReadableTileData(layer, map);
 
         int[] tiles = new int[(long)map.Width * map.Height];
+        TileTransform[]? transforms = null;
         ResolvedTileset? painted = null;
         int index = 0;
 
@@ -151,10 +158,17 @@ internal static class LayerImporter
                 throw new TiledImportException($"tile layer '{layer.Name}' has a non-numeric tile at index {index}.");
             }
 
-            if ((gid & OrientationFlags) != 0)
+            if ((gid & RotatedHexagonal120) != 0)
             {
                 throw new TiledImportException(
-                    $"tile layer '{layer.Name}' has a flipped or rotated tile at index {index}; Capsule imports unflipped tiles only.");
+                    $"tile layer '{layer.Name}' has a tile turned 120 degrees at index {index}; that turn exists only on hexagonal maps and Capsule imports orthogonal maps only.");
+            }
+
+            if ((gid & OrientationFlags) != 0)
+            {
+                transforms ??= new TileTransform[tiles.Length];
+                transforms[index] = TransformOf(gid);
+                gid &= ~OrientationFlags;
             }
 
             if (gid != 0)
@@ -188,12 +202,33 @@ internal static class LayerImporter
         {
             return painted is null
                 ? new TileGrid(map.TileWidth, map.Width, map.Height, [TileGrid.EmptyTile], tiles)
-                : new TileGrid(map.TileWidth, map.Width, map.Height, painted.Palette, tiles, painted.Texture, painted.Columns);
+                : new TileGrid(map.TileWidth, map.Width, map.Height, painted.Palette, tiles, painted.Texture, painted.Columns, transforms);
         }
         catch (ArgumentException ex)
         {
             throw new TiledImportException($"tile layer '{layer.Name}' imports to an invalid tile map: {ex.Message}", ex);
         }
+    }
+
+    private static TileTransform TransformOf(uint gid)
+    {
+        TileTransform transform = TileTransform.None;
+        if ((gid & FlippedDiagonally) != 0)
+        {
+            transform |= TileTransform.Transpose;
+        }
+
+        if ((gid & FlippedHorizontally) != 0)
+        {
+            transform |= TileTransform.FlipX;
+        }
+
+        if ((gid & FlippedVertically) != 0)
+        {
+            transform |= TileTransform.FlipY;
+        }
+
+        return transform;
     }
 
     private static void RequireReadableTileData(TiledLayer layer, TiledMap map)
