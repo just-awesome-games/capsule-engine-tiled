@@ -145,11 +145,12 @@ internal static class TiledImporter
         };
     }
 
-    // Tiled's Parallax Origin and the scene's scroll centre are both the view centre at which every
-    // layer sits as authored. A map with a parallax layer writes even 0, 0, because the camera's own
-    // default would draw those layers away from where Tiled previews them.
+    // Tiled's renderer adds the Parallax Origin to the view centre (mapscene.cpp), so an origin O
+    // previews as a scroll centre of -O. A map with a parallax layer writes even 0, 0, because the
+    // camera's own default would draw those layers away from where Tiled previews them. Subtracting
+    // from zero keeps a zero origin from writing -0.
     private static Vector2? ScrollCenterOf(TiledMap map) =>
         map.ParallaxOriginX != 0 || map.ParallaxOriginY != 0 || map.Layers.Any(layer => layer.ParallaxX != 1 || layer.ParallaxY != 1)
-            ? new Vector2((float)map.ParallaxOriginX, (float)map.ParallaxOriginY)
+            ? new Vector2((float)(0 - map.ParallaxOriginX), (float)(0 - map.ParallaxOriginY))
             : null;
 }

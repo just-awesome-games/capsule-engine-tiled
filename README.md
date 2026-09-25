@@ -28,7 +28,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Map `sampling` string property, `linear` or `point` | `sampling` |
 | Map `baseScene` string property | `baseScene`, the abstract `Scene` subclass key |
 | Map `camera` string property | `camera`, the `Camera` subclass key |
-| Map Parallax Origin | `scrollCenter`, verbatim, when the origin is not 0, 0 or any layer has a Parallax Factor other than 1, 1 |
+| Map Parallax Origin | `scrollCenter`, negated, when the origin is not 0, 0 or any layer has a Parallax Factor other than 1, 1 |
 | Tile layer | a tile map entry drawn from one tileset |
 | Tileset image path under `Assets/` | tile map `texture`, for example `Textures/Terrain/Cave.png` |
 | Tileset columns | tile map `columns` |
@@ -43,7 +43,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 
 An object's `zIndex` overrides its layer's. A placement with no `zIndex` keeps its class's band.
 
-A tile layer painted from a tileset with any `layer` tile keeps a Parallax Factor of 1, 1. A scene previews in Tiled exactly as it plays when the Tiled view is centred where the game camera is. Set the Parallax Origin to half the game's viewport, for example 128, 112 for 256x224, to line the layers up at the first screen.
+A tile layer painted from a tileset with any `layer` tile keeps a Parallax Factor of 1, 1. A scene previews in Tiled exactly as it plays when the Tiled view is centred where the game camera is. Tiled's renderer adds the Parallax Origin to the view centre. Set it to minus half the game's viewport, for example -128, -112 for 256x224, to line the layers up at the first screen.
 
 ## Property types
 

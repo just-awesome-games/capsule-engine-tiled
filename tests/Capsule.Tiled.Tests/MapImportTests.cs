@@ -91,10 +91,10 @@ public sealed class MapImportTests
         Assert.Contains(expected, error.Message, StringComparison.Ordinal);
     }
 
-    // The Parallax Origin is the scroll centre as it stands. A map with a parallax layer writes it
+    // The Parallax Origin is the scroll centre negated, and a zero origin writes 0, not -0. A map with a parallax layer writes it
     // even at 0, 0, and a map with neither writes none and leaves the camera its default.
     [Theory]
-    [InlineData(128, 112, false, true)]
+    [InlineData(-128, -112, false, true)]
     [InlineData(0, 0, true, true)]
     [InlineData(0, 0, false, false)]
     public void Import_CarriesTheParallaxOriginAsTheScrollCenter(int x, int y, bool parallaxLayer, bool written)
@@ -117,7 +117,8 @@ public sealed class MapImportTests
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        Assert.Equal(written ? new Vector2(x, y) : (Vector2?)null, document.Settings.ScrollCenter);
+        Assert.Equal(written ? new Vector2(-x, -y) : (Vector2?)null, document.Settings.ScrollCenter);
+        Assert.DoesNotContain("-0", SceneDocumentFile.ToJson(document), StringComparison.Ordinal);
     }
 
     // Tiled writes an opaque Background Color as #rrggbb and a color property as #aarrggbb.
