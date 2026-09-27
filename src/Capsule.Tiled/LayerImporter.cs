@@ -11,6 +11,7 @@ internal static class LayerImporter
 {
     internal const string ZIndexProperty = "zIndex";
     private const string SizeProperty = "size";
+    private const string PathProperty = "path";
 
     // Tiled packs flip and rotation into the top nibble of a gid. It applies the anti-diagonal flip
     // first, then the horizontal, then the vertical, the order TileTransform applies Transpose, FlipX
@@ -22,7 +23,12 @@ internal static class LayerImporter
     private const uint RotatedHexagonal120 = 0x1000_0000u;
 
     // Layers dispatch on type, never on name. Entries keep the authored layer order.
-    internal static List<SceneDocumentEntry> Read(TiledMap map, ResolvedTileset[] tilesets, ref int nextEntityId)
+    internal static List<SceneDocumentEntry> Read(
+        TiledMap map,
+        ResolvedTileset[] tilesets,
+        string mapDirectory,
+        string assetRoot,
+        ref int nextEntityId)
     {
         List<SceneDocumentEntry> entries = [];
 
@@ -35,7 +41,7 @@ internal static class LayerImporter
                     break;
 
                 case "objectgroup":
-                    foreach (EntityPlacement placed in ObjectLayer(layer, tilesets))
+                    foreach (EntityPlacement placed in ObjectLayer(layer, tilesets, new FileRoots(mapDirectory, assetRoot)))
                     {
                         entries.Add(placed);
                     }
@@ -68,21 +74,23 @@ internal static class LayerImporter
         return new TileMapPlacement(id, grid, new TiledProperties(layer.Properties, owner).Int(ZIndexProperty), scrollFactor);
     }
 
-    private static EntityPlacement[] ObjectLayer(TiledLayer layer, ResolvedTileset[] tilesets)
+    private static EntityPlacement[] ObjectLayer(TiledLayer layer, ResolvedTileset[] tilesets, FileRoots files)
     {
         int? layerZIndex = new TiledProperties(layer.Properties, $"object layer '{layer.Name}'").Int(ZIndexProperty);
         Vector2? scrollFactor = ScrollFactorOf(layer);
 
-        return [.. (layer.Objects ?? []).Select(placed => Placement(placed, layer, tilesets, layerZIndex, scrollFactor))];
+        return [.. (layer.Objects ?? []).Select(placed => Placement(placed, layer, tilesets, files, layerZIndex, scrollFactor))];
     }
 
     // A tile object's size over its tileset's tile size is its scale. A rectangle's or ellipse's
-    // extent is its size property, and a point or zero-size marker imports its position alone.
-    // Tiled turns an object about its own position, which is the placement's.
+    // extent is its size property, a polyline's or polygon's points are its path property, and a
+    // point or zero-size marker imports its position alone. Tiled turns an object about its own
+    // position, which is the placement's.
     private static EntityPlacement Placement(
         TiledObject placed,
         TiledLayer layer,
         ResolvedTileset[] tilesets,
+        FileRoots files,
         int? layerZIndex,
         Vector2? scrollFactor)
     {
@@ -109,6 +117,13 @@ internal static class LayerImporter
                     $"{owner} has both an extent and a '{SizeProperty}' property; Capsule imports the extent as '{SizeProperty}'. Remove the property, or click-place the object with no extent.");
             }
 
+            TiledPoint[]? path = PathOf(placed, owner);
+            if (path is not null && properties.Has(PathProperty))
+            {
+                throw new TiledImportException(
+                    $"{owner} has both points and a '{PathProperty}' property; Capsule imports the points as '{PathProperty}'. Remove the property.");
+            }
+
             return new EntityPlacement(
                 placed.Id,
                 placed.Type,
@@ -117,7 +132,7 @@ internal static class LayerImporter
                 ZIndex: zIndex,
                 ScrollFactor: scrollFactor,
                 RotationDegrees: rotation,
-                Properties: EntityProperties(properties, sized ? (placed.Width, placed.Height) : null));
+                Properties: EntityProperties(properties, files, sized ? (placed.Width, placed.Height) : null, path));
         }
 
         if ((gid & OrientationFlags) != 0)
@@ -139,7 +154,7 @@ internal static class LayerImporter
             zIndex,
             scrollFactor,
             rotation,
-            EntityProperties(properties, null));
+            EntityProperties(properties, files, null, null));
     }
 
     // A template instance carries only what it overrides, its Class included, and the importer
@@ -155,18 +170,10 @@ internal static class LayerImporter
 
     private static void RequirePlaceableShape(TiledObject placed, string owner)
     {
-        string? refused = placed switch
-        {
-            { Polygon: not null } => "a polygon",
-            { Polyline: not null } => "a polyline",
-            { Text.ValueKind: JsonValueKind.Object } => "a text object",
-            _ => null,
-        };
-
-        if (refused is not null)
+        if (placed.Text.ValueKind == JsonValueKind.Object)
         {
             throw new TiledImportException(
-                $"{owner} is {refused}; Capsule places points, rectangles, ellipses and tile objects. Replace it with one of those.");
+                $"{owner} is a text object; Capsule places points, rectangles, ellipses, polylines, polygons and tile objects. Replace it with one of those.");
         }
 
         if (placed.Gid is null && (placed.Width > 0) != (placed.Height > 0))
@@ -177,9 +184,29 @@ internal static class LayerImporter
         }
     }
 
-    // The extent comes first, then the custom properties in Tiled's order. A placement with neither
-    // carries no properties object.
-    private static JsonElement? EntityProperties(TiledProperties properties, (double Width, double Height)? size)
+    // A polyline's points, or a polygon's closed by repeating its first point, relative to the
+    // object's position. An entity's turn only affects its presentation, so a turned path would lie
+    // where Tiled does not draw it.
+    private static TiledPoint[]? PathOf(TiledObject placed, string owner)
+    {
+        TiledPoint[]? path = placed.Polygon is { Length: > 0 } polygon ? [.. polygon, polygon[0]] : placed.Polyline;
+        if (path is not null && placed.Rotation != 0)
+        {
+            throw new TiledImportException(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{owner} is a {(placed.Polygon is null ? "polyline" : "polygon")} turned {placed.Rotation} degrees; Capsule imports its points unturned. Set its Rotation to 0 and move the points where the turn put them."));
+        }
+
+        return path;
+    }
+
+    // The extent or path comes first, then the custom properties in Tiled's order. A placement with
+    // none of them carries no properties object.
+    private static JsonElement? EntityProperties(
+        TiledProperties properties,
+        FileRoots files,
+        (double Width, double Height)? size,
+        TiledPoint[]? path)
     {
         ArrayBufferWriter<byte> buffer = new();
         using (Utf8JsonWriter writer = new(buffer))
@@ -193,7 +220,21 @@ internal static class LayerImporter
                 writer.WriteEndArray();
             }
 
-            properties.WriteEntityValues(writer, ZIndexProperty);
+            if (path is not null)
+            {
+                writer.WriteStartArray(PathProperty);
+                foreach (TiledPoint point in path)
+                {
+                    writer.WriteStartArray();
+                    writer.WriteNumberValue(point.X);
+                    writer.WriteNumberValue(point.Y);
+                    writer.WriteEndArray();
+                }
+
+                writer.WriteEndArray();
+            }
+
+            properties.WriteEntityValues(writer, ZIndexProperty, files.MapDirectory, files.AssetRoot);
             writer.WriteEndObject();
         }
 
@@ -363,4 +404,7 @@ internal static class LayerImporter
 
         return owner;
     }
+
+    // Where a file property resolves from, and the root its asset key is taken under.
+    private readonly record struct FileRoots(string MapDirectory, string AssetRoot);
 }

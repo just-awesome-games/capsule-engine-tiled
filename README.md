@@ -19,7 +19,7 @@ The package has no settings of its own. It runs where Capsule imports scenes (`C
 
 ## Tiled subset
 
-Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finite, square-tiled and CSV-encoded. Their objects are points, rectangles, ellipses and unflipped tile objects, none of them a template instance. A rectangle or ellipse has both a width and a height or neither. A tileset is a single image whose tile size equals the map's. Anything else fails the build.
+Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finite, square-tiled and CSV-encoded. Their objects are points, rectangles, ellipses, polylines, polygons and unflipped tile objects, none of them a template instance. A rectangle or ellipse has both a width and a height or neither. A polyline or polygon has no Rotation. A tileset is a single image whose tile size equals the map's. Anything else fails the build.
 
 | Tiled | Scene document |
 | --- | --- |
@@ -41,6 +41,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Object Rotation | entry `rotation` |
 | Tile object size over its tile size | entry `scale` |
 | Rectangle or ellipse object Width and Height, when not 0 | `size` property, `[w, h]` in pixels |
+| Polyline or polygon object points | `path` property, `[[x, y], ...]` in pixels from the object's position; a polygon repeats its first point at the end |
 | Object custom property other than `zIndex` | entry `properties`, by name, in the value forms below |
 | `zIndex` int property on a tile layer, object layer or object | entry `zIndex` |
 | Tile layer or object layer Parallax Factor other than 1, 1 | entry `scrollFactor` on the tile map or on each of the layer's objects |
@@ -50,13 +51,13 @@ An object's `zIndex` overrides its layer's. A placement with no `zIndex` keeps i
 | Object property | Entry property |
 | --- | --- |
 | string, int, float or bool | the same value |
-| file | the path as Tiled wrote it |
+| file | the asset's key, its path under `Assets/` (`"Textures/Hazard.png"`); a `.tmj`, `.tmx` or `.scene.json` file is the scene's key, its path with no extension; an unset file is left out |
 | color | `"#rrggbb"`, or `"#rrggbbaa"` when not opaque; an unset colour is left out |
 | object | the referenced object's id, a number; an unset reference is left out |
-| enum stored as a string | the value as written, the member name camel-cased (`"iceCave"`) |
+| enum stored as a string | the value as written, the member name camel-cased (`"iceCave"`); a multi-value enum's members joined by commas (`"spikes,fire"`) |
 | class whose members are `x` and `y`, both set | `[x, y]` |
 
-Capsule's build checks every entry property against the entity class's `[Authorable]` members. A rectangle or ellipse with a width and height already writes `size`, so a custom property of its own named `size` fails the import. An enum stored as a number and any other class value fail it too.
+Capsule's build checks every entry property against the entity class's `[Authorable]` members. A rectangle or ellipse with a width and height already writes `size`, so a custom property of its own named `size` fails the import. A polyline or polygon already writes `path`, so a custom property named `path` on one fails it the same way. A file outside `Assets/`, an enum stored as a number and any other class value fail it too. Tiled has no list property, so an array member other than `path` is authored by hand in a scene document.
 
 A tile layer painted from a tileset with any `layer` tile keeps a Parallax Factor of 1, 1. A scene previews in Tiled exactly as it plays when the Tiled view is centred where the game camera is. Tiled's renderer adds the Parallax Origin to the view centre. Set it to minus half the game's viewport, for example -128, -112 for 256x224, to line the layers up at the first screen.
 

@@ -17,6 +17,8 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
     private const string ClassType = "class";
     private const string ObjectType = "object";
 
+    private static readonly string[] SceneExtensions = [".scene.json", ".tmj", ".tmx"];
+
     internal string Owner => owner;
 
     internal string? String(string name) => Value(name, StringType) switch
@@ -62,8 +64,8 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
 
     // Every property but the excluded one, in the scene document's value forms, as members of the
     // object the writer has open. The engine's build checks each against the entity class's
-    // authorable members.
-    internal void WriteEntityValues(Utf8JsonWriter writer, string excluded)
+    // authorable members. Tiled writes a file relative to the map's directory.
+    internal void WriteEntityValues(Utf8JsonWriter writer, string excluded, string mapDirectory, string assetRoot)
     {
         foreach (TiledProperty property in properties ?? [])
         {
@@ -79,9 +81,17 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
                     throw new TiledImportException(
                         $"{owner} has '{name}' of enum '{enumType}' stored as a number; Capsule reads an enum by its member name. Set '{enumType}' to save its values as strings in Tiled's Custom Types Editor.");
 
-                case StringType or FileType or IntType or FloatType or BoolType:
+                case StringType or IntType or FloatType or BoolType:
                     writer.WritePropertyName(name);
                     property.Value.WriteTo(writer);
+                    break;
+
+                // An unset file is an empty string, which the document leaves to the member's initializer.
+                case FileType when property.Value.ValueKind == JsonValueKind.String && property.Value.GetString() is { Length: > 0 } file:
+                    writer.WriteString(name, AssetKeyOf(name, file, mapDirectory, assetRoot));
+                    break;
+
+                case FileType:
                     break;
 
                 // An unset colour is an empty string, which the document leaves to the member's initializer.
@@ -117,6 +127,23 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
                         $"{owner} has '{name}' of type {other}, which Capsule does not import. Use a string, int, float, bool, color, file, object, enum or x/y class property.");
             }
         }
+    }
+
+    // The file's path under the asset root, which Capsule keys by its own spelling rules. A scene
+    // document is keyed without its extension, and a map keys the same as the document it imports to.
+    private string AssetKeyOf(string name, string file, string mapDirectory, string assetRoot)
+    {
+        string path = Path.GetFullPath(Path.Combine(mapDirectory, file));
+        if (!TilesetImporter.IsWithin(path, assetRoot))
+        {
+            throw new TiledImportException(
+                $"{owner} has '{name}' at '{file}', which resolves to '{path}'; a scene document names an asset by its path under '{assetRoot}', so move the file under that root.");
+        }
+
+        string key = Path.GetRelativePath(assetRoot, path).Replace('\\', '/');
+        string? sceneExtension = Array.Find(SceneExtensions, extension => key.EndsWith(extension, StringComparison.OrdinalIgnoreCase));
+
+        return sceneExtension is null ? key : key[..^sceneExtension.Length];
     }
 
     // A class value holding exactly the members x and y is a Vector2. Tiled writes only the members

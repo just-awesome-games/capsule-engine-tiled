@@ -135,7 +135,7 @@ internal static class TilesetImporter
         return new TextureHandle(Path.GetRelativePath(assetRoot, image).Replace('\\', '/')[..^extension.Length], extension);
     }
 
-    private static bool IsWithin(string path, string root)
+    internal static bool IsWithin(string path, string root)
     {
         string relative = Path.GetRelativePath(root, path);
         return !Path.IsPathRooted(relative)

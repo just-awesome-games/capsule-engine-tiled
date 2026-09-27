@@ -2,7 +2,7 @@ using Capsule.Scenes.Documents;
 
 namespace Capsule.Tiled.Tests;
 
-// An object's turn, extent and custom properties, and the objects the importer refuses.
+// An object's turn, extent, points and custom properties, and the objects the importer refuses.
 [Collection(SceneWorkspaceCollection.Name)]
 public sealed class ObjectImportTests
 {
@@ -14,12 +14,15 @@ public sealed class ObjectImportTests
         Assert.Equal(22.5f, placed.RotationDegrees);
     }
 
-    // A click-placed rectangle is the spawn marker existing maps rely on, and keeps no size.
+    // A click-placed rectangle is the spawn marker existing maps rely on, and keeps no size. A path's
+    // points stay relative to the object, and a polygon's closes on its first point.
     [Theory]
     [InlineData("\"width\":32,\"height\":8", "{\"size\":[32,8]}")]
     [InlineData("\"ellipse\":true,\"width\":12.5,\"height\":4", "{\"size\":[12.5,4]}")]
     [InlineData("\"width\":0,\"height\":0", null)]
-    public void Import_WritesARectanglesOrEllipsesExtentAsItsSize(string shape, string? expected)
+    [InlineData("\"polyline\":[{\"x\":0,\"y\":0},{\"x\":32,\"y\":-8.5}],\"width\":0,\"height\":0", "{\"path\":[[0,0],[32,-8.5]]}")]
+    [InlineData("\"polygon\":[{\"x\":0,\"y\":0},{\"x\":8,\"y\":0},{\"x\":0,\"y\":8}],\"width\":0,\"height\":0", "{\"path\":[[0,0],[8,0],[0,8],[0,0]]}")]
+    public void Import_WritesAnObjectsShapeAsItsSizeOrPath(string shape, string? expected)
     {
         EntityPlacement placed = Imported(Crate(shape));
 
@@ -45,7 +48,10 @@ public sealed class ObjectImportTests
     [InlineData("{\"name\":\"tint\",\"type\":\"color\",\"value\":\"\"}", null)]
     [InlineData("{\"name\":\"drift\",\"propertytype\":\"Vec\",\"type\":\"class\",\"value\":{\"x\":1.5,\"y\":-2}}", "{\"drift\":[1.5,-2]}")]
     [InlineData("{\"name\":\"biome\",\"propertytype\":\"Biome\",\"type\":\"string\",\"value\":\"iceCave\"}", "{\"biome\":\"iceCave\"}")]
-    [InlineData("{\"name\":\"music\",\"type\":\"file\",\"value\":\"..\\/Music\\/cave.ogg\"}", "{\"music\":\"../Music/cave.ogg\"}")]
+    [InlineData("{\"name\":\"hazards\",\"propertytype\":\"Hazard\",\"type\":\"string\",\"value\":\"spikes,fire\"}", "{\"hazards\":\"spikes,fire\"}")]
+    [InlineData("{\"name\":\"music\",\"type\":\"file\",\"value\":\"Music\\/cave.ogg\"}", "{\"music\":\"Music/cave.ogg\"}")]
+    [InlineData("{\"name\":\"next\",\"type\":\"file\",\"value\":\"Scenes\\/halls\\/hall.tmj\"}", "{\"next\":\"Scenes/halls/hall\"}")]
+    [InlineData("{\"name\":\"music\",\"type\":\"file\",\"value\":\"\"}", null)]
     public void Import_WritesACustomPropertyInTheDocumentsValueForm(string property, string? expected)
     {
         EntityPlacement placed = Imported(Crate($"\"width\":0,\"height\":0,\"properties\":[{property}]"));
@@ -61,6 +67,9 @@ public sealed class ObjectImportTests
         "{\"name\":\"drift\",\"propertytype\":\"Vec\",\"type\":\"class\",\"value\":{\"y\":4}}",
         "has 'drift' of class 'Vec' setting only y; Tiled saves only the members an object sets. Set both x and y")]
     [InlineData(
+        "{\"name\":\"music\",\"type\":\"file\",\"value\":\"..\\/Music\\/cave.ogg\"}",
+        "has 'music' at '../Music/cave.ogg', which resolves to")]
+    [InlineData(
         "{\"name\":\"biome\",\"propertytype\":\"Biome\",\"type\":\"int\",\"value\":1}",
         "has 'biome' of enum 'Biome' stored as a number; Capsule reads an enum by its member name. Set 'Biome' to save its values as strings")]
     public void Import_RefusesAPropertyItCannotConvert(string property, string expected)
@@ -70,10 +79,11 @@ public sealed class ObjectImportTests
         Assert.Contains("object 4 on layer 'things' " + expected, error.Message, StringComparison.Ordinal);
     }
 
-    // Point lists are not placements.
+    // An entity's turn only affects its presentation, so a turned path would lie where Tiled does
+    // not draw it.
     [Theory]
-    [InlineData("\"polygon\":[{\"x\":0,\"y\":0},{\"x\":8,\"y\":0},{\"x\":0,\"y\":8}],\"width\":0,\"height\":0", "is a polygon")]
-    [InlineData("\"polyline\":[{\"x\":0,\"y\":0},{\"x\":8,\"y\":0}],\"width\":0,\"height\":0", "is a polyline")]
+    [InlineData("\"polygon\":[{\"x\":0,\"y\":0},{\"x\":8,\"y\":0},{\"x\":0,\"y\":8}],\"rotation\":90,\"width\":0,\"height\":0", "is a polygon turned 90 degrees")]
+    [InlineData("\"polyline\":[{\"x\":0,\"y\":0},{\"x\":8,\"y\":0}],\"width\":0,\"height\":0,\"properties\":[{\"name\":\"path\",\"type\":\"string\",\"value\":\"\"}]", "has both points and a 'path' property")]
     [InlineData("\"text\":{\"text\":\"hi\",\"wrap\":true},\"width\":16,\"height\":8", "is a text object")]
     [InlineData("\"width\":16,\"height\":0", "is 16x0, an extent with no area")]
     public void Import_RefusesAnObjectItCannotPlace(string shape, string expected)

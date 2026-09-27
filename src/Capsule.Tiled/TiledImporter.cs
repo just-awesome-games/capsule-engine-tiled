@@ -32,12 +32,14 @@ internal static class TiledImporter
 
         using IncrementalHash sourceHash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         sourceHash.AppendData(mapBytes);
-        ResolvedTileset[] tilesets = TilesetImporter.Load(map, mapPath, Path.GetFullPath(assetRoot), sourceHash);
+        string fullAssetRoot = Path.GetFullPath(assetRoot);
+        ResolvedTileset[] tilesets = TilesetImporter.Load(map, mapPath, fullAssetRoot, sourceHash);
 
         // Tiled mints ids for objects only. Tile layers continue from its next object id, and the
         // document keeps one id space.
         int nextEntityId = map.NextObjectId;
-        List<SceneDocumentEntry> entries = LayerImporter.Read(map, tilesets, ref nextEntityId);
+        string mapDirectory = Path.GetDirectoryName(Path.GetFullPath(mapPath))!;
+        List<SceneDocumentEntry> entries = LayerImporter.Read(map, tilesets, mapDirectory, fullAssetRoot, ref nextEntityId);
 
         SceneDocumentSource source = new(
             ToolName,
