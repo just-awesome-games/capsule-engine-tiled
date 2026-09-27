@@ -45,8 +45,11 @@ jobs:
         working-directory: capsule-engine-tiled
         run: dotnet build --configuration Release --no-restore
 
+      # Format takes no MSBuild properties, and its workspace must match the Release build above.
       - name: Format
         working-directory: capsule-engine-tiled
+        env:
+          Configuration: Release
         run: dotnet format --verify-no-changes --no-restore
 
       - name: Test
@@ -70,11 +73,12 @@ jobs:
           restore-keys: nuget-${{ runner.os }}-
       - name: Restore
         run: dotnet restore --locked-mode -p:CapsuleUsePackages=true
-      - name: Build (Debug)
-        run: dotnet build --configuration Debug --no-restore -p:CapsuleUsePackages=true
       - name: Build (Release)
         run: dotnet build --configuration Release --no-restore -p:CapsuleUsePackages=true
+      # Format takes no MSBuild properties, and its workspace must match the Release build above.
       - name: Format
+        env:
+          Configuration: Release
         run: dotnet format --verify-no-changes --no-restore
       - name: Test
         run: dotnet test --configuration Release --no-build -p:CapsuleUsePackages=true
