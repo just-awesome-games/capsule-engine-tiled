@@ -12,6 +12,10 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
     private const string BoolType = "bool";
     private const string IntType = "int";
     private const string ColorType = "color";
+    private const string FloatType = "float";
+    private const string FileType = "file";
+    private const string ClassType = "class";
+    private const string ObjectType = "object";
 
     internal string Owner => owner;
 
@@ -44,15 +48,99 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
         { } value => throw Invalid(name, value.ToString(), ColorType),
     };
 
-    // Tiled writes "#rrggbb" for an opaque colour and "#aarrggbb" otherwise. ColorRgba.FromHex takes
-    // the alpha last. A scene's colours are opaque.
+    // A scene's colours are opaque.
     internal ColorRgba OpaqueColor(string name, string text)
     {
         const string expected = "opaque colour";
-        ColorRgba parsed;
+        ColorRgba parsed = ParseColor(name, text, expected);
+
+        return parsed.A == byte.MaxValue ? parsed : throw Invalid(name, text, expected);
+    }
+
+    internal bool Has(string name) =>
+        (properties ?? []).Any(property => string.Equals(property.Name, name, StringComparison.Ordinal));
+
+    // Every property but the excluded one, in the scene document's value forms, as members of the
+    // object the writer has open. The engine's build checks each against the entity class's
+    // authorable members.
+    internal void WriteEntityValues(Utf8JsonWriter writer, string excluded)
+    {
+        foreach (TiledProperty property in properties ?? [])
+        {
+            string name = property.Name ?? string.Empty;
+            if (string.Equals(name, excluded, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            switch (property.Type ?? StringType)
+            {
+                case IntType when property.PropertyType is { } enumType:
+                    throw new TiledImportException(
+                        $"{owner} has '{name}' of enum '{enumType}' stored as a number; Capsule reads an enum by its member name. Set '{enumType}' to save its values as strings in Tiled's Custom Types Editor.");
+
+                case StringType or FileType or IntType or FloatType or BoolType:
+                    writer.WritePropertyName(name);
+                    property.Value.WriteTo(writer);
+                    break;
+
+                // An unset colour is an empty string, which the document leaves to the member's initializer.
+                case ColorType when property.Value.ValueKind == JsonValueKind.String && property.Value.GetString() is { Length: > 0 } text:
+                    ColorRgba color = ParseColor(name, text, ColorType);
+                    writer.WriteString(name, color.A == byte.MaxValue
+                        ? $"#{color.R:x2}{color.G:x2}{color.B:x2}"
+                        : $"#{color.R:x2}{color.G:x2}{color.B:x2}{color.A:x2}");
+                    break;
+
+                case ColorType:
+                    break;
+
+                case ClassType:
+                    WriteVector(writer, name, property);
+                    break;
+
+                case ObjectType:
+                    throw new TiledImportException(
+                        $"{owner} has '{name}' referencing another object; Capsule imports no object references. Remove the property and find the other entity in code.");
+
+                case { } other:
+                    throw new TiledImportException(
+                        $"{owner} has '{name}' of type {other}, which Capsule does not import. Use a string, int, float, bool, color, file, enum or x/y class property.");
+            }
+        }
+    }
+
+    // A class value holding exactly the members x and y is a Vector2. Tiled writes only the members
+    // an object sets, so a value missing one cannot know the class's default for it.
+    private void WriteVector(Utf8JsonWriter writer, string name, TiledProperty property)
+    {
+        string className = property.PropertyType ?? ClassType;
+        JsonProperty[] members = property.Value.ValueKind == JsonValueKind.Object ? [.. property.Value.EnumerateObject()] : [];
+        if (members.Any(static member => member.Name is not ("x" or "y") || member.Value.ValueKind != JsonValueKind.Number))
+        {
+            throw new TiledImportException(
+                $"{owner} has '{name}' of class '{className}' with members {string.Join(", ", members.Select(static member => member.Name))}; Capsule converts only a class whose members are the numbers x and y. Give the entity one property per member instead.");
+        }
+
+        if (members.Length != 2)
+        {
+            throw new TiledImportException(
+                $"{owner} has '{name}' of class '{className}' setting {(members.Length == 0 ? "neither x nor y" : "only " + members[0].Name)}; Tiled saves only the members an object sets. Set both x and y on the object, even where one is 0.");
+        }
+
+        writer.WriteStartArray(name);
+        property.Value.GetProperty("x").WriteTo(writer);
+        property.Value.GetProperty("y").WriteTo(writer);
+        writer.WriteEndArray();
+    }
+
+    // Tiled writes "#rrggbb" for an opaque colour and "#aarrggbb" otherwise. ColorRgba.FromHex takes
+    // the alpha last.
+    private ColorRgba ParseColor(string name, string text, string expected)
+    {
         try
         {
-            parsed = ColorRgba.FromHex(text.Length == 9 && text[0] == '#'
+            return ColorRgba.FromHex(text.Length == 9 && text[0] == '#'
                 ? string.Concat("#".AsSpan(), text.AsSpan(3), text.AsSpan(1, 2))
                 : text);
         }
@@ -60,8 +148,6 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
         {
             throw Invalid(name, text, expected);
         }
-
-        return parsed.A == byte.MaxValue ? parsed : throw Invalid(name, text, expected);
     }
 
     internal TiledImportException Invalid(string name, string value, string expected) =>

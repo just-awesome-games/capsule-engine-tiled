@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Globalization;
 using System.Numerics;
 using System.Text.Json;
 using Capsule.Scenes.Documents;
@@ -8,6 +10,7 @@ namespace Capsule.Tiled;
 internal static class LayerImporter
 {
     internal const string ZIndexProperty = "zIndex";
+    private const string SizeProperty = "size";
 
     // Tiled packs flip and rotation into the top nibble of a gid. It applies the anti-diagonal flip
     // first, then the horizontal, then the vertical, the order TileTransform applies Transpose, FlipX
@@ -73,8 +76,9 @@ internal static class LayerImporter
         return [.. (layer.Objects ?? []).Select(placed => Placement(placed, layer, tilesets, layerZIndex, scrollFactor))];
     }
 
-    // A tile object's size over its tileset's tile size is its scale. A point or rectangle imports
-    // its position alone.
+    // A tile object's size over its tileset's tile size is its scale. A rectangle's or ellipse's
+    // extent is its size property, and a point or zero-size marker imports its position alone.
+    // Tiled turns an object about its own position, which is the placement's.
     private static EntityPlacement Placement(
         TiledObject placed,
         TiledLayer layer,
@@ -83,17 +87,37 @@ internal static class LayerImporter
         Vector2? scrollFactor)
     {
         string owner = $"object {placed.Id} on layer '{layer.Name}'";
+        RequireNoTemplate(placed, owner);
         if (string.IsNullOrWhiteSpace(placed.Type))
         {
             throw new TiledImportException($"{owner} has no Class; every object is typed by its Class.");
         }
 
+        RequirePlaceableShape(placed, owner);
+        TiledProperties properties = new(placed.Properties, owner);
+
         // An object's own zIndex overrides its layer's.
-        int? zIndex = new TiledProperties(placed.Properties, owner).Int(ZIndexProperty) ?? layerZIndex;
+        int? zIndex = properties.Int(ZIndexProperty) ?? layerZIndex;
+        float rotation = (float)placed.Rotation;
 
         if (placed.Gid is not { } gid)
         {
-            return new EntityPlacement(placed.Id, placed.Type, (float)placed.X, (float)placed.Y, ZIndex: zIndex, ScrollFactor: scrollFactor);
+            bool sized = placed.Width > 0 && placed.Height > 0;
+            if (sized && properties.Has(SizeProperty))
+            {
+                throw new TiledImportException(
+                    $"{owner} has both an extent and a '{SizeProperty}' property; Capsule imports the extent as '{SizeProperty}'. Remove the property, or click-place the object with no extent.");
+            }
+
+            return new EntityPlacement(
+                placed.Id,
+                placed.Type,
+                (float)placed.X,
+                (float)placed.Y,
+                ZIndex: zIndex,
+                ScrollFactor: scrollFactor,
+                RotationDegrees: rotation,
+                Properties: EntityProperties(properties, sized ? (placed.Width, placed.Height) : null));
         }
 
         if ((gid & OrientationFlags) != 0)
@@ -113,7 +137,69 @@ internal static class LayerImporter
             (float)(placed.Width / drawn.TileSize),
             (float)(placed.Height / drawn.TileSize),
             zIndex,
-            scrollFactor);
+            scrollFactor,
+            rotation,
+            EntityProperties(properties, null));
+    }
+
+    // A template instance carries only what it overrides, its Class included, and the importer
+    // reads no .tx file.
+    private static void RequireNoTemplate(TiledObject placed, string owner)
+    {
+        if (placed.Template is { } template)
+        {
+            throw new TiledImportException(
+                $"{owner} is an instance of template '{template}'; Capsule reads no templates. Detach the object from its template in Tiled.");
+        }
+    }
+
+    private static void RequirePlaceableShape(TiledObject placed, string owner)
+    {
+        string? refused = placed switch
+        {
+            { Polygon: not null } => "a polygon",
+            { Polyline: not null } => "a polyline",
+            { Text.ValueKind: JsonValueKind.Object } => "a text object",
+            _ => null,
+        };
+
+        if (refused is not null)
+        {
+            throw new TiledImportException(
+                $"{owner} is {refused}; Capsule places points, rectangles, ellipses and tile objects. Replace it with one of those.");
+        }
+
+        if (placed.Gid is null && (placed.Width > 0) != (placed.Height > 0))
+        {
+            throw new TiledImportException(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{owner} is {placed.Width}x{placed.Height}, an extent with no area; Capsule imports a rectangle's or ellipse's extent as its size. Give it both a width and a height, or click-place it with neither."));
+        }
+    }
+
+    // The extent comes first, then the custom properties in Tiled's order. A placement with neither
+    // carries no properties object.
+    private static JsonElement? EntityProperties(TiledProperties properties, (double Width, double Height)? size)
+    {
+        ArrayBufferWriter<byte> buffer = new();
+        using (Utf8JsonWriter writer = new(buffer))
+        {
+            writer.WriteStartObject();
+            if (size is (double width, double height))
+            {
+                writer.WriteStartArray(SizeProperty);
+                writer.WriteNumberValue(width);
+                writer.WriteNumberValue(height);
+                writer.WriteEndArray();
+            }
+
+            properties.WriteEntityValues(writer, ZIndexProperty);
+            writer.WriteEndObject();
+        }
+
+        using JsonDocument document = JsonDocument.Parse(buffer.WrittenMemory);
+
+        return document.RootElement.GetPropertyCount() == 0 ? null : document.RootElement.Clone();
     }
 
     private static TileDefinition? CollidingTile(TileGrid grid)

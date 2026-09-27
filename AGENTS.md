@@ -15,7 +15,7 @@ This repository is one authoring module for Capsule. It turns Tiled maps into Ca
 - A layer or object property goes in `LayerImporter`. A new Tiled layer type is a new case in its dispatch and a new method beside the others.
 - A new property value type is a new read on `TiledProperties`.
 
-Each addition lands with its README table row and one test in the matching test class: `MapImportTests`, `TilesetImportTests` or `LayerImportTests`.
+Each addition lands with its README table row and one test in the matching test class: `MapImportTests`, `TilesetImportTests`, `LayerImportTests` or `ObjectImportTests` for object placement and properties. A test class that outgrows its file splits by concern.
 
 ## Documentation
 

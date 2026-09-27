@@ -143,6 +143,9 @@ public sealed class LayerImportTests
         Assert.Equal(-10, TiledFixtures.TileMapOf(document).ZIndex);
         Assert.Equal(5, document.Entries[1].Entity!.Value.ZIndex);
 
+        // A band is the spawn's, never an entry property.
+        Assert.Null(document.Entries[1].Entity!.Value.Properties);
+
         // The coin authors nothing, so the document says nothing and its class keeps the default.
         Assert.Null(document.Entries[2].Entity!.Value.ZIndex);
     }

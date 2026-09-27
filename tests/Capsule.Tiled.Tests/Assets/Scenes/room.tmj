@@ -44,15 +44,20 @@
                  "y":168
                 }, 
                 {
-                 "height":0,
+                 "height":16,
                  "id":2,
                  "name":"",
                  "opacity":1,
-                 "point":true,
+                 "properties":[
+                        {
+                         "name":"tint",
+                         "type":"color",
+                         "value":"#8000ff00"
+                        }],
                  "rotation":0,
                  "type":"sensor",
                  "visible":true,
-                 "width":0,
+                 "width":32,
                  "x":80,
                  "y":152
                 }],

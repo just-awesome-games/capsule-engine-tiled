@@ -78,6 +78,9 @@ internal sealed class TiledProperty
     public string? Name { get; set; }
     public string? Type { get; set; }
 
+    // The custom type a class or enum value belongs to. A built-in type has none.
+    public string? PropertyType { get; set; }
+
     // Untyped. A typed member would fail the import on a neighbouring property of another type.
     public JsonElement Value { get; set; }
 }
@@ -104,6 +107,9 @@ internal sealed class TiledObject
     // Present only on a tile object, with Tiled's flip bits in its top nibble. A point or rectangle
     // has none.
     public uint? Gid { get; set; }
+
+    // The .tx file a template instance draws its unset members from.
+    public string? Template { get; set; }
     public TiledProperty[]? Properties { get; set; }
 }
 
