@@ -99,13 +99,22 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
                     WriteVector(writer, name, property);
                     break;
 
+                // A Tiled object id is the placement's id in the document. 0 references no object and
+                // leaves the member to its initializer.
+                case ObjectType when property.Value.ValueKind == JsonValueKind.Number && property.Value.TryGetInt32(out int id) && id >= 0:
+                    if (id > 0)
+                    {
+                        writer.WriteNumber(name, id);
+                    }
+
+                    break;
+
                 case ObjectType:
-                    throw new TiledImportException(
-                        $"{owner} has '{name}' referencing another object; Capsule imports no object references. Remove the property and find the other entity in code.");
+                    throw Invalid(name, property.Value.ToString(), "an object id");
 
                 case { } other:
                     throw new TiledImportException(
-                        $"{owner} has '{name}' of type {other}, which Capsule does not import. Use a string, int, float, bool, color, file, enum or x/y class property.");
+                        $"{owner} has '{name}' of type {other}, which Capsule does not import. Use a string, int, float, bool, color, file, object, enum or x/y class property.");
             }
         }
     }

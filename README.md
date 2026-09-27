@@ -52,10 +52,11 @@ An object's `zIndex` overrides its layer's. A placement with no `zIndex` keeps i
 | string, int, float or bool | the same value |
 | file | the path as Tiled wrote it |
 | color | `"#rrggbb"`, or `"#rrggbbaa"` when not opaque; an unset colour is left out |
+| object | the referenced object's id, a number; an unset reference is left out |
 | enum stored as a string | the value as written, the member name camel-cased (`"iceCave"`) |
 | class whose members are `x` and `y`, both set | `[x, y]` |
 
-Capsule's build checks every entry property against the entity class's `[Authorable]` members. A rectangle or ellipse with a width and height already writes `size`, so a custom property of its own named `size` fails the import. An object reference, an enum stored as a number and any other class value fail it too.
+Capsule's build checks every entry property against the entity class's `[Authorable]` members. A rectangle or ellipse with a width and height already writes `size`, so a custom property of its own named `size` fails the import. An enum stored as a number and any other class value fail it too.
 
 A tile layer painted from a tileset with any `layer` tile keeps a Parallax Factor of 1, 1. A scene previews in Tiled exactly as it plays when the Tiled view is centred where the game camera is. Tiled's renderer adds the Parallax Origin to the view centre. Set it to minus half the game's viewport, for example -128, -112 for 256x224, to line the layers up at the first screen.
 

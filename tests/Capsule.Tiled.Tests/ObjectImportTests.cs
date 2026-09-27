@@ -35,8 +35,11 @@ public sealed class ObjectImportTests
         Assert.Contains("object 4 on layer 'things' has both an extent and a 'size' property", error.Message, StringComparison.Ordinal);
     }
 
-    // Tiled writes a colour alpha first. An unset colour is an empty string.
+    // Tiled writes a colour alpha first. An unset colour is an empty string, and an unset object
+    // reference is 0.
     [Theory]
+    [InlineData("{\"name\":\"lift\",\"type\":\"object\",\"value\":11}", "{\"lift\":11}")]
+    [InlineData("{\"name\":\"lift\",\"type\":\"object\",\"value\":0}", null)]
     [InlineData("{\"name\":\"tint\",\"type\":\"color\",\"value\":\"#80FF8000\"}", "{\"tint\":\"#ff800080\"}")]
     [InlineData("{\"name\":\"tint\",\"type\":\"color\",\"value\":\"#ff00ff00\"}", "{\"tint\":\"#00ff00\"}")]
     [InlineData("{\"name\":\"tint\",\"type\":\"color\",\"value\":\"\"}", null)]
@@ -51,9 +54,6 @@ public sealed class ObjectImportTests
     }
 
     [Theory]
-    [InlineData(
-        "{\"name\":\"target\",\"type\":\"object\",\"value\":3}",
-        "has 'target' referencing another object; Capsule imports no object references")]
     [InlineData(
         "{\"name\":\"loot\",\"propertytype\":\"Loot\",\"type\":\"class\",\"value\":{\"count\":2,\"x\":1}}",
         "has 'loot' of class 'Loot' with members count, x; Capsule converts only a class whose members are the numbers x and y")]
