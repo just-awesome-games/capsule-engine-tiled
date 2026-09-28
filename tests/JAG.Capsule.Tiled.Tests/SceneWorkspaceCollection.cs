@@ -1,4 +1,4 @@
-namespace Capsule.Tiled.Tests;
+namespace JAG.Capsule.Tiled.Tests;
 
 [CollectionDefinition(Name, DisableParallelization = true)]
 public sealed class SceneWorkspaceCollection

@@ -25,7 +25,7 @@ A comment states an invariant or a why. Delete walkthroughs, section labels and 
 
 ## Boundaries
 
-`Capsule.Tiled` is a process the build runs, packed unlisted under `tools/`. No game references the assembly, and its types are internal. The header of `build/JAG.Capsule.Tiled.targets` names every Capsule contract the module relies on.
+`JAG.Capsule.Tiled` is a process the build runs, packed unlisted under `tools/`. No game references the assembly, and its types are internal. The header of `build/JAG.Capsule.Tiled.targets` names every Capsule contract the module relies on.
 
 Fix a warning, or suppress it with the reason at the suppression site. Every commit stays publishable without studio-only context.
 

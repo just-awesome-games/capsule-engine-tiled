@@ -1,52 +1,59 @@
 using System.Globalization;
 using Capsule.Scenes.Documents;
 
-namespace Capsule.Tiled;
+namespace JAG.Capsule.Tiled;
 
 internal static class Program
 {
-    // JAG.Capsule.Tiled.targets is the only caller. The arguments are positional in this order.
+    // Capsule's derivation contract, the engine's docs/build-and-publish.md#build-derivations, is the
+    // only caller.
     private const string Usage = """
-        Capsule.Tiled --out <dir> --asset-root <dir> [--tile-size <px>] --scenes-from <list.txt>
+        JAG.Capsule.Tiled <asset root> <out directory> <sources file> [CapsuleTileSize=<px>]
 
-          Imports every map named in <list.txt> into <dir>/<key>.scene.json. Each line is
-          'key|path', with the path relative to the working directory. Tilesets and their images
-          lie under --asset-root, and a texture is named by its path there. --tile-size is the
-          size the game declares. Exit 0 when all succeeded, 1 when any failed, 2 on a usage error.
+          Imports every map the sources file names, one per line relative to the working directory,
+          into <out directory> at the map's path below <asset root> as a .scene.json. Tilesets and
+          their images lie under <asset root>, and a texture is named by its path there.
+          CapsuleTileSize is the size the game declares, and an empty value declares none. Exit 0
+          when all succeeded, 1 when any failed, 2 on a usage error.
         """;
 
-    private const char KeySeparator = '|';
+    private const string TileSizeProperty = "CapsuleTileSize=";
 
     private const string DocumentExtension = ".scene.json";
 
     private static int Main(string[] args)
     {
-        if (args is not ["--out", string outputDirectory, "--asset-root", string assetRoot, .. string[] rest])
+        if (args is not [string assetRoot, string outputDirectory, string listPath, .. string[] properties])
         {
             return UsageError();
         }
 
         int? tileSize = null;
-        if (rest is ["--tile-size", string declared, .. string[] afterTileSize])
+        foreach (string property in properties)
         {
+            if (!property.StartsWith(TileSizeProperty, StringComparison.Ordinal))
+            {
+                return UsageError();
+            }
+
+            string declared = property[TileSizeProperty.Length..];
+            if (declared.Length == 0)
+            {
+                continue;
+            }
+
             if (!int.TryParse(declared, NumberStyles.None, CultureInfo.InvariantCulture, out int size) || size <= 0)
             {
                 return UsageError();
             }
 
             tileSize = size;
-            rest = afterTileSize;
         }
 
-        if (rest is not ["--scenes-from", string listPath])
-        {
-            return UsageError();
-        }
-
-        (string Key, string Path)[] maps;
+        string[] maps;
         try
         {
-            maps = ReadList(listPath);
+            maps = [.. File.ReadAllLines(listPath).Where(static line => line.Length > 0)];
         }
         catch (Exception ex) when (IsReportable(ex))
         {
@@ -55,9 +62,9 @@ internal static class Program
         }
 
         int failures = 0;
-        foreach ((string key, string mapPath) in maps)
+        foreach (string mapPath in maps)
         {
-            string documentPath = Path.Combine(outputDirectory, key + DocumentExtension);
+            string documentPath = Path.Combine(outputDirectory, Path.ChangeExtension(Path.GetRelativePath(assetRoot, mapPath), DocumentExtension));
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(documentPath)!);
@@ -79,13 +86,6 @@ internal static class Program
 
         return 0;
     }
-
-    private static (string Key, string Path)[] ReadList(string listPath) =>
-    [
-        .. File.ReadAllLines(listPath).Select(static (line, index) => line.Split(KeySeparator) is [{ Length: > 0 } key, { Length: > 0 } path]
-            ? (key, path)
-            : throw new TiledImportException($"line {index + 1} is '{line}', not 'key|path'.")),
-    ];
 
     private static bool IsReportable(Exception exception) =>
         exception is TiledImportException or SceneDocumentFormatException or IOException or UnauthorizedAccessException;

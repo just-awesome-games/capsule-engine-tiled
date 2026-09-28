@@ -7,10 +7,10 @@
        above the project. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>Capsule.Tiled.Tests</RootNamespace>
+    <RootNamespace>JAG.Capsule.Tiled.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <CapsuleImportScenes>true</CapsuleImportScenes>
+    <CapsuleBuildAssets>true</CapsuleBuildAssets>
     <CapsuleAssetSourcesDir>Assets</CapsuleAssetSourcesDir>
     <CapsuleTileSize>16</CapsuleTileSize>
   </PropertyGroup>
@@ -24,17 +24,9 @@
     </PackageReference>
   </ItemGroup>
 
-  <ItemGroup Condition="'$(CapsuleSourceRoot)' == ''">
-    <PackageReference Include="JAG.Capsule" Version="[$(CapsuleVersion)]" />
-    <PackageReference Include="JAG.Capsule.Build" Version="[$(CapsuleVersion)]" PrivateAssets="all" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(CapsuleSourceRoot)' != ''">
-    <ProjectReference Include="$(CapsuleSourceRoot)/src/Capsule.Scenes/Capsule.Scenes.csproj" />
-  </ItemGroup>
-
   <ItemGroup>
-    <ProjectReference Include="../../src/Capsule.Tiled/Capsule.Tiled.csproj" />
+    <PackageReference Include="JAG.Capsule" Version="[0.10.0]" />
+    <ProjectReference Include="../../src/JAG.Capsule.Tiled/JAG.Capsule.Tiled.csproj" />
   </ItemGroup>
 
   <!-- The importer resolves paths relative to its inputs. Fixtures keep their layout in the output. -->
@@ -49,10 +41,10 @@
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!-- The seed spec builds a scratch tree with this repository's targets and build mode. -->
+  <!-- The shipping spec builds this project again, from the engine this build used. -->
   <ItemGroup>
     <AssemblyMetadata Include="RepositoryRoot" Value="$(MSBuildThisFileDirectory)../.." />
-    <AssemblyMetadata Include="CapsuleUsePackages" Value="$(CapsuleUsePackages)" />
+    <AssemblyMetadata Include="CapsuleSourcePath" Value="$(CapsuleSourcePath)" />
   </ItemGroup>
 
   <ItemGroup>

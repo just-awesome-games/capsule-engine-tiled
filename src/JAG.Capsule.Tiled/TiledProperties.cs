@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Capsule.Rendering;
 
-namespace Capsule.Tiled;
+namespace JAG.Capsule.Tiled;
 
 // The custom properties of one map, layer, object or tile. Each read holds a property to the type
 // Tiled declares for it, and every refusal names the owner.

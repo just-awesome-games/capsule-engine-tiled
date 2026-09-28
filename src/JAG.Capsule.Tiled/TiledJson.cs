@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Capsule.Tiled;
+namespace JAG.Capsule.Tiled;
 
 // Only the fields the importer reads. Unmapped members are skipped. TiledJsonContext matches names
 // case-insensitively, and the C# name is the mapping.

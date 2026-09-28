@@ -6,7 +6,7 @@ using System.Text.Json.Serialization.Metadata;
 using Capsule.Rendering;
 using Capsule.Scenes.Documents;
 
-namespace Capsule.Tiled;
+namespace JAG.Capsule.Tiled;
 
 internal static class TiledImporter
 {

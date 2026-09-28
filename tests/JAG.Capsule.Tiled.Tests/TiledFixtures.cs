@@ -2,11 +2,11 @@ using System.Reflection;
 using Capsule.Scenes.Documents;
 using Capsule.Tiles;
 
-namespace Capsule.Tiled.Tests;
+namespace JAG.Capsule.Tiled.Tests;
 
 internal static class TiledFixtures
 {
-    // The repository root and build mode, for specs that drive this repository's targets.
+    // The repository root and engine clone, for specs that drive this repository's targets.
     internal static string Metadata(string key) =>
         typeof(TiledFixtures).Assembly
             .GetCustomAttributes<AssemblyMetadataAttribute>()

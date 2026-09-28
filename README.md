@@ -4,18 +4,23 @@ Capsule Tiled imports [Tiled](https://www.mapeditor.org/) maps into [Capsule Eng
 
 ## Quick start
 
-1. Reference the package beside Capsule's build package:
+1. Reference the package from the game's logic project, beside `JAG.Capsule`:
 
    ```xml
-   <PackageReference Include="JAG.Capsule.Build" Version="[0.8.0]" PrivateAssets="all" />
-   <PackageReference Include="JAG.Capsule.Tiled" Version="[0.6.0]" PrivateAssets="all" />
+   <PackageReference Include="JAG.Capsule.Tiled" Version="[0.8.0]" PrivateAssets="all" />
+   ```
+
+   To build against a `capsule-engine-tiled` clone, name it in the game's ignored `Directory.Build.local.props` beside the engine clone, as Capsule's [source mode](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/build-and-publish.md#consuming-capsule) shows:
+
+   ```xml
+   <CapsuleSourceOverrides>JAG.Capsule.Tiled=../capsule-engine-tiled</CapsuleSourceOverrides>
    ```
 
 2. Save maps as `.tmj`, tilesets as `.tsj` and tileset images anywhere under the logic project's `Assets/`.
 
 3. Build. A map's key is its path under `Assets/`, normalized by Capsule's [asset rules](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/assets.md#named-assets). `Scenes/Highway/Room02.tmj` is keyed `scenes/highway/room-02`.
 
-The package has no settings of its own. It runs where Capsule imports scenes (`CapsuleImportScenes`) and reads maps from `CapsuleAssetSourcesDir`. A map whose tile size differs from `CapsuleTileSize` fails the build. Maps under a directory holding a `.capsuleignore` build but never publish. An import error names the file that failed.
+The package has no settings of its own. It declares a Capsule [build derivation](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/build-and-publish.md#build-derivations), which runs where Capsule builds assets (`CapsuleBuildAssets`) and reads maps from `CapsuleAssetSourcesDir`. A map whose tile size differs from `CapsuleTileSize` fails the build. Maps under a directory holding a `.capsuleignore` build but never publish. An import error names the file that failed.
 
 ## Tiled subset
 
@@ -73,16 +78,17 @@ Install the .NET SDK selected by [`global.json`](global.json), then enable the h
 git config core.hooksPath .githooks
 ```
 
-`Directory.Build.props` pins the Capsule release (`CapsuleVersion`). To build against a sibling `capsule-engine` clone, create the ignored `Directory.Build.local.props`:
+The two `JAG.Capsule` references pin the Capsule release. To build against a sibling `capsule-engine` clone, create the ignored `Directory.Build.local.props`:
 
 ```xml
 <Project>
   <PropertyGroup>
     <CapsuleSourcePath>../capsule-engine</CapsuleSourcePath>
   </PropertyGroup>
+  <Import Project="$(CapsuleSourcePath)/build/Capsule.Build.props" Condition="'$(CapsuleSourcePath)' != ''" />
 </Project>
 ```
 
-`-p:CapsuleUsePackages=true` forces the pinned packages. The gates are the four commands in `.githooks/pre-commit`. [RELEASING.md](RELEASING.md) is the release procedure.
+`-p:CapsuleSourcePath=` forces the pinned packages. The gates are the four commands in `.githooks/pre-commit`. [RELEASING.md](RELEASING.md) is the release procedure.
 
 Capsule Tiled is licensed under the [Mozilla Public License 2.0](LICENSE).

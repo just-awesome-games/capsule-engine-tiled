@@ -19,9 +19,6 @@ jobs:
   # module needs is pushed first.
   source:
     runs-on: ubuntu-latest
-    # Source mode is set in the environment because dotnet format takes no MSBuild properties.
-    env:
-      CapsuleSourcePath: ../capsule-engine
     steps:
       - uses: actions/checkout@v7
         with:
@@ -36,6 +33,19 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: capsule-engine-tiled/global.json
+
+      # Source mode is the local file a developer keeps, so dotnet format sees it too.
+      - name: Name the engine clone
+        working-directory: capsule-engine-tiled
+        run: |
+          cat > Directory.Build.local.props <<'EOF'
+          <Project>
+            <PropertyGroup>
+              <CapsuleSourcePath>../capsule-engine</CapsuleSourcePath>
+            </PropertyGroup>
+            <Import Project="$(CapsuleSourcePath)/build/Capsule.Build.props" Condition="'$(CapsuleSourcePath)' != ''" />
+          </Project>
+          EOF
 
       - name: Restore
         working-directory: capsule-engine-tiled
@@ -72,29 +82,28 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json') }}
           restore-keys: nuget-${{ runner.os }}-
       - name: Restore
-        run: dotnet restore --locked-mode -p:CapsuleUsePackages=true
+        run: dotnet restore --locked-mode
       - name: Build (Release)
-        run: dotnet build --configuration Release --no-restore -p:CapsuleUsePackages=true
+        run: dotnet build --configuration Release --no-restore
       # Format takes no MSBuild properties, and its workspace must match the Release build above.
       - name: Format
         env:
           Configuration: Release
         run: dotnet format --verify-no-changes --no-restore
       - name: Test
-        run: dotnet test --configuration Release --no-build -p:CapsuleUsePackages=true
+        run: dotnet test --configuration Release --no-build
       - name: Pack
         run: >
-          dotnet pack Capsule.Tiled.slnx
+          dotnet pack JAG.Capsule.Tiled.slnx
           --configuration Release
           --no-build
           --output artifacts/packages
-          -p:CapsuleUsePackages=true
       - name: Verify package layout
         shell: bash
         run: |
           nupkg=$(ls artifacts/packages/JAG.Capsule.Tiled.*.nupkg)
           unzip -l "$nupkg"
-          for entry in buildTransitive/JAG.Capsule.Tiled.targets buildTransitive/capsule.tiled-project buildTransitive/capsule-property-types.json tools/net10.0/any/Capsule.Tiled.dll; do
+          for entry in buildTransitive/JAG.Capsule.Tiled.targets buildTransitive/capsule.tiled-project buildTransitive/capsule-property-types.json tools/net10.0/any/JAG.Capsule.Tiled.dll; do
             if ! unzip -l "$nupkg" | grep -q " $entry\$"; then
               echo "::error::$nupkg is missing $entry. A consumer's build would not run the importer."
               exit 1

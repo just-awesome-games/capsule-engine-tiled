@@ -5,7 +5,7 @@ using System.Text.Json;
 using Capsule.Scenes.Documents;
 using Capsule.Tiles;
 
-namespace Capsule.Tiled;
+namespace JAG.Capsule.Tiled;
 
 internal static class LayerImporter
 {

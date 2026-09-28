@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 using Capsule.Assets;
 using Capsule.Scenes.Documents;
 
-namespace Capsule.Tiled.Tests;
+namespace JAG.Capsule.Tiled.Tests;
 
 // The seam end to end, from this project's Assets/Scenes maps to shipped content.
 [Collection(SceneWorkspaceCollection.Name)]
@@ -70,52 +70,58 @@ public sealed class BuildIntegrationTests
             document.Entries[0].TileMap!.Value.Grid.Texture);
     }
 
-    // Assets/Scenes/dev/ holds a .capsuleignore. Its map reaches Capsule in every build but a
-    // shipping one.
+    // Assets/Scenes/dev/ holds a .capsuleignore. Its map ships in every build but a shipping one.
     [Fact]
     public void AMapUnderAMarkedDirectoryShipsOnlyOutsideAShippingBuild()
     {
         string path = Shipped("scenes/dev/scratch");
 
         Assert.True(File.Exists(path), $"expected the build to ship {path}");
-        Assert.DoesNotContain("Scenes/dev/scratch", HandedToCapsule(shipping: true));
+
+        string[] shipping = ShippedByAShippingRun();
+        Assert.Contains("scenes/room.scene.json.gz", shipping);
+        Assert.DoesNotContain("scenes/dev/scratch.scene.json.gz", shipping);
     }
 
-    // Read off the hand-over target. A shipping build of this project would fight the test host for
-    // its own bin/.
-    private static IEnumerable<string> HandedToCapsule(bool shipping)
+    // A shipping run of Capsule's build tool, written to a scratch directory. A shipping build of
+    // this project would fight the test host for its own bin/ and obj/.
+    private static string[] ShippedByAShippingRun()
     {
         string root = Path.GetFullPath(TiledFixtures.Metadata("RepositoryRoot"));
-        ProcessStartInfo start = new("dotnet")
+        DirectoryInfo scratch = Directory.CreateTempSubdirectory("capsule-tiled-shipping-");
+        try
         {
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
+            ProcessStartInfo start = new("dotnet")
+            {
+                WorkingDirectory = root,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
 
-        start.ArgumentList.Add("msbuild");
-        start.ArgumentList.Add(Path.Combine(root, "tests", "Capsule.Tiled.Tests", "Capsule.Tiled.Tests.csproj"));
-        start.ArgumentList.Add("-t:CapsuleCollectSceneDocuments");
-        start.ArgumentList.Add("-getItem:CapsuleSceneDocument");
-        // A reused worker node inherits the redirected pipes and holds them open until its idle
-        // timeout. ReadToEnd would block that long, so the nodes exit with this build.
-        start.ArgumentList.Add("-nodeReuse:false");
-        start.ArgumentList.Add($"-p:CapsuleShipping={(shipping ? "true" : "false")}");
-        if (TiledFixtures.Metadata("CapsuleUsePackages").Length > 0)
-        {
-            start.ArgumentList.Add($"-p:CapsuleUsePackages={TiledFixtures.Metadata("CapsuleUsePackages")}");
+            start.ArgumentList.Add("msbuild");
+            start.ArgumentList.Add(Path.Combine(root, "tests", "JAG.Capsule.Tiled.Tests", "JAG.Capsule.Tiled.Tests.csproj"));
+            start.ArgumentList.Add("-t:CapsuleRunBuildTool");
+            // A reused worker node inherits the redirected pipes and holds them open until its idle
+            // timeout. ReadToEnd would block that long, so the nodes exit with this build.
+            start.ArgumentList.Add("-nodeReuse:false");
+            start.ArgumentList.Add("-p:CapsuleShipping=true");
+            start.ArgumentList.Add($"-p:CapsuleObjDir={scratch.FullName}");
+            start.ArgumentList.Add($"-p:CapsuleSourcePath={TiledFixtures.Metadata("CapsuleSourcePath")}");
+
+            using Process msbuild = Process.Start(start)!;
+            string output = msbuild.StandardOutput.ReadToEnd();
+            string errors = msbuild.StandardError.ReadToEnd();
+            msbuild.WaitForExit();
+
+            Assert.True(msbuild.ExitCode == 0, output + errors);
+
+            string assets = Path.Combine(scratch.FullName, "assets");
+            return [.. Directory.EnumerateFiles(assets, "*", SearchOption.AllDirectories)
+                .Select(file => Path.GetRelativePath(assets, file).Replace('\\', '/'))];
         }
-
-        using Process msbuild = Process.Start(start)!;
-        string output = msbuild.StandardOutput.ReadToEnd();
-        string errors = msbuild.StandardError.ReadToEnd();
-        msbuild.WaitForExit();
-
-        Assert.True(msbuild.ExitCode == 0, output + errors);
-
-        return JsonNode.Parse(output)!["Items"]!["CapsuleSceneDocument"]!
-            .AsArray()
-            .Select(static item => item!["CapsuleDocumentKey"]!.GetValue<string>())
-            .ToArray();
+        finally
+        {
+            scratch.Delete(recursive: true);
+        }
     }
 }

@@ -7,7 +7,7 @@ using Capsule.Assets;
 using Capsule.Physics;
 using Capsule.Tiles;
 
-namespace Capsule.Tiled;
+namespace JAG.Capsule.Tiled;
 
 internal static class TilesetImporter
 {

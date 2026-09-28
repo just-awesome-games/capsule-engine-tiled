@@ -1,4 +1,4 @@
-namespace Capsule.Tiled;
+namespace JAG.Capsule.Tiled;
 
 internal sealed class TiledImportException : Exception
 {

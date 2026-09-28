@@ -4,10 +4,6 @@
           Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.local.props')" />
 
   <PropertyGroup>
-    <!-- The engine release this module builds against. A source clone named by CapsuleSourcePath
-         replaces it with project references. -->
-    <CapsuleVersion>0.9.0</CapsuleVersion>
-    <CapsuleSourceRoot Condition="'$(CapsuleUsePackages)' != 'true' and '$(CapsuleSourcePath)' != ''">$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', '$(CapsuleSourcePath)'))</CapsuleSourceRoot>
     <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -16,14 +12,11 @@
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <!-- The committed lock file describes the package graph. Source mode keeps its own under obj/. -->
-    <NuGetLockFilePath Condition="'$(CapsuleSourceRoot)' != ''">$(MSBuildProjectDirectory)/obj/packages.source.lock.json</NuGetLockFilePath>
-    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     <!-- packages.yml supplies the version from the release tag. A constant keeps release numbers
          out of the lock files. -->
     <VersionPrefix>0.0.0</VersionPrefix>
     <Authors>JAG Studios</Authors>
-    <PackageTags>capsule;game-engine;2d;tiled;level-editor</PackageTags>
+    <PackageTags>capsule-engine;game-engine;2d;tiled;level-editor</PackageTags>
     <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/just-awesome-games/capsule-engine-tiled</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>

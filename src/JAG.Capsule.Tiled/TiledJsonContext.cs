@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Capsule.Tiled;
+namespace JAG.Capsule.Tiled;
 
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
 [JsonSerializable(typeof(TiledMap))]

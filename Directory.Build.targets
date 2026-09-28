@@ -1,21 +1,7 @@
 <Project>
 
-  <!-- In source mode the sibling engine clone supplies Capsule's build targets. Package mode gets
-       them from JAG.Capsule.Build. -->
-  <PropertyGroup Condition="'$(CapsuleSourceRoot)' != ''">
-    <CapsuleBuildTargets>$(CapsuleSourceRoot)/build/Capsule.Build.targets</CapsuleBuildTargets>
-  </PropertyGroup>
-
-  <Import Project="$(CapsuleBuildTargets)"
-          Condition="'$(CapsuleSourceRoot)' != '' and Exists('$(CapsuleBuildTargets)')" />
-
   <!-- The module's own targets, imported as a game gets them from the package. The test project is
        their consumer. -->
   <Import Project="$(MSBuildThisFileDirectory)build/JAG.Capsule.Tiled.targets" />
-
-  <Target Name="CapsuleRequireSourceOverride" BeforeTargets="Restore;Build">
-    <Error Condition="'$(CapsuleSourceRoot)' != '' and !Exists('$(CapsuleBuildTargets)')"
-           Text="Capsule: CapsuleSourcePath resolves to '$(CapsuleSourceRoot)', but its build/Capsule.Build.targets was not found. Point CapsuleSourcePath at a capsule-engine source clone or omit it to consume Capsule $(CapsuleVersion) from NuGet.org." />
-  </Target>
 
 </Project>

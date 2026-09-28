@@ -4,7 +4,7 @@ using Capsule.Physics;
 using Capsule.Scenes.Documents;
 using Capsule.Tiles;
 
-namespace Capsule.Tiled.Tests;
+namespace JAG.Capsule.Tiled.Tests;
 
 [Collection(SceneWorkspaceCollection.Name)]
 public sealed class TilesetImportTests

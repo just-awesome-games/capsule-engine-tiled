@@ -2,7 +2,7 @@ using System.Numerics;
 using Capsule.Assets;
 using Capsule.Scenes.Documents;
 
-namespace Capsule.Tiled.Tests;
+namespace JAG.Capsule.Tiled.Tests;
 
 [Collection(SceneWorkspaceCollection.Name)]
 public sealed class LayerImportTests

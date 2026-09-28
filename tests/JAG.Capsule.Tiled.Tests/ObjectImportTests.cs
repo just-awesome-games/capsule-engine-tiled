@@ -1,6 +1,6 @@
 using Capsule.Scenes.Documents;
 
-namespace Capsule.Tiled.Tests;
+namespace JAG.Capsule.Tiled.Tests;
 
 // An object's turn, extent, points and custom properties, and the objects the importer refuses.
 [Collection(SceneWorkspaceCollection.Name)]

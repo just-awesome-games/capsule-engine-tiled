@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json.Nodes;
 
-namespace Capsule.Tiled.Tests;
+namespace JAG.Capsule.Tiled.Tests;
 
 // Holds the shipped property types to the importer's names and to each other.
 [Collection(SceneWorkspaceCollection.Name)]
@@ -42,7 +42,7 @@ public sealed class PropertyTypesTests
         workspace.Write("sources/Levels/room.tmj", TiledFixtures.Read("room.tmj"));
         workspace.Write("sources/Levels/tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         string sources = Path.GetFullPath("sources");
-        string seeded = Path.Combine(sources, "Capsule.Tiled.Tests.tiled-project");
+        string seeded = Path.Combine(sources, "JAG.Capsule.Tiled.Tests.tiled-project");
 
         Seed(sources);
         Assert.Equal(TiledFixtures.Read(ProjectFile), File.ReadAllText(seeded));
@@ -64,13 +64,10 @@ public sealed class PropertyTypesTests
         };
 
         start.ArgumentList.Add("msbuild");
-        start.ArgumentList.Add(Path.Combine(root, "tests", "Capsule.Tiled.Tests", "Capsule.Tiled.Tests.csproj"));
+        start.ArgumentList.Add(Path.Combine(root, "tests", "JAG.Capsule.Tiled.Tests", "JAG.Capsule.Tiled.Tests.csproj"));
         start.ArgumentList.Add("-t:CapsuleTiledSeedProject");
         start.ArgumentList.Add($"-p:CapsuleAssetSourcesDir={assetSourcesDir}");
-        if (TiledFixtures.Metadata("CapsuleUsePackages").Length > 0)
-        {
-            start.ArgumentList.Add($"-p:CapsuleUsePackages={TiledFixtures.Metadata("CapsuleUsePackages")}");
-        }
+        start.ArgumentList.Add($"-p:CapsuleSourcePath={TiledFixtures.Metadata("CapsuleSourcePath")}");
 
         using Process msbuild = Process.Start(start)!;
         string output = msbuild.StandardOutput.ReadToEnd() + msbuild.StandardError.ReadToEnd();
