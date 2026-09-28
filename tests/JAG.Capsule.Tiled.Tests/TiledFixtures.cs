@@ -6,7 +6,7 @@ namespace JAG.Capsule.Tiled.Tests;
 
 internal static class TiledFixtures
 {
-    // The repository root and engine clone, for specs that drive this repository's targets.
+    // The repository root and engine clone, for specs that run the test project's asset build.
     internal static string Metadata(string key) =>
         typeof(TiledFixtures).Assembly
             .GetCustomAttributes<AssemblyMetadataAttribute>()
@@ -55,7 +55,7 @@ internal static class TiledFixtures
         workspace.Write("tiles.tsj", tileset);
         string mapPath = workspace.Write("room.tmj", map);
 
-        return Assert.Throws<TiledImportException>(() => TiledImporter.Import(mapPath, "."));
+        return Assert.Throws<TiledImportException>(() => MapImporter.Import(mapPath, "."));
     }
 
     internal static TileMapPlacement TileMapOf(SceneDocument document, int index = 0) =>

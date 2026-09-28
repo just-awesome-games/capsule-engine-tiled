@@ -29,7 +29,7 @@ public sealed class LayerImportTests
 
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
-        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map), ".");
+        SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
         Assert.Collection(
             document.Entries.ToArray(),
@@ -47,7 +47,7 @@ public sealed class LayerImportTests
 
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
-        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map), ".");
+        SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
         Assert.All(document.Entries.ToArray(), entry => Assert.NotNull(entry.Entity));
     }
@@ -58,7 +58,7 @@ public sealed class LayerImportTests
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
 
-        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", TileObject("\"gid\":1,")), ".");
+        SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", TileObject("\"gid\":1,")), ".");
 
         EntityPlacement placed = document.Entries.ToArray()[^1].Entity!.Value;
 
@@ -78,7 +78,7 @@ public sealed class LayerImportTests
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         workspace.Write("room.tmj", TileObject("\"gid\":2147483649,"));
 
-        TiledImportException error = Assert.Throws<TiledImportException>(() => TiledImporter.Import("room.tmj", "."));
+        TiledImportException error = Assert.Throws<TiledImportException>(() => MapImporter.Import("room.tmj", "."));
 
         Assert.Contains("flipped or rotated tile object", error.Message, StringComparison.Ordinal);
         Assert.Contains("places tile objects unflipped", error.Message, StringComparison.Ordinal);
@@ -96,8 +96,8 @@ public sealed class LayerImportTests
             "\"data\":[0, 0, 0, 0, 1, 1, 2, 0, 1, 1, 1, 4],",
             "\"data\":[0, 0, 0, 0, 2147483649, 1073741825, 536870914, 0, 3758096385, 1, 1, 4],");
 
-        SceneDocument unflipped = TiledImporter.Import(workspace.Write("unflipped.tmj", TiledFixtures.Read("room.tmj")), ".");
-        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map), ".");
+        SceneDocument unflipped = MapImporter.Import(workspace.Write("unflipped.tmj", TiledFixtures.Read("room.tmj")), ".");
+        SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
         Assert.Equal(
             TiledFixtures.TileMapOf(unflipped).Grid.Tiles.ToArray(),
@@ -138,7 +138,7 @@ public sealed class LayerImportTests
 
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
-        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map), ".");
+        SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
         Assert.Equal(-10, TiledFixtures.TileMapOf(document).ZIndex);
         Assert.Equal(5, document.Entries[1].Entity!.Value.ZIndex);
@@ -158,7 +158,7 @@ public sealed class LayerImportTests
 
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
-        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map), ".");
+        SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
         Assert.Null(TiledFixtures.TileMapOf(document).ZIndex);
         Assert.Equal(7, document.Entries[1].Entity!.Value.ZIndex);
@@ -192,7 +192,7 @@ public sealed class LayerImportTests
 
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
-        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map), ".");
+        SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
         Assert.Equal(new Vector2(0.5f, 1f), TiledFixtures.TileMapOf(document).ScrollFactor);
         Assert.Equal(new Vector2(0.25f, 0.75f), document.Entries[1].Entity!.Value.ScrollFactor);
@@ -204,7 +204,7 @@ public sealed class LayerImportTests
     {
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
-        SceneDocument document = TiledImporter.Import(workspace.Write(
+        SceneDocument document = MapImporter.Import(workspace.Write(
             "room.tmj",
             WithParallax(TiledFixtures.Read("room.tmj"), "\"name\":\"terrain\",", "1", "1")), ".");
 
@@ -249,7 +249,7 @@ public sealed class LayerImportTests
     {
         using TiledFixtures.Workspace workspace = TwoTilesets("1, 1, 1, 5]");
 
-        TiledImportException error = Assert.Throws<TiledImportException>(() => TiledImporter.Import("room.tmj", "."));
+        TiledImportException error = Assert.Throws<TiledImportException>(() => MapImporter.Import("room.tmj", "."));
 
         Assert.Contains("tile layer 'terrain'", error.Message, StringComparison.Ordinal);
         Assert.Contains("'terrain' and 'props'", error.Message, StringComparison.Ordinal);
@@ -260,7 +260,7 @@ public sealed class LayerImportTests
     {
         using TiledFixtures.Workspace workspace = TwoTilesets("1, 1, 1, 4]");
 
-        SceneDocument document = TiledImporter.Import("room.tmj", ".");
+        SceneDocument document = MapImporter.Import("room.tmj", ".");
 
         Assert.Equal(new TextureHandle("Textures/tiles", ".png"), TiledFixtures.TileMapOf(document).Grid.Texture);
         Assert.Equal(
@@ -278,7 +278,7 @@ public sealed class LayerImportTests
             "\"data\":[0, 0, 0, 0, 1, 1, 2, 0, 1, 1, 1, 4],",
             "\"data\":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],");
 
-        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map), ".");
+        SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
         Assert.Null(TiledFixtures.TileMapOf(document).Grid.Texture);
         Assert.Equal(0, TiledFixtures.TileMapOf(document).Grid.Columns);

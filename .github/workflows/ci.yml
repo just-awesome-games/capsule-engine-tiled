@@ -103,9 +103,13 @@ jobs:
         run: |
           nupkg=$(ls artifacts/packages/JAG.Capsule.Tiled.*.nupkg)
           unzip -l "$nupkg"
-          for entry in buildTransitive/JAG.Capsule.Tiled.targets buildTransitive/capsule.tiled-project buildTransitive/capsule-property-types.json tools/net10.0/any/JAG.Capsule.Tiled.dll; do
+          for entry in lib/net10.0/JAG.Capsule.Tiled.dll lib/net10.0/JAG.Capsule.Tiled.xml capsule-property-types.json; do
             if ! unzip -l "$nupkg" | grep -q " $entry\$"; then
-              echo "::error::$nupkg is missing $entry. A consumer's build would not run the importer."
+              echo "::error::$nupkg is missing $entry. A game's build project could not add the importer."
               exit 1
             fi
           done
+          if ! unzip -p "$nupkg" JAG.Capsule.Tiled.nuspec | grep -q 'id="JAG.Capsule.Build"'; then
+            echo "::error::$nupkg does not depend on JAG.Capsule.Build. A game's build project could not load the importer."
+            exit 1
+          fi

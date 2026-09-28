@@ -14,7 +14,7 @@ public sealed class TilesetImportTests
     {
         using TiledFixtures.Workspace workspace = TiledFixtures.CopyTiledSources("room");
 
-        SceneDocument document = TiledImporter.Import("room.tmj", ".");
+        SceneDocument document = MapImporter.Import("room.tmj", ".");
 
         string[] types = [.. TiledFixtures.TileMapOf(document).Grid.TileTypes.ToArray().Select(static definition => definition.Type)];
 
@@ -26,7 +26,7 @@ public sealed class TilesetImportTests
     {
         using TiledFixtures.Workspace workspace = TiledFixtures.CopyTiledSources("room");
 
-        SceneDocument document = TiledImporter.Import("room.tmj", ".");
+        SceneDocument document = MapImporter.Import("room.tmj", ".");
 
         Assert.Equal(new TextureHandle("Textures/tiles", ".png"), TiledFixtures.TileMapOf(document).Grid.Texture);
         Assert.Equal(4, TiledFixtures.TileMapOf(document).Grid.Columns);
@@ -62,7 +62,7 @@ public sealed class TilesetImportTests
         using TiledFixtures.Workspace workspace = TilesetAtlas("..\\/art\\/tiles.png");
 
         TiledImportException error = Assert.Throws<TiledImportException>(
-            () => TiledImporter.Import("assets/scenes/room.tmj", "assets"));
+            () => MapImporter.Import("assets/scenes/room.tmj", "assets"));
 
         Assert.Contains("move the image under that root", error.Message, StringComparison.Ordinal);
     }
@@ -75,7 +75,7 @@ public sealed class TilesetImportTests
     {
         using TiledFixtures.Workspace workspace = TilesetAtlas(image);
 
-        SceneDocument document = TiledImporter.Import("assets/scenes/room.tmj", "assets");
+        SceneDocument document = MapImporter.Import("assets/scenes/room.tmj", "assets");
 
         Assert.Equal(new TextureHandle(key, ".png"), TiledFixtures.TileMapOf(document).Grid.Texture);
         Assert.Contains(
@@ -106,11 +106,11 @@ public sealed class TilesetImportTests
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("room.tmj", TiledFixtures.Read("room.tmj"));
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
-        string first = TiledImporter.Import("room.tmj", ".").Source!.Value.Hash;
+        string first = MapImporter.Import("room.tmj", ".").Source!.Value.Hash;
 
         string changed = TiledFixtures.Mutate(TiledFixtures.Read("tiles.tsj"), "\"tilecount\":4", "\"tilecount\":8");
         workspace.Write("tiles.tsj", changed);
-        string second = TiledImporter.Import("room.tmj", ".").Source!.Value.Hash;
+        string second = MapImporter.Import("room.tmj", ".").Source!.Value.Hash;
 
         Assert.NotEqual(first, second);
     }
@@ -124,7 +124,7 @@ public sealed class TilesetImportTests
         string map = TiledFixtures.Mutate(TiledFixtures.Read("room.tmj"), "\"source\":\"tiles.tsj\"", "\"source\":\"../tiles.tsj\"");
         workspace.Write("assets/scenes/room.tmj", map);
 
-        SceneDocument imported = TiledImporter.Import("assets/scenes/room.tmj", "assets");
+        SceneDocument imported = MapImporter.Import("assets/scenes/room.tmj", "assets");
 
         Assert.Equal("ground", TiledFixtures.TileMapOf(imported).Grid.TileTypes[1].Type);
     }
@@ -139,7 +139,7 @@ public sealed class TilesetImportTests
         workspace.Write("assets/scenes/room.tmj", map);
 
         TiledImportException error = Assert.Throws<TiledImportException>(
-            () => TiledImporter.Import("assets/scenes/room.tmj", "assets"));
+            () => MapImporter.Import("assets/scenes/room.tmj", "assets"));
 
         Assert.Contains("outside the asset root", error.Message, StringComparison.Ordinal);
     }
@@ -173,7 +173,7 @@ public sealed class TilesetImportTests
     {
         using TiledFixtures.Workspace workspace = TiledFixtures.CopyTiledSources("room");
 
-        SceneDocument document = TiledImporter.Import("room.tmj", ".");
+        SceneDocument document = MapImporter.Import("room.tmj", ".");
 
         Assert.All(TiledFixtures.Palette(document).ToArray(), definition => Assert.Null(definition.Layer));
     }
@@ -287,6 +287,6 @@ public sealed class TilesetImportTests
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("tiles.tsj", tileset);
 
-        return TiledImporter.Import(workspace.Write("room.tmj", TiledFixtures.Read("room.tmj")), ".");
+        return MapImporter.Import(workspace.Write("room.tmj", TiledFixtures.Read("room.tmj")), ".");
     }
 }

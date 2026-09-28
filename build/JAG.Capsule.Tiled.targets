@@ -1,41 +1,10 @@
 <Project>
 
-  <!-- Every *.tmj under the game's authoring tree becomes a *.scene.json that Capsule builds as though
-       it were authored at the map's path. This file defines no property of its own.
-
-       The Capsule contracts it relies on:
-       - Items: CapsuleDerivation, the out-of-process derivation the engine's
-         docs/build-and-publish.md#build-derivations defines.
-       - Properties: CapsuleBuildAssets, CapsuleAssetSourcesDir and CapsuleTileSize.
-       - Targets: CapsuleAssetSourcesInit, and CapsuleRunDerivations as the point the seed precedes. -->
-
-  <ItemGroup>
-    <CapsuleDerivation Include="Tiled"
-                       Sources="**/*.tmj"
-                       DependsOn="**/*.tsj"
-                       OutputExtensions=".scene.json"
-                       Properties="CapsuleTileSize=$(CapsuleTileSize)"
-                       ToolProject="$(MSBuildThisFileDirectory)../src/JAG.Capsule.Tiled/JAG.Capsule.Tiled.csproj"
-                       ToolAssembly="$(MSBuildThisFileDirectory)../tools/net10.0/any/JAG.Capsule.Tiled.dll" />
+  <!-- A game building against this clone imports this file in place of the package, through
+       Capsule's CapsuleSourceOverrides. The game's build project, the one referencing
+       JAG.Capsule.Build, then compiles the importer from source. -->
+  <ItemGroup Condition="'@(PackageReference->WithMetadataValue('Identity', 'JAG.Capsule.Build'))' != ''">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../src/JAG.Capsule.Tiled/JAG.Capsule.Tiled.csproj" />
   </ItemGroup>
-
-  <!-- Seeds capsule.tiled-project, which carries the CapsuleLayer type and opens on its own folder,
-       at the asset root, so it holds every map wherever the game files it. The seed lands only while
-       no .tiled-project exists anywhere under that root. The file belongs to the developer once it
-       lands. -->
-  <Target Name="CapsuleTiledSeedProject"
-          Condition="'$(CapsuleBuildAssets)' == 'true'"
-          DependsOnTargets="CapsuleAssetSourcesInit"
-          BeforeTargets="CapsuleRunDerivations">
-
-    <ItemGroup>
-      <_CapsuleTiledMap Include="$(CapsuleAssetSourcesDir)/**/*.tmj" />
-      <_CapsuleTiledExistingProject Include="$(CapsuleAssetSourcesDir)/**/*.tiled-project" />
-    </ItemGroup>
-
-    <Copy Condition="'@(_CapsuleTiledMap)' != '' and '@(_CapsuleTiledExistingProject)' == ''"
-          SourceFiles="$(MSBuildThisFileDirectory)capsule.tiled-project"
-          DestinationFiles="$(CapsuleAssetSourcesDir)/$(MSBuildProjectName).tiled-project" />
-  </Target>
 
 </Project>

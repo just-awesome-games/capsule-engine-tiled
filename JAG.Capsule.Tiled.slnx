@@ -3,6 +3,7 @@
     <Project Path="src/JAG.Capsule.Tiled/JAG.Capsule.Tiled.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/JAG.Capsule.Tiled.Build/JAG.Capsule.Tiled.Build.csproj" />
     <Project Path="tests/JAG.Capsule.Tiled.Tests/JAG.Capsule.Tiled.Tests.csproj" />
   </Folder>
 </Solution>

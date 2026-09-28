@@ -18,21 +18,24 @@ member who takes over releases adds their own organization-owned policy.
 
 ## 1. Pull in a new Capsule release (skip if the pin is unchanged)
 
-The `JAG.Capsule` references in `src/JAG.Capsule.Tiled/JAG.Capsule.Tiled.csproj` and
-`tests/JAG.Capsule.Tiled.Tests/JAG.Capsule.Tiled.Tests.csproj` pin one exact engine version.
+The `JAG.Capsule.Build` references in `src/JAG.Capsule.Tiled/JAG.Capsule.Tiled.csproj` and
+`tests/JAG.Capsule.Tiled.Build/JAG.Capsule.Tiled.Build.csproj`, and the `JAG.Capsule` reference in
+`tests/JAG.Capsule.Tiled.Tests/JAG.Capsule.Tiled.Tests.csproj`, pin one exact engine version.
 
 Wait until NuGet.org serves that version (HTTP 200). A 404 means it is still indexing:
 
 ```bash
-ENGINE=0.x.y   # the JAG.Capsule version the csproj files pin
-curl -s -o /dev/null -w "jag.capsule %{http_code}\n" "https://api.nuget.org/v3-flatcontainer/jag.capsule/$ENGINE/jag.capsule.$ENGINE.nupkg"
+ENGINE=0.x.y   # the Capsule version the csproj files pin
+for p in jag.capsule jag.capsule.build; do
+  curl -s -o /dev/null -w "$p %{http_code}\n" "https://api.nuget.org/v3-flatcontainer/$p/$ENGINE/$p.$ENGINE.nupkg"
+done
 ```
 
 Regenerate the committed lock files against the new pin:
 
 ```bash
 dotnet restore -p:CapsuleSourcePath= --force-evaluate
-git diff --stat -- '*packages.lock.json'    # exactly src/JAG.Capsule.Tiled and tests/JAG.Capsule.Tiled.Tests
+git diff --stat -- '*packages.lock.json'    # exactly src/JAG.Capsule.Tiled and the two tests/ projects
 ```
 
 Fix whatever the new engine broke (a moved namespace, a changed document seam) in `src/` and
@@ -97,7 +100,7 @@ curl -s -o /dev/null -w "%{http_code}\n" "https://api.nuget.org/v3-flatcontainer
 ## 7. Move the consumers
 
 A game consuming the package pins it in its `JAG.Capsule.Tiled` reference. Bump it beside the
-game's `JAG.Capsule` reference and run `dotnet restore --force-evaluate` there.
+game's `JAG.Capsule*` references and run `dotnet restore --force-evaluate` there.
 
 ## Undoing a mistake
 

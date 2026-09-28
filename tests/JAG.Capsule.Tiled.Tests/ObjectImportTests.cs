@@ -124,7 +124,7 @@ public sealed class ObjectImportTests
     {
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
-        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map), ".");
+        SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
         return document.Entries.ToArray()[^1].Entity!.Value;
     }

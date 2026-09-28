@@ -4,23 +4,33 @@ Capsule Tiled imports [Tiled](https://www.mapeditor.org/) maps into [Capsule Eng
 
 ## Quick start
 
-1. Reference the package from the game's logic project, beside `JAG.Capsule`:
+1. Reference the package from the game's build project, the console app that references `JAG.Capsule.Build` and whose `Program.cs` runs `CapsuleBuild`:
 
    ```xml
-   <PackageReference Include="JAG.Capsule.Tiled" Version="[0.8.0]" PrivateAssets="all" />
+   <PackageReference Include="JAG.Capsule.Tiled" Version="[0.8.0]" />
    ```
 
-   To build against a `capsule-engine-tiled` clone, name it in the game's ignored `Directory.Build.local.props` beside the engine clone, as Capsule's [source mode](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/build-and-publish.md#consuming-capsule) shows:
+   To build against a `capsule-engine-tiled` clone, name it in the game's ignored `Directory.Build.local.props` beside the engine clone, as Capsule's [source mode](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/build-and-publish.md#consuming-capsule) shows. The clone then supplies the build project's reference to the importer:
 
    ```xml
    <CapsuleSourceOverrides>JAG.Capsule.Tiled=../capsule-engine-tiled</CapsuleSourceOverrides>
    ```
 
-2. Save maps as `.tmj`, tilesets as `.tsj` and tileset images anywhere under the logic project's `Assets/`.
+2. Add the importer in the build project's `Program.cs`:
 
-3. Build. A map's key is its path under `Assets/`, normalized by Capsule's [asset rules](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/assets.md#named-assets). `Scenes/Highway/Room02.tmj` is keyed `scenes/highway/room-02`.
+   ```csharp
+   using Capsule.Build;
+   using JAG.Capsule.Tiled;
 
-The package has no settings of its own. It declares a Capsule [build derivation](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/build-and-publish.md#build-derivations), which runs where Capsule builds assets (`CapsuleBuildAssets`) and reads maps from `CapsuleAssetSourcesDir`. A map whose tile size differs from `CapsuleTileSize` fails the build. Maps under a directory holding a `.capsuleignore` build but never publish. An import error names the file that failed.
+   return CapsuleBuild.Configure(args)
+       .AddImporter(new TiledImporter())
+       .WithTileSize(16)
+       .Run();
+   ```
+
+3. Save maps as `.tmj`, tilesets as `.tsj` and tileset images anywhere under the logic project's `Assets/`, then build. A map's key is its path under `Assets/`, normalized by Capsule's [asset rules](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/assets.md#named-assets). `Scenes/Highway/Room02.tmj` is keyed `scenes/highway/room-02`.
+
+`TiledImporter` has no settings of its own. A map whose tile size differs from the one `WithTileSize` sets fails the build, and a game that calls no `WithTileSize` takes each map's own. Maps under a directory holding a `.capsuleignore` build but never publish. An import error names the file that failed.
 
 ## Tiled subset
 
@@ -68,7 +78,7 @@ A tile layer painted from a tileset with any `layer` tile keeps a Parallax Facto
 
 ## Property types
 
-The build seeds `<project>.tiled-project` at the root of `Assets/` while no `.tiled-project` exists under it. Opening it in Tiled 1.10 or later adds the `CapsuleLayer` class, which gives a layer's Class dropdown a `zIndex`. The build never overwrites the file. An existing project imports the same type through Project > Import Types, from `capsule-property-types.json` in the package's `buildTransitive/`.
+The first map a build imports seeds `<project>.tiled-project` at the root of `Assets/` while no `.tiled-project` exists under it. `<project>` is the name of the logic project's directory. Opening the file in Tiled 1.10 or later adds the `CapsuleLayer` class, which gives a layer's Class dropdown a `zIndex`. The build never overwrites the file. An existing project imports the same type through Project > Import Types, from `capsule-property-types.json` at the root of the package.
 
 ## Developing
 
@@ -78,7 +88,7 @@ Install the .NET SDK selected by [`global.json`](global.json), then enable the h
 git config core.hooksPath .githooks
 ```
 
-The two `JAG.Capsule` references pin the Capsule release. To build against a sibling `capsule-engine` clone, create the ignored `Directory.Build.local.props`:
+The library and the test build project reference `JAG.Capsule.Build`, and the test project references `JAG.Capsule`. The three references pin one Capsule release. To build against a sibling `capsule-engine` clone, create the ignored `Directory.Build.local.props`:
 
 ```xml
 <Project>

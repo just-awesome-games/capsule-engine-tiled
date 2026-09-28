@@ -51,8 +51,8 @@ internal static class TilesetImporter
 
             byte[] tilesetBytes = File.ReadAllBytes(path);
             AppendLengthPrefixed(sourceHash, tilesetBytes);
-            TiledTileset tileset = TiledImporter.Deserialize(tilesetBytes, owner, TiledJsonContext.Default.TiledTileset);
-            TiledImporter.RequireSupportedFormat(tileset.Version, owner);
+            TiledTileset tileset = MapImporter.Deserialize(tilesetBytes, owner, TiledJsonContext.Default.TiledTileset);
+            MapImporter.RequireSupportedFormat(tileset.Version, owner);
             tileset.FirstGid = entry.FirstGid;
             tileset.Name ??= Path.GetFileNameWithoutExtension(entry.Source);
             loaded.Add((tileset, Path.GetDirectoryName(path)!));

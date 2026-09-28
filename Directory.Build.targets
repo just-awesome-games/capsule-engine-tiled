@@ -1,7 +1,9 @@
 <Project>
 
-  <!-- The module's own targets, imported as a game gets them from the package. The test project is
-       their consumer. -->
-  <Import Project="$(MSBuildThisFileDirectory)build/JAG.Capsule.Tiled.targets" />
+  <!-- The module's own targets, imported as a game building against this clone gets them. The test
+       build project is their consumer. The library references JAG.Capsule.Build too and never
+       references itself. -->
+  <Import Project="$(MSBuildThisFileDirectory)build/JAG.Capsule.Tiled.targets"
+          Condition="'$(MSBuildProjectName)' != 'JAG.Capsule.Tiled'" />
 
 </Project>

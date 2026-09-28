@@ -12,7 +12,7 @@ public sealed class MapImportTests
     {
         using TiledFixtures.Workspace workspace = TiledFixtures.CopyTiledSources("room");
 
-        SceneDocument document = TiledImporter.Import("room.tmj", ".");
+        SceneDocument document = MapImporter.Import("room.tmj", ".");
 
         Assert.Equal(TiledFixtures.Read("room.scene.json"), SceneDocumentFile.ToJson(document));
     }
@@ -23,7 +23,7 @@ public sealed class MapImportTests
         using TiledFixtures.Workspace workspace = TiledFixtures.CopyTiledSources("room");
 
         TiledImportException error = Assert.Throws<TiledImportException>(
-            () => TiledImporter.Import("room.tmj", ".", tileSize: 8));
+            () => MapImporter.Import("room.tmj", ".", tileSize: 8));
 
         Assert.Contains("has 16px tiles", error.Message, StringComparison.Ordinal);
         Assert.Contains("declares 8px", error.Message, StringComparison.Ordinal);
@@ -44,7 +44,7 @@ public sealed class MapImportTests
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("tiles.tsj", tileset);
 
-        Assert.Equal(8, TiledFixtures.TileMapOf(TiledImporter.Import(workspace.Write("room.tmj", map), ".")).Grid.TileSize);
+        Assert.Equal(8, TiledFixtures.TileMapOf(MapImporter.Import(workspace.Write("room.tmj", map), ".")).Grid.TileSize);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class MapImportTests
     {
         using TiledFixtures.Workspace workspace = TiledFixtures.CopyTiledSources("scenes/room");
 
-        SceneDocument document = TiledImporter.Import(Path.Combine("scenes", "room.tmj"), ".");
+        SceneDocument document = MapImporter.Import(Path.Combine("scenes", "room.tmj"), ".");
 
         Assert.Equal("scenes/room.tmj", document.Source?.Path);
     }
@@ -63,7 +63,7 @@ public sealed class MapImportTests
         using TiledFixtures.Workspace workspace = TiledFixtures.CopyTiledSources("room");
 
         TiledImportException error = Assert.Throws<TiledImportException>(
-            () => TiledImporter.Import(Path.GetFullPath("room.tmj"), "."));
+            () => MapImporter.Import(Path.GetFullPath("room.tmj"), "."));
 
         Assert.Contains("must be relative", error.Message, StringComparison.Ordinal);
     }
@@ -115,7 +115,7 @@ public sealed class MapImportTests
 
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
-        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map), ".");
+        SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
         Assert.Equal(written ? new Vector2(-x, -y) : (Vector2?)null, document.Settings.ScrollCenter);
         Assert.DoesNotContain("-0", SceneDocumentFile.ToJson(document), StringComparison.Ordinal);
@@ -138,7 +138,7 @@ public sealed class MapImportTests
 
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
-        SceneDocument document = TiledImporter.Import(workspace.Write("room.tmj", map), ".");
+        SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
         Assert.Equal(
             new SceneSettings

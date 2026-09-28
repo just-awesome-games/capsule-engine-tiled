@@ -1,10 +1,8 @@
-using System.Diagnostics;
 using System.Text.Json.Nodes;
 
 namespace JAG.Capsule.Tiled.Tests;
 
 // Holds the shipped property types to the importer's names and to each other.
-[Collection(SceneWorkspaceCollection.Name)]
 public sealed class PropertyTypesTests
 {
     private const string TypesFile = "capsule-property-types.json";
@@ -30,50 +28,6 @@ public sealed class PropertyTypesTests
         JsonNode member = Assert.Single(layer["members"]!.AsArray())!;
         Assert.Equal(LayerImporter.ZIndexProperty, member["name"]!.GetValue<string>());
         Assert.Equal("int", member["type"]!.GetValue<string>());
-    }
-
-    // The seed lands at the asset root, holding every map wherever it is filed. A second build leaves
-    // the edited file alone.
-    [Fact]
-    public void TheBuildSeedsTheProjectOnceAndNeverOverwritesIt()
-    {
-        using TiledFixtures.Workspace workspace = new();
-        Directory.CreateDirectory("sources/Levels");
-        workspace.Write("sources/Levels/room.tmj", TiledFixtures.Read("room.tmj"));
-        workspace.Write("sources/Levels/tiles.tsj", TiledFixtures.Read("tiles.tsj"));
-        string sources = Path.GetFullPath("sources");
-        string seeded = Path.Combine(sources, "JAG.Capsule.Tiled.Tests.tiled-project");
-
-        Seed(sources);
-        Assert.Equal(TiledFixtures.Read(ProjectFile), File.ReadAllText(seeded));
-
-        File.WriteAllText(seeded, "{ \"folders\": [\".\", \"halls\"] }");
-        Seed(sources);
-
-        Assert.Equal("{ \"folders\": [\".\", \"halls\"] }", File.ReadAllText(seeded));
-    }
-
-    private static void Seed(string assetSourcesDir)
-    {
-        string root = Path.GetFullPath(TiledFixtures.Metadata("RepositoryRoot"));
-        ProcessStartInfo start = new("dotnet")
-        {
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-
-        start.ArgumentList.Add("msbuild");
-        start.ArgumentList.Add(Path.Combine(root, "tests", "JAG.Capsule.Tiled.Tests", "JAG.Capsule.Tiled.Tests.csproj"));
-        start.ArgumentList.Add("-t:CapsuleTiledSeedProject");
-        start.ArgumentList.Add($"-p:CapsuleAssetSourcesDir={assetSourcesDir}");
-        start.ArgumentList.Add($"-p:CapsuleSourcePath={TiledFixtures.Metadata("CapsuleSourcePath")}");
-
-        using Process msbuild = Process.Start(start)!;
-        string output = msbuild.StandardOutput.ReadToEnd() + msbuild.StandardError.ReadToEnd();
-        msbuild.WaitForExit();
-
-        Assert.True(msbuild.ExitCode == 0, output);
     }
 
     private static JsonNode TypeNamed(string name) => Assert.Single(

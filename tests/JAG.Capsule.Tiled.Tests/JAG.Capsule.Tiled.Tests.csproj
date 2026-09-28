@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- The project imports scenes like a game's logic library. Its Assets/Scenes maps ship beside
-       the test binary through the module's own targets.
+  <!-- The project imports scenes like a game's logic library. Its build project adds the importer,
+       and its Assets/Scenes maps ship beside the test binary.
 
        CapsuleAssetSourcesDir is explicit for a pinned release whose default looks a directory
        above the project. -->
@@ -12,7 +12,7 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <CapsuleBuildAssets>true</CapsuleBuildAssets>
     <CapsuleAssetSourcesDir>Assets</CapsuleAssetSourcesDir>
-    <CapsuleTileSize>16</CapsuleTileSize>
+    <CapsuleBuildProject>../JAG.Capsule.Tiled.Build/JAG.Capsule.Tiled.Build.csproj</CapsuleBuildProject>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,7 +36,7 @@
 
   <!-- The shipped property types, copied into Fixtures/ beside the maps. -->
   <ItemGroup>
-    <None Include="../../build/capsule.tiled-project;../../build/capsule-property-types.json"
+    <None Include="../../src/JAG.Capsule.Tiled/capsule.tiled-project;../../src/JAG.Capsule.Tiled/capsule-property-types.json"
           Link="Fixtures/%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
