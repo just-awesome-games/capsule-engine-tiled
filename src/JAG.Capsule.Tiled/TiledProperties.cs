@@ -19,6 +19,10 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
 
     private static readonly string[] SceneExtensions = [".scene.json", ".tmj", ".tmx"];
 
+    // The members of the two class values Capsule converts, in the order the document's array writes them.
+    private static readonly string[] VectorMembers = ["x", "y"];
+    internal static readonly string[] RectMembers = ["left", "top", "right", "bottom"];
+
     internal string Owner => owner;
 
     internal string? String(string name) => Value(name, StringType) switch
@@ -62,15 +66,16 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
     internal bool Has(string name) =>
         (properties ?? []).Any(property => string.Equals(property.Name, name, StringComparison.Ordinal));
 
-    // Every property but the excluded one, in the scene document's value forms, as members of the
-    // object the writer has open. The engine's build checks each against the entity class's
-    // authorable members. Tiled writes a file relative to the map's directory.
-    internal void WriteEntityValues(Utf8JsonWriter writer, string excluded, string mapDirectory, string assetRoot)
+    // Every property but the excluded ones, in the scene document's value forms, as members of the
+    // object the writer has open. The engine's build checks each against the authorable members of the
+    // entity's, the scene's or the tile type's class. Tiled writes a file relative to the directory of
+    // the map or tileset holding the property.
+    internal void WriteValues(Utf8JsonWriter writer, ReadOnlySpan<string> excluded, string directory, string assetRoot)
     {
         foreach (TiledProperty property in properties ?? [])
         {
             string name = property.Name ?? string.Empty;
-            if (string.Equals(name, excluded, StringComparison.Ordinal))
+            if (excluded.Contains(name))
             {
                 continue;
             }
@@ -88,7 +93,7 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
 
                 // An unset file is an empty string, which the document leaves to the member's initializer.
                 case FileType when property.Value.ValueKind == JsonValueKind.String && property.Value.GetString() is { Length: > 0 } file:
-                    writer.WriteString(name, AssetKeyOf(name, file, mapDirectory, assetRoot));
+                    writer.WriteString(name, AssetKeyOf(name, file, directory, assetRoot));
                     break;
 
                 case FileType:
@@ -106,7 +111,7 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
                     break;
 
                 case ClassType:
-                    WriteVector(writer, name, property);
+                    WriteClass(writer, name, property);
                     break;
 
                 // A Tiled object id is the placement's id in the document. 0 references no object and
@@ -124,16 +129,16 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
 
                 case { } other:
                     throw new TiledImportException(
-                        $"{owner} has '{name}' of type {other}, which Capsule does not import. Use a string, int, float, bool, color, file, object, enum or x/y class property.");
+                        $"{owner} has '{name}' of type {other}, which Capsule does not import. Use a string, int, float, bool, color, file, object, enum, x/y class or left/top/right/bottom class property.");
             }
         }
     }
 
     // The file's path under the asset root, which Capsule keys by its own spelling rules. A scene
     // document is keyed without its extension, and a map keys the same as the document it imports to.
-    private string AssetKeyOf(string name, string file, string mapDirectory, string assetRoot)
+    private string AssetKeyOf(string name, string file, string directory, string assetRoot)
     {
-        string path = Path.GetFullPath(Path.Combine(mapDirectory, file));
+        string path = Path.GetFullPath(Path.Combine(directory, file));
         if (!TilesetImporter.IsWithin(path, assetRoot))
         {
             throw new TiledImportException(
@@ -146,27 +151,41 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
         return sceneExtension is null ? key : key[..^sceneExtension.Length];
     }
 
-    // A class value holding exactly the members x and y is a Vector2. Tiled writes only the members
-    // an object sets, so a value missing one cannot know the class's default for it.
-    private void WriteVector(Utf8JsonWriter writer, string name, TiledProperty property)
+    // A class value holding exactly the members x and y is a Vector2, and one holding exactly left, top, right
+    // and bottom is a Rect. Tiled writes only the members a value sets, so a value missing one cannot know
+    // the class's default for it.
+    private void WriteClass(Utf8JsonWriter writer, string name, TiledProperty property)
     {
         string className = property.PropertyType ?? ClassType;
         JsonProperty[] members = property.Value.ValueKind == JsonValueKind.Object ? [.. property.Value.EnumerateObject()] : [];
-        if (members.Any(static member => member.Name is not ("x" or "y") || member.Value.ValueKind != JsonValueKind.Number))
+        string[] shape = members.All(static member => member.Name is "x" or "y") ? VectorMembers : RectMembers;
+        if (members.Any(member => !shape.Contains(member.Name) || member.Value.ValueKind != JsonValueKind.Number))
         {
             throw new TiledImportException(
-                $"{owner} has '{name}' of class '{className}' with members {string.Join(", ", members.Select(static member => member.Name))}; Capsule converts only a class whose members are the numbers x and y. Give the entity one property per member instead.");
+                $"{owner} has '{name}' of class '{className}' with members {string.Join(", ", members.Select(static member => member.Name))}; Capsule converts only a class whose members are the numbers x and y, or the numbers left, top, right and bottom. Use one property per member instead.");
         }
 
-        if (members.Length != 2)
+        string every = shape == VectorMembers ? "both x and y" : "all of left, top, right and bottom";
+        string[] repeated = [.. members.GroupBy(static member => member.Name).Where(static group => group.Count() > 1).Select(static group => group.Key)];
+        if (repeated.Length > 0)
         {
             throw new TiledImportException(
-                $"{owner} has '{name}' of class '{className}' setting {(members.Length == 0 ? "neither x nor y" : "only " + members[0].Name)}; Tiled saves only the members an object sets. Set both x and y on the object, even where one is 0.");
+                $"{owner} has '{name}' of class '{className}' setting {string.Join(", ", repeated)} more than once. Set {every} once each.");
+        }
+
+        if (members.Length != shape.Length)
+        {
+            string set = members.Length == 0 ? "no member" : "only " + string.Join(", ", members.Select(static member => member.Name));
+            throw new TiledImportException(
+                $"{owner} has '{name}' of class '{className}' setting {set}; Tiled saves only the members a value sets. Set {(members.Length == 0 ? "both x and y, or all of left, top, right and bottom," : every)} even where one is 0.");
         }
 
         writer.WriteStartArray(name);
-        property.Value.GetProperty("x").WriteTo(writer);
-        property.Value.GetProperty("y").WriteTo(writer);
+        foreach (string member in shape)
+        {
+            property.Value.GetProperty(member).WriteTo(writer);
+        }
+
         writer.WriteEndArray();
     }
 

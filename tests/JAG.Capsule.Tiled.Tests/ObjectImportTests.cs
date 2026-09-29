@@ -47,6 +47,7 @@ public sealed class ObjectImportTests
     [InlineData("{\"name\":\"tint\",\"type\":\"color\",\"value\":\"#ff00ff00\"}", "{\"tint\":\"#00ff00\"}")]
     [InlineData("{\"name\":\"tint\",\"type\":\"color\",\"value\":\"\"}", null)]
     [InlineData("{\"name\":\"drift\",\"propertytype\":\"Vec\",\"type\":\"class\",\"value\":{\"x\":1.5,\"y\":-2}}", "{\"drift\":[1.5,-2]}")]
+    [InlineData("{\"name\":\"bounds\",\"propertytype\":\"Rect\",\"type\":\"class\",\"value\":{\"bottom\":240,\"left\":0,\"right\":320.5,\"top\":-16}}", "{\"bounds\":[0,-16,320.5,240]}")]
     [InlineData("{\"name\":\"biome\",\"propertytype\":\"Biome\",\"type\":\"string\",\"value\":\"iceCave\"}", "{\"biome\":\"iceCave\"}")]
     [InlineData("{\"name\":\"hazards\",\"propertytype\":\"Hazard\",\"type\":\"string\",\"value\":\"spikes,fire\"}", "{\"hazards\":\"spikes,fire\"}")]
     [InlineData("{\"name\":\"music\",\"type\":\"file\",\"value\":\"Music\\/cave.ogg\"}", "{\"music\":\"Music/cave.ogg\"}")]
@@ -62,10 +63,22 @@ public sealed class ObjectImportTests
     [Theory]
     [InlineData(
         "{\"name\":\"loot\",\"propertytype\":\"Loot\",\"type\":\"class\",\"value\":{\"count\":2,\"x\":1}}",
-        "has 'loot' of class 'Loot' with members count, x; Capsule converts only a class whose members are the numbers x and y")]
+        "has 'loot' of class 'Loot' with members count, x; Capsule converts only a class whose members are the numbers x and y, or the numbers left, top, right and bottom. Use one property per member instead.")]
     [InlineData(
         "{\"name\":\"drift\",\"propertytype\":\"Vec\",\"type\":\"class\",\"value\":{\"y\":4}}",
-        "has 'drift' of class 'Vec' setting only y; Tiled saves only the members an object sets. Set both x and y")]
+        "has 'drift' of class 'Vec' setting only y; Tiled saves only the members a value sets. Set both x and y even where one is 0")]
+    [InlineData(
+        "{\"name\":\"drift\",\"propertytype\":\"Vec\",\"type\":\"class\",\"value\":{\"x\":1,\"x\":2}}",
+        "has 'drift' of class 'Vec' setting x more than once. Set both x and y once each")]
+    [InlineData(
+        "{\"name\":\"bounds\",\"propertytype\":\"Rect\",\"type\":\"class\",\"value\":{\"left\":0,\"top\":0,\"right\":3,\"right\":4}}",
+        "has 'bounds' of class 'Rect' setting right more than once. Set all of left, top, right and bottom once each")]
+    [InlineData(
+        "{\"name\":\"bounds\",\"propertytype\":\"Rect\",\"type\":\"class\",\"value\":{\"bottom\":240,\"left\":0,\"right\":320}}",
+        "has 'bounds' of class 'Rect' setting only bottom, left, right; Tiled saves only the members a value sets. Set all of left, top, right and bottom even where one is 0")]
+    [InlineData(
+        "{\"name\":\"bounds\",\"propertytype\":\"Rect\",\"type\":\"class\",\"value\":{\"bottom\":240,\"left\":0,\"right\":320,\"top\":0,\"x\":1}}",
+        "has 'bounds' of class 'Rect' with members bottom, left, right, top, x; Capsule converts only a class whose members are the numbers x and y, or the numbers left, top, right and bottom")]
     [InlineData(
         "{\"name\":\"music\",\"type\":\"file\",\"value\":\"..\\/Music\\/cave.ogg\"}",
         "has 'music' at '../Music/cave.ogg', which resolves to")]

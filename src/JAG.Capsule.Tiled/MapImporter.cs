@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Globalization;
 using System.Numerics;
 using System.Security.Cryptography;
@@ -57,7 +58,7 @@ internal static class MapImporter
 
         try
         {
-            return new SceneDocument(entries, nextEntityId, source, SettingsOf(map));
+            return new SceneDocument(entries, nextEntityId, source, SettingsOf(map, mapDirectory, fullAssetRoot));
         }
         catch (Exception ex) when (ex is SceneDocumentFormatException or ArgumentException)
         {
@@ -132,7 +133,7 @@ internal static class MapImporter
     }
 
     // The document authors no size. A map's size is its tiles.
-    private static SceneSettings SettingsOf(TiledMap map)
+    private static SceneSettings SettingsOf(TiledMap map, string mapDirectory, string assetRoot)
     {
         TiledProperties properties = new(map.Properties, MapOwner);
 
@@ -153,7 +154,25 @@ internal static class MapImporter
                 "point" => TextureSampling.Point,
                 { } other => throw properties.Invalid(SamplingProperty, other, "linear or point"),
             },
+            Properties = SceneProperties(properties, mapDirectory, assetRoot),
         };
+    }
+
+    // Every map property that is not a scene setting sets a member of the class composing the scene. A map
+    // with none writes no properties object.
+    private static JsonElement? SceneProperties(TiledProperties properties, string mapDirectory, string assetRoot)
+    {
+        ArrayBufferWriter<byte> buffer = new();
+        using (Utf8JsonWriter writer = new(buffer))
+        {
+            writer.WriteStartObject();
+            properties.WriteValues(writer, [BaseSceneProperty, CameraProperty, AmbientProperty, SamplingProperty], mapDirectory, assetRoot);
+            writer.WriteEndObject();
+        }
+
+        using JsonDocument document = JsonDocument.Parse(buffer.WrittenMemory);
+
+        return document.RootElement.GetPropertyCount() == 0 ? null : document.RootElement.Clone();
     }
 
     // Tiled's renderer adds the Parallax Origin to the view centre (mapscene.cpp), so an origin O

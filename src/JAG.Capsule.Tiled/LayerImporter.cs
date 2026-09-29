@@ -68,7 +68,7 @@ internal static class LayerImporter
         if (scrollFactor is not null && CollidingTile(grid) is { } colliding)
         {
             throw new TiledImportException(
-                $"{owner} has a Parallax Factor but paints from a tileset with colliding tiles ('{colliding.Type}' has a '{TilesetImporter.LayerProperty}' property); a layer that collides cannot scroll apart from the camera. Split the colliding tiles into their own tileset painted on a layer whose Parallax Factor is 1, 1.");
+                $"{owner} has a Parallax Factor but paints from a tileset with colliding tiles ('{colliding.Name}' has a '{TilesetImporter.LayerProperty}' property); a layer that collides cannot scroll apart from the camera. Split the colliding tiles into their own tileset painted on a layer whose Parallax Factor is 1, 1.");
         }
 
         return new TileMapPlacement(id, grid, new TiledProperties(layer.Properties, owner).Int(ZIndexProperty), scrollFactor);
@@ -234,7 +234,7 @@ internal static class LayerImporter
                 writer.WriteEndArray();
             }
 
-            properties.WriteEntityValues(writer, ZIndexProperty, files.MapDirectory, files.AssetRoot);
+            properties.WriteValues(writer, [ZIndexProperty], files.MapDirectory, files.AssetRoot);
             writer.WriteEndObject();
         }
 
@@ -243,13 +243,13 @@ internal static class LayerImporter
         return document.RootElement.GetPropertyCount() == 0 ? null : document.RootElement.Clone();
     }
 
-    private static TileDefinition? CollidingTile(TileGrid grid)
+    private static TileType? CollidingTile(TileGrid grid)
     {
-        foreach (TileDefinition definition in grid.TileTypes)
+        foreach (TileType tileType in grid.TileTypes)
         {
-            if (definition.Layer is not null)
+            if (tileType.Layer is not null)
             {
-                return definition;
+                return tileType;
             }
         }
 
@@ -329,7 +329,7 @@ internal static class LayerImporter
         {
             return painted is null
                 ? new TileGrid(map.TileWidth, map.Width, map.Height, [TileGrid.EmptyTile], tiles)
-                : new TileGrid(map.TileWidth, map.Width, map.Height, painted.Palette, tiles, painted.Texture, painted.Columns, transforms);
+                : new TileGrid(map.TileWidth, map.Width, map.Height, painted.Palette, tiles, painted.Texture, painted.Columns, transforms, painted.Authored);
         }
         catch (ArgumentException ex)
         {

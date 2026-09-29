@@ -43,14 +43,17 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Map `sampling` string property, `linear` or `point` | `sampling` |
 | Map `baseScene` string property | `baseScene`, the abstract `Scene` subclass key |
 | Map `camera` string property | `camera`, the `Camera` subclass key |
+| Map custom property other than `ambient`, `sampling`, `baseScene` and `camera` | scene `properties`, by name, in the value forms below |
 | Map Parallax Origin | `scrollCenter`, negated, when the origin is not 0, 0 or any layer has a Parallax Factor other than 1, 1 |
 | Tile layer | a tile map entry drawn from one tileset |
 | Tile layer tile flipped horizontally, vertically or diagonally | tile map `transforms`, which turns its drawing and collision shape alike |
 | Tileset image path under `Assets/` | tile map `texture`, for example `Textures/Terrain/Cave.png` |
 | Tileset columns | tile map `columns` |
-| Tile Class and local tile id | tile type `type` and `cell` |
+| Tile Class and local tile id | tile type `name` and `cell` |
+| Tile `type` string property | tile type `type`, the `TileType` subclass key |
 | Tile `layer` string property | tile type `layer` |
 | Tile `oneWay` and `solidSides` bool properties | tile type `oneWay` and `solidSides` |
+| Tile custom property other than `type`, `layer`, `oneWay` and `solidSides` | tile type `properties`, by name, in the value forms below |
 | Tile Collision Editor holding one unrotated convex polygon of 3 or 4 points, or one rectangle, on a tile with a `layer` | tile type `shape`; an empty editor, or a rectangle covering the tile, is the whole tile |
 | Object Class and position | entry `type`, `x` and `y` |
 | Object Rotation | entry `rotation` |
@@ -63,7 +66,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 
 An object's `zIndex` overrides its layer's. A placement with no `zIndex` keeps its class's band.
 
-| Object property | Entry property |
+| Map, object or tile property | Scene, entry or tile type property |
 | --- | --- |
 | string, int, float or bool | the same value |
 | file | the asset's key, its path under `Assets/` (`"Textures/Hazard.png"`); a `.tmj`, `.tmx` or `.scene.json` file is the scene's key, its path with no extension; an unset file is left out |
@@ -71,14 +74,15 @@ An object's `zIndex` overrides its layer's. A placement with no `zIndex` keeps i
 | object | the referenced object's id, a number; an unset reference is left out |
 | enum stored as a string | the value as written, the member name camel-cased (`"iceCave"`); a multi-value enum's members joined by commas (`"spikes,fire"`) |
 | class whose members are `x` and `y`, both set | `[x, y]` |
+| class whose members are `left`, `top`, `right` and `bottom`, all set | `[left, top, right, bottom]` |
 
-Capsule's build checks every entry property against the entity class's `[Authorable]` members. A rectangle or ellipse with a width and height already writes `size`, so a custom property of its own named `size` fails the import. A polyline or polygon already writes `path`, so a custom property named `path` on one fails it the same way. A file outside `Assets/`, an enum stored as a number and any other class value fail it too. Tiled has no list property, so an array member other than `path` is authored by hand in a scene document.
+Capsule's build checks every scene property against the scene class's `[Authorable]` members, every entry property against the entity class's, and every tile type property against the tile type class's. A rectangle or ellipse with a width and height already writes `size`, so a custom property of its own named `size` fails the import. A polyline or polygon already writes `path`, so a custom property named `path` on one fails it the same way. A file outside `Assets/`, an enum stored as a number and any other class value fail it too. Tiled has no list property, so an array member other than `path` is authored by hand in a scene document.
 
 A tile layer painted from a tileset with any `layer` tile keeps a Parallax Factor of 1, 1. A scene previews in Tiled exactly as it plays when the Tiled view is centred where the game camera is. Tiled's renderer adds the Parallax Origin to the view centre. Set it to minus half the game's viewport, for example -128, -112 for 256x224, to line the layers up at the first screen.
 
 ## Property types
 
-A new Tiled project starts as a copy of `capsule.tiled-project`, from the root of the package, placed at the root of `Assets/`. The project then holds every map wherever the game files it. Opening the file in Tiled 1.10 or later adds the `CapsuleLayer` class, which gives a layer's Class dropdown a `zIndex`. An existing project imports the same type through Project > Import Types, from `capsule-property-types.json` at the root of the package.
+A new Tiled project starts as a copy of `capsule.tiled-project`, from the root of the package, placed at the root of `Assets/`. The project then holds every map wherever the game files it. Opening the file in Tiled 1.10 or later adds two classes. `CapsuleLayer` gives a layer's Class dropdown a `zIndex`. `Rect` is a custom property type with `left`, `top`, `right` and `bottom` members, for a `Rect` member. An existing project imports the same types through Project > Import Types, from `capsule-property-types.json` at the root of the package.
 
 ## Developing
 
@@ -101,4 +105,4 @@ The library and the test build project reference `JAG.Capsule.Build`, and the te
 
 `-p:CapsuleSourcePath=` forces the pinned packages. The gates are the four commands in `.githooks/pre-commit`. [RELEASING.md](RELEASING.md) is the release procedure.
 
-Capsule Tiled is licensed under the [Mozilla Public License 2.0](LICENSE).
+Capsule Tiled is licensed under the [MIT License](LICENSE).

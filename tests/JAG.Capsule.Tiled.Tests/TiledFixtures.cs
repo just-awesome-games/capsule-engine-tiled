@@ -61,7 +61,7 @@ internal static class TiledFixtures
     internal static TileMapPlacement TileMapOf(SceneDocument document, int index = 0) =>
         document.Entries[index].TileMap!.Value;
 
-    internal static ReadOnlySpan<TileDefinition> Palette(SceneDocument document) =>
+    internal static ReadOnlySpan<TileType> Palette(SceneDocument document) =>
         document.Entries[0].TileMap!.Value.Grid.TileTypes;
 
     internal sealed class Workspace : IDisposable

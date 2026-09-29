@@ -1,5 +1,5 @@
 {
-  "formatVersion": 7,
+  "formatVersion": 8,
   "entities": [
     {
       "id": 6,
@@ -14,22 +14,22 @@
         "columns": 4,
         "tileTypes": [
           {
-            "type": "empty"
+            "name": "empty"
           },
           {
-            "type": "ground",
+            "name": "ground",
             "cell": 0
           },
           {
-            "type": "wall",
+            "name": "wall",
             "cell": 1
           },
           {
-            "type": "ledge",
+            "name": "ledge",
             "cell": 2
           },
           {
-            "type": "hazard",
+            "name": "hazard",
             "cell": 3
           }
         ],

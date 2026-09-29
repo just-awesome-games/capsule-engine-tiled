@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Globalization;
 using System.Numerics;
@@ -14,6 +15,7 @@ internal static class TilesetImporter
     internal const string LayerProperty = "layer";
     private const string OneWayProperty = "oneWay";
     private const string SolidSidesProperty = "solidSides";
+    private const string TypeProperty = "type";
 
     // Every tileset the map names, in ascending firstgid order. External tilesets feed the source hash.
     internal static ResolvedTileset[] Load(TiledMap map, string mapPath, string assetRoot, IncrementalHash sourceHash, Func<string, byte[]> read, Func<string, bool> exists)
@@ -104,13 +106,17 @@ internal static class TilesetImporter
                 $"tileset '{name}' declares {tileset.Columns} columns of {tileset.TileWidth}px over a {tileset.ImageWidth}px image; re-save the tileset in Tiled so its columns match its image.");
         }
 
+        TileType[] palette = BuildPalette(
+            tileset, name, tilesetDirectory, assetRoot, tilesetByClass, out AuthoredTileType[]? authored, out Dictionary<int, int> indexByGid);
+
         return new ResolvedTileset(
             name,
             tileset.FirstGid,
             TextureOf(tileset.Image, name, tilesetDirectory, assetRoot),
             tileset.Columns,
             tileset.TileWidth,
-            BuildPalette(tileset, name, tilesetByClass, out Dictionary<int, int> indexByGid),
+            palette,
+            authored,
             indexByGid);
     }
 
@@ -152,14 +158,19 @@ internal static class TilesetImporter
     }
 
     // Every Class in the tileset enters the palette in tile-id order, painted or not. Painting a new
-    // type never renumbers the types a scene's tiles already index.
-    private static TileDefinition[] BuildPalette(
+    // type never renumbers the types a scene's tiles already index. A palette in which no tile authors a
+    // class key or properties has no authored entries.
+    private static TileType[] BuildPalette(
         TiledTileset tileset,
         string tilesetName,
+        string tilesetDirectory,
+        string assetRoot,
         Dictionary<string, string> tilesetByClass,
+        out AuthoredTileType[]? authored,
         out Dictionary<int, int> indexByGid)
     {
-        List<TileDefinition> palette = [TileGrid.EmptyTile];
+        List<TileType> palette = [TileGrid.EmptyTile];
+        List<AuthoredTileType> authoredEntries = [default];
         indexByGid = [];
 
         foreach (TiledTile tile in (tileset.Tiles ?? []).OrderBy(tile => tile.Id))
@@ -169,10 +180,10 @@ internal static class TilesetImporter
                 continue;
             }
 
-            if (string.Equals(tile.Type, TileGrid.EmptyTileType, StringComparison.Ordinal))
+            if (string.Equals(tile.Type, TileGrid.EmptyTileName, StringComparison.Ordinal))
             {
                 throw new TiledImportException(
-                    $"tileset '{tilesetName}' tile {tile.Id} has Class '{TileGrid.EmptyTileType}', which is reserved for the absence of a tile; rename it.");
+                    $"tileset '{tilesetName}' tile {tile.Id} has Class '{TileGrid.EmptyTileName}', which is reserved for the absence of a tile; rename it.");
             }
 
             if (!tilesetByClass.TryAdd(tile.Type, tilesetName))
@@ -182,15 +193,22 @@ internal static class TilesetImporter
             }
 
             indexByGid[tileset.FirstGid + tile.Id] = palette.Count;
-            palette.Add(DefinitionOf(tile, tile.Type, tilesetName, tileset.TileWidth));
+            TiledProperties properties = new(tile.Properties, $"tileset '{tilesetName}' tile {tile.Id} (Class '{tile.Type}')");
+            palette.Add(TileTypeOf(tile, tile.Type, properties, tileset.TileWidth));
+            authoredEntries.Add(new AuthoredTileType(
+                ClassKeyOf(properties),
+                AuthoredProperties(properties, tilesetDirectory, assetRoot)));
         }
+
+        authored = authoredEntries.Exists(static entry => entry.Type is not null || entry.Properties is not null)
+            ? [.. authoredEntries]
+            : null;
 
         return [.. palette];
     }
 
-    private static TileDefinition DefinitionOf(TiledTile tile, string tileClass, string tilesetName, int tileSize)
+    private static TileType TileTypeOf(TiledTile tile, string tileClass, TiledProperties properties, int tileSize)
     {
-        TiledProperties properties = new(tile.Properties, $"tileset '{tilesetName}' tile {tile.Id} (Class '{tileClass}')");
         string? layer = LayerOf(properties);
 
         // Checked on the authored objects. A whole-tile rectangle writes no shape and still collides.
@@ -201,13 +219,44 @@ internal static class TilesetImporter
         }
 
         // The engine refuses oneWay on a tile with no layer, and solidSides on one that is not oneWay.
-        return new TileDefinition(
-            tileClass,
-            tile.Id,
-            layer,
-            ShapeOf(tile, properties.Owner, tileSize),
-            OneWay: properties.Bool(OneWayProperty),
-            SolidSides: properties.Bool(SolidSidesProperty));
+        return new TileType
+        {
+            Name = tileClass,
+            Cell = tile.Id,
+            Layer = layer,
+            Shape = ShapeOf(tile, properties.Owner, tileSize),
+            OneWay = properties.Bool(OneWayProperty),
+            SolidSides = properties.Bool(SolidSidesProperty),
+        };
+    }
+
+    // The key of the TileType subclass a tile composes, trimmed as its layer is. The engine's build checks
+    // it against the game's classes.
+    private static string? ClassKeyOf(TiledProperties properties) => properties.String(TypeProperty)?.Trim() switch
+    {
+        null => null,
+
+        // Read as absent, a blank key would ship a plain tile type where the author meant a subclass.
+        "" => throw new TiledImportException(
+            $"{properties.Owner} has a blank '{TypeProperty}'; name the TileType subclass key in it, or delete the property for a plain tile type."),
+        { } key => key,
+    };
+
+    // Every tile property that is not a tile type field or the class key sets a member of the tile's
+    // class. Tiled writes a tile's file property relative to its tileset's directory.
+    private static JsonElement? AuthoredProperties(TiledProperties properties, string tilesetDirectory, string assetRoot)
+    {
+        ArrayBufferWriter<byte> buffer = new();
+        using (Utf8JsonWriter writer = new(buffer))
+        {
+            writer.WriteStartObject();
+            properties.WriteValues(writer, [LayerProperty, OneWayProperty, SolidSidesProperty, TypeProperty], tilesetDirectory, assetRoot);
+            writer.WriteEndObject();
+        }
+
+        using JsonDocument document = JsonDocument.Parse(buffer.WrittenMemory);
+
+        return document.RootElement.GetPropertyCount() == 0 ? null : document.RootElement.Clone();
     }
 
     // The collision layer a tile is on, trimmed of the whitespace Tiled's property editor leaves.
@@ -322,5 +371,6 @@ internal sealed record ResolvedTileset(
     TextureHandle Texture,
     int Columns,
     int TileSize,
-    TileDefinition[] Palette,
+    TileType[] Palette,
+    AuthoredTileType[]? Authored,
     Dictionary<int, int> IndexByGid);

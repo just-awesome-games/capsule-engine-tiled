@@ -152,6 +152,30 @@ public sealed class MapImportTests
             document.Settings);
     }
 
+    // A scene setting stays top-level, and every other map property sets a member of the scene's class.
+    [Fact]
+    public void Import_CarriesEveryOtherMapPropertyIntoTheScenesProperties()
+    {
+        string map = TiledFixtures.Mutate(
+            TiledFixtures.Read("room.tmj"),
+            "\"orientation\":\"orthogonal\",",
+            "\"properties\":["
+                + "{\"name\":\"area\",\"type\":\"string\",\"value\":\"Upper Halls\"},"
+                + "{\"name\":\"baseScene\",\"type\":\"string\",\"value\":\"playable-scene\"},"
+                + "{\"name\":\"music\",\"type\":\"file\",\"value\":\"Audio/room.ogg\"},"
+                + "{\"name\":\"tint\",\"type\":\"color\",\"value\":\"#80101820\"}],"
+                + "\"orientation\":\"orthogonal\",");
+
+        using TiledFixtures.Workspace workspace = new();
+        workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
+        SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
+
+        Assert.Equal("playable-scene", document.Settings.BaseScene);
+        Assert.Equal(
+            """{"area":"Upper Halls","music":"Audio/room.ogg","tint":"#10182080"}""",
+            document.Settings.Properties?.GetRawText());
+    }
+
     [Theory]
     [InlineData("baseScene", "int", "1", "the map has 'baseScene' of type int")]
     [InlineData("camera", "int", "1", "the map has 'camera' of type int")]

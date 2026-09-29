@@ -22,6 +22,38 @@
           "value": 0
         }
       ]
+    },
+    {
+      "id": 3,
+      "name": "Rect",
+      "type": "class",
+      "color": "#ffa0a0a4",
+      "drawFill": true,
+      "useAs": [
+        "property"
+      ],
+      "members": [
+        {
+          "name": "bottom",
+          "type": "float",
+          "value": 0
+        },
+        {
+          "name": "left",
+          "type": "float",
+          "value": 0
+        },
+        {
+          "name": "right",
+          "type": "float",
+          "value": 0
+        },
+        {
+          "name": "top",
+          "type": "float",
+          "value": 0
+        }
+      ]
     }
   ]
 }

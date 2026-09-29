@@ -30,6 +30,20 @@ public sealed class PropertyTypesTests
         Assert.Equal("int", member["type"]!.GetValue<string>());
     }
 
+    // Tiled writes a class value's members by name, so the order the importer writes them in is its own.
+    [Fact]
+    public void TheRectClassCarriesTheNumbersTheImporterConvertsToARect()
+    {
+        JsonNode rect = TypeNamed("Rect");
+
+        Assert.Equal(["property"], rect["useAs"]!.AsArray().Select(static use => use!.GetValue<string>()).ToArray());
+        JsonNode[] members = [.. rect["members"]!.AsArray().Select(static member => member!)];
+        Assert.Equal(
+            TiledProperties.RectMembers.Order(StringComparer.Ordinal),
+            members.Select(static member => member["name"]!.GetValue<string>()).Order(StringComparer.Ordinal));
+        Assert.All(members, static member => Assert.Equal("float", member["type"]!.GetValue<string>()));
+    }
+
     private static JsonNode TypeNamed(string name) => Assert.Single(
         Types(TypesFile),
         type => string.Equals(type!["name"]!.GetValue<string>(), name, StringComparison.Ordinal))!;

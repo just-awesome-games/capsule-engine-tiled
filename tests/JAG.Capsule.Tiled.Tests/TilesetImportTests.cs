@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text.Json.Nodes;
 using Capsule.Assets;
 using Capsule.Physics;
 using Capsule.Scenes.Documents;
@@ -16,7 +17,7 @@ public sealed class TilesetImportTests
 
         SceneDocument document = MapImporter.Import("room.tmj", ".");
 
-        string[] types = [.. TiledFixtures.TileMapOf(document).Grid.TileTypes.ToArray().Select(static definition => definition.Type)];
+        string[] types = [.. TiledFixtures.TileMapOf(document).Grid.TileTypes.ToArray().Select(static tileType => tileType.Name)];
 
         Assert.Equal(["empty", "ground", "wall", "ledge", "hazard"], types);
     }
@@ -37,7 +38,7 @@ public sealed class TilesetImportTests
             StringComparison.Ordinal);
         Assert.Equal(
             [null, 0, 1, 2, 3],
-            TiledFixtures.TileMapOf(document).Grid.TileTypes.ToArray().Select(static definition => definition.Cell));
+            TiledFixtures.TileMapOf(document).Grid.TileTypes.ToArray().Select(static tileType => tileType.Cell));
     }
 
     [Theory]
@@ -126,7 +127,7 @@ public sealed class TilesetImportTests
 
         SceneDocument imported = MapImporter.Import("assets/scenes/room.tmj", "assets");
 
-        Assert.Equal("ground", TiledFixtures.TileMapOf(imported).Grid.TileTypes[1].Type);
+        Assert.Equal("ground", TiledFixtures.TileMapOf(imported).Grid.TileTypes[1].Name);
     }
 
     [Fact]
@@ -168,6 +169,24 @@ public sealed class TilesetImportTests
         Assert.Equal(solidSides, TiledFixtures.Palette(document)[1].SolidSides);
     }
 
+    // The Class stays the palette entry's name. Tiles authoring nothing further keep no authored entry.
+    [Fact]
+    public void Import_ReadsATilesTypeAsItsClassKeyAndItsOtherPropertiesAsThatClasssMembers()
+    {
+        SceneDocument document = ImportWithTileProperty(
+            "{\"name\":\"type\",\"type\":\"string\",\"value\":\" ice \"},{\"name\":\"grip\",\"type\":\"float\",\"value\":0.1},");
+
+        JsonArray palette = Assert.Single(
+            JsonNode.Parse(SceneDocumentFile.ToJson(document))!["entities"]!.AsArray(),
+            static entry => entry!["properties"]?["tileTypes"] is not null)!["properties"]!["tileTypes"]!.AsArray();
+        JsonNode ground = palette[1]!;
+        Assert.Equal("ground", ground["name"]!.GetValue<string>());
+        Assert.Equal("ice", ground["type"]!.GetValue<string>());
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse("""{"grip":0.1}"""), ground["properties"]));
+        Assert.Null(palette[2]!["type"]);
+        Assert.Null(palette[2]!["properties"]);
+    }
+
     [Fact]
     public void Import_LeavesATileWithNoLayerPropertyCollidingWithNothing()
     {
@@ -175,7 +194,7 @@ public sealed class TilesetImportTests
 
         SceneDocument document = MapImporter.Import("room.tmj", ".");
 
-        Assert.All(TiledFixtures.Palette(document).ToArray(), definition => Assert.Null(definition.Layer));
+        Assert.All(TiledFixtures.Palette(document).ToArray(), tileType => Assert.Null(tileType.Layer));
     }
 
     [Theory]
@@ -219,7 +238,7 @@ public sealed class TilesetImportTests
     [InlineData(0, false)]
     public void Import_TakesACollisionRectangleAsItsCornersAndOneCoveringTheTileAsTheWholeTile(int top, bool shaped)
     {
-        TileDefinition ground = TiledFixtures.Palette(ImportWithCollision(
+        TileType ground = TiledFixtures.Palette(ImportWithCollision(
             $"{{\"id\":1,\"x\":0,\"y\":{top},\"width\":16,\"height\":{16 - top}}}"))[1];
 
         Assert.Equal(shaped, ground.Shape is not null);

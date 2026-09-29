@@ -265,7 +265,7 @@ public sealed class LayerImportTests
         Assert.Equal(new TextureHandle("Textures/tiles", ".png"), TiledFixtures.TileMapOf(document).Grid.Texture);
         Assert.Equal(
             ["empty", "ground", "wall", "ledge", "hazard"],
-            TiledFixtures.TileMapOf(document).Grid.TileTypes.ToArray().Select(static definition => definition.Type));
+            TiledFixtures.TileMapOf(document).Grid.TileTypes.ToArray().Select(static tileType => tileType.Name));
     }
 
     [Fact]
@@ -282,7 +282,7 @@ public sealed class LayerImportTests
 
         Assert.Null(TiledFixtures.TileMapOf(document).Grid.Texture);
         Assert.Equal(0, TiledFixtures.TileMapOf(document).Grid.Columns);
-        Assert.Equal("empty", Assert.Single(TiledFixtures.TileMapOf(document).Grid.TileTypes.ToArray()).Type);
+        Assert.Equal("empty", Assert.Single(TiledFixtures.TileMapOf(document).Grid.TileTypes.ToArray()).Name);
     }
 
     private static TiledFixtures.Workspace TwoTilesets(string lastRow)
