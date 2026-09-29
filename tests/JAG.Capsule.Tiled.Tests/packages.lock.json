@@ -4,15 +4,13 @@
     "net10.0": {
       "JAG.Capsule": {
         "type": "Direct",
-        "requested": "[0.9.0, 0.9.0]",
-        "resolved": "0.9.0",
-        "contentHash": "2qcCGPPgrSGXlufTnxdws3mRRrnPoDMd5eG4fEJFvVHpY1Ena+dmnM7iNo2YDcwW0vKp2h+AWql3jkIcokxmGQ=="
-      },
-      "JAG.Capsule.Build": {
-        "type": "Direct",
-        "requested": "[0.9.0, 0.9.0]",
-        "resolved": "0.9.0",
-        "contentHash": "3igtJ2JyoSM46Uxi1El1fqS3NBvgNAv62I4CmOOTuITgGrMu4U/k4N9oXkQFUyHQmybyQagIw+tO8+1CdoMNNQ=="
+        "requested": "[0.10.0, 0.10.0]",
+        "resolved": "0.10.0",
+        "contentHash": "b4JZOBssTqdpHByl9gjEeDhrpLz58B2vPeXIsUuyr+D0MoUxR2pQ8Z3GDDawtG9Ch5GOtSopWVSjv8ah6Izjmw==",
+        "dependencies": {
+          "MonoGame.Tool.Dxc": "[1.9.2607.1]",
+          "MonoGame.Tool.Spirvcross": "[1.4.350]"
+        }
       },
       "Microsoft.NET.Test.Sdk": {
         "type": "Direct",
@@ -41,6 +39,15 @@
         "resolved": "4.0.0",
         "contentHash": "kzLFyBYUnoidpGOXvpNOfIo8C92gVgVR6X8ncHwhcrDYugiOut5rrhDkr0L3cWHd7J2pKXf6LgaeXoBBDlx1ag=="
       },
+      "JAG.Capsule.Build": {
+        "type": "Transitive",
+        "resolved": "0.10.0",
+        "contentHash": "2lDsYnk3a8bszFflJA6GhM3KInqzrBEUJUiyGM39F1WUXZLz4uNG2Vwgx2KUL8bln8gM9kPXRhC/RbOQlq3lBA==",
+        "dependencies": {
+          "JAG.Capsule": "[0.10.0]",
+          "StbImageSharp": "2.30.16"
+        }
+      },
       "Microsoft.CodeCoverage": {
         "type": "Transitive",
         "resolved": "18.10.1",
@@ -58,6 +65,21 @@
         "dependencies": {
           "Microsoft.TestPlatform.ObjectModel": "18.10.1"
         }
+      },
+      "MonoGame.Tool.Dxc": {
+        "type": "Transitive",
+        "resolved": "1.9.2607.1",
+        "contentHash": "s0c2q7Zj/YuuGvDHgCKIV/343j/XJfHS1Gpz6HF4izQFcj+yU30SbYpaI2nrhWOrGkXGpP69usog7QNspINEZg=="
+      },
+      "MonoGame.Tool.Spirvcross": {
+        "type": "Transitive",
+        "resolved": "1.4.350",
+        "contentHash": "dHJzbU44PWN/2LGQVt0MtisD27ot5jJf2c1xizZkTXpKek5S2n4nyQUuvzAb1BZhUuw6A5Ns4g+b5uTLP8nP6A=="
+      },
+      "StbImageSharp": {
+        "type": "Transitive",
+        "resolved": "2.30.16",
+        "contentHash": "qg1i+NHihXVKLKYacGKrauhSQIGL31eBWcTC4Vc7jnGmBFj87LkRuCdXB5aDZisWMRnB6x2mcfwYXQxMWEG/lw=="
       },
       "xunit.abstractions": {
         "type": "Transitive",
@@ -99,10 +121,10 @@
           "xunit.extensibility.core": "[2.9.3]"
         }
       },
-      "JAG.Capsule.Tiled": {
+      "jag.capsule.tiled": {
         "type": "Project",
         "dependencies": {
-          "JAG.Capsule": "[0.9.0, 0.9.0]"
+          "JAG.Capsule.Build": "[0.10.0, 0.10.0]"
         }
       }
     }

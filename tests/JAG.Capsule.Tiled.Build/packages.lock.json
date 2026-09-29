@@ -35,6 +35,12 @@
         "type": "Transitive",
         "resolved": "2.30.16",
         "contentHash": "qg1i+NHihXVKLKYacGKrauhSQIGL31eBWcTC4Vc7jnGmBFj87LkRuCdXB5aDZisWMRnB6x2mcfwYXQxMWEG/lw=="
+      },
+      "jag.capsule.tiled": {
+        "type": "Project",
+        "dependencies": {
+          "JAG.Capsule.Build": "[0.10.0, 0.10.0]"
+        }
       }
     }
   }
