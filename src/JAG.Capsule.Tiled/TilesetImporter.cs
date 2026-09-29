@@ -16,7 +16,7 @@ internal static class TilesetImporter
     private const string SolidSidesProperty = "solidSides";
 
     // Every tileset the map names, in ascending firstgid order. External tilesets feed the source hash.
-    internal static ResolvedTileset[] Load(TiledMap map, string mapPath, string assetRoot, IncrementalHash sourceHash)
+    internal static ResolvedTileset[] Load(TiledMap map, string mapPath, string assetRoot, IncrementalHash sourceHash, Func<string, byte[]> read, Func<string, bool> exists)
     {
         string mapDirectory = Path.GetDirectoryName(Path.GetFullPath(mapPath))!;
         List<(TiledTileset Tileset, string Directory)> loaded = [];
@@ -44,12 +44,12 @@ internal static class TilesetImporter
                     $"{owner} resolves outside the asset root '{assetRoot}'; move it under that root so the build can track it.");
             }
 
-            if (!File.Exists(path))
+            if (!exists(path))
             {
                 throw new TiledImportException($"{owner} is missing (expected at '{path}').");
             }
 
-            byte[] tilesetBytes = File.ReadAllBytes(path);
+            byte[] tilesetBytes = read(path);
             AppendLengthPrefixed(sourceHash, tilesetBytes);
             TiledTileset tileset = MapImporter.Deserialize(tilesetBytes, owner, TiledJsonContext.Default.TiledTileset);
             MapImporter.RequireSupportedFormat(tileset.Version, owner);

@@ -104,35 +104,39 @@ public sealed class BuildIntegrationTests
         Assert.Contains("broken.tmj: the map is not readable Tiled JSON", build.Output, StringComparison.Ordinal);
     }
 
-    // The seed lands at the asset root, holding every map wherever it is filed. The build runs in the
-    // test project's directory, which names the seed. A second build leaves the edited file alone.
+    // A second build into the same obj directory reuses every map but those reading the edited tileset.
     [Fact]
-    public void TheBuildSeedsTheTiledProjectOnceAndNeverOverwritesIt()
+    public void AnEditedTilesetImportsAgainOnlyTheMapsThatNameIt()
     {
         using Scratch scratch = new();
         string assets = scratch.Subdirectory("Assets");
         string levels = Directory.CreateDirectory(Path.Combine(assets, "Levels")).FullName;
-        File.Copy(TiledFixtures.Path("room.tmj"), Path.Combine(levels, "room.tmj"));
+        string map = TiledFixtures.Read("room.tmj");
+        File.WriteAllText(Path.Combine(levels, "edited.tmj"), map);
+        File.WriteAllText(Path.Combine(levels, "other.tmj"), map.Replace("\"source\":\"tiles.tsj\"", "\"source\":\"other.tsj\"", StringComparison.Ordinal));
         File.Copy(TiledFixtures.Path("tiles.tsj"), Path.Combine(levels, "tiles.tsj"));
-        string seeded = Path.Combine(assets, "JAG.Capsule.Tiled.Tests.tiled-project");
-
-        BuildResult first = RunBuild(scratch.Subdirectory("first"), $"-p:CapsuleAssetSourcesDir={assets}");
+        File.Copy(TiledFixtures.Path("tiles.tsj"), Path.Combine(levels, "other.tsj"));
+        string obj = scratch.Subdirectory("obj");
+        BuildResult first = RunBuild(obj, $"-p:CapsuleAssetSourcesDir={assets}");
         Assert.True(first.ExitCode == 0, first.Output);
-        Assert.Equal(TiledFixtures.Read("capsule.tiled-project"), File.ReadAllText(seeded));
 
-        File.WriteAllText(seeded, "{ \"folders\": [\".\", \"halls\"] }");
-        BuildResult second = RunBuild(scratch.Subdirectory("second"), $"-p:CapsuleAssetSourcesDir={assets}");
+        File.AppendAllText(Path.Combine(levels, "tiles.tsj"), "\n");
+        BuildResult second = RunBuild(obj, $"-p:CapsuleAssetSourcesDir={assets}", "-v:normal");
+
         Assert.True(second.ExitCode == 0, second.Output);
-
-        Assert.Equal("{ \"folders\": [\".\", \"halls\"] }", File.ReadAllText(seeded));
+        string[] imported = [.. second.Output.Split('\n')
+            .Select(static line => line.Trim())
+            .Where(static line => line.StartsWith("import: built ", StringComparison.Ordinal))];
+        Assert.True(imported.Length == 1, second.Output);
+        Assert.EndsWith("Levels/edited.tmj", imported[0], StringComparison.Ordinal);
     }
 
     private sealed record BuildResult(int ExitCode, string Output);
 
-    // One run of the test project's asset build, through its build project, into a fresh obj
-    // directory. The build project then always runs. A build of this whole project would fight the
+    // One run of the test project's asset build, through its build project, into the obj directory
+    // named. A fresh one reuses no earlier run's cache. A build of this whole project would fight the
     // test host for its own bin/ and obj/.
-    private static BuildResult RunBuild(string objDirectory, params string[] properties)
+    private static BuildResult RunBuild(string objDirectory, params string[] arguments)
     {
         string root = Path.GetFullPath(TiledFixtures.Metadata("RepositoryRoot"));
         ProcessStartInfo start = new("dotnet")
@@ -150,9 +154,9 @@ public sealed class BuildIntegrationTests
         start.ArgumentList.Add("-nodeReuse:false");
         start.ArgumentList.Add($"-p:CapsuleObjDir={objDirectory}");
         start.ArgumentList.Add($"-p:CapsuleSourcePath={TiledFixtures.Metadata("CapsuleSourcePath")}");
-        foreach (string property in properties)
+        foreach (string argument in arguments)
         {
-            start.ArgumentList.Add(property);
+            start.ArgumentList.Add(argument);
         }
 
         using Process msbuild = Process.Start(start)!;

@@ -23,9 +23,18 @@ internal static class MapImporter
     // Tiled 1.9 writes a tile's and an object's Class as "class". Tiled 1.10 writes it as "type".
     private static readonly Version OldestFormat = new(1, 10);
 
-    internal static SceneDocument Import(string mapPath, string assetRoot, int? tileSize = null)
+    // The build reads the map and probes and reads its tilesets through the import context, which makes
+    // each an input of the import. A test reads them from disk.
+    internal static SceneDocument Import(
+        string mapPath,
+        string assetRoot,
+        int? tileSize = null,
+        Func<string, byte[]>? read = null,
+        Func<string, bool>? exists = null)
     {
-        byte[] mapBytes = File.ReadAllBytes(mapPath);
+        read ??= File.ReadAllBytes;
+        exists ??= File.Exists;
+        byte[] mapBytes = read(mapPath);
         TiledMap map = Deserialize(mapBytes, MapOwner, TiledJsonContext.Default.TiledMap);
         RequireSupportedFormat(map.Version, MapOwner);
         RequireSupportedMap(map, tileSize);
@@ -33,7 +42,7 @@ internal static class MapImporter
         using IncrementalHash sourceHash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         sourceHash.AppendData(mapBytes);
         string fullAssetRoot = Path.GetFullPath(assetRoot);
-        ResolvedTileset[] tilesets = TilesetImporter.Load(map, mapPath, fullAssetRoot, sourceHash);
+        ResolvedTileset[] tilesets = TilesetImporter.Load(map, mapPath, fullAssetRoot, sourceHash, read, exists);
 
         // Tiled mints ids for objects only. Tile layers continue from its next object id, and the
         // document keeps one id space.

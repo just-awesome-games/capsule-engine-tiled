@@ -20,11 +20,10 @@
     <PackageReference Include="JAG.Capsule.Build" Version="[0.10.0]" />
   </ItemGroup>
 
-  <!-- The importer seeds the template. A developer whose Tiled project already exists imports the
-       standalone types from the package root through Project > Import Types. -->
+  <!-- A developer copies the project template once, or imports the standalone types into an existing
+       Tiled project through Project > Import Types. -->
   <ItemGroup>
-    <EmbeddedResource Include="capsule.tiled-project" LogicalName="capsule.tiled-project" />
-    <None Include="capsule-property-types.json" Pack="true" PackagePath="/" />
+    <None Include="capsule.tiled-project;capsule-property-types.json" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>

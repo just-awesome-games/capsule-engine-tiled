@@ -30,7 +30,7 @@ Capsule Tiled imports [Tiled](https://www.mapeditor.org/) maps into [Capsule Eng
 
 3. Save maps as `.tmj`, tilesets as `.tsj` and tileset images anywhere under the logic project's `Assets/`, then build. A map's key is its path under `Assets/`, normalized by Capsule's [asset rules](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/assets.md#named-assets). `Scenes/Highway/Room02.tmj` is keyed `scenes/highway/room-02`.
 
-`TiledImporter` has no settings of its own. A map whose tile size differs from the one `WithTileSize` sets fails the build, and a game that calls no `WithTileSize` takes each map's own. Maps under a directory holding a `.capsuleignore` build but never publish. An import error names the file that failed.
+`TiledImporter` has no settings of its own. A map whose tile size differs from the one `WithTileSize` sets fails the build, and a game that calls no `WithTileSize` takes each map's own. Maps under a directory holding a `.capsuleignore` build but never publish. An edited tileset imports again only the maps that name it. An import error names the file that failed.
 
 ## Tiled subset
 
@@ -78,7 +78,7 @@ A tile layer painted from a tileset with any `layer` tile keeps a Parallax Facto
 
 ## Property types
 
-The first map a build imports seeds `<project>.tiled-project` at the root of `Assets/` while no `.tiled-project` exists under it. `<project>` is the name of the logic project's directory. Opening the file in Tiled 1.10 or later adds the `CapsuleLayer` class, which gives a layer's Class dropdown a `zIndex`. The build never overwrites the file. An existing project imports the same type through Project > Import Types, from `capsule-property-types.json` at the root of the package.
+A new Tiled project starts as a copy of `capsule.tiled-project`, from the root of the package, placed at the root of `Assets/`. The project then holds every map wherever the game files it. Opening the file in Tiled 1.10 or later adds the `CapsuleLayer` class, which gives a layer's Class dropdown a `zIndex`. An existing project imports the same type through Project > Import Types, from `capsule-property-types.json` at the root of the package.
 
 ## Developing
 

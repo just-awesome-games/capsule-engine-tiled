@@ -8,7 +8,7 @@ This repository is one authoring module for Capsule. It turns Tiled maps into Ca
 
 ## Where code goes
 
-`TiledImporter` is what a game's build project adds, and it seeds the Tiled project. `MapImporter` turns one map into one scene document.
+`TiledImporter` is what a game's build project adds. `MapImporter` turns one map into one scene document.
 
 - A map property is a scene setting in `MapImporter`.
 - A tile property belongs to the tile definition in `TilesetImporter`.
