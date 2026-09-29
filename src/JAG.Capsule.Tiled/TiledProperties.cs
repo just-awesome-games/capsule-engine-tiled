@@ -20,7 +20,7 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
     private static readonly string[] SceneExtensions = [".scene.json", ".tmj", ".tmx"];
 
     // The members of the two class values Capsule converts, in the order the document's array writes them.
-    private static readonly string[] VectorMembers = ["x", "y"];
+    internal static readonly string[] VectorMembers = ["x", "y"];
     internal static readonly string[] RectMembers = ["left", "top", "right", "bottom"];
 
     internal string Owner => owner;

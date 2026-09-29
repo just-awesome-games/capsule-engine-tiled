@@ -47,5 +47,27 @@
         "value": 0
       }
     ]
+  },
+  {
+    "id": 4,
+    "name": "Vector2",
+    "type": "class",
+    "color": "#ff5fb35f",
+    "drawFill": true,
+    "useAs": [
+      "property"
+    ],
+    "members": [
+      {
+        "name": "x",
+        "type": "float",
+        "value": 0
+      },
+      {
+        "name": "y",
+        "type": "float",
+        "value": 0
+      }
+    ]
   }
 ]

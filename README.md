@@ -82,7 +82,7 @@ A tile layer painted from a tileset with any `layer` tile keeps a Parallax Facto
 
 ## Property types
 
-A new Tiled project starts as a copy of `capsule.tiled-project`, from the root of the package, placed at the root of `Assets/`. The project then holds every map wherever the game files it. Opening the file in Tiled 1.10 or later adds two classes. `CapsuleLayer` gives a layer's Class dropdown a `zIndex`. `Rect` is a custom property type with `left`, `top`, `right` and `bottom` members, for a `Rect` member. An existing project imports the same types through Project > Import Types, from `capsule-property-types.json` at the root of the package.
+A new Tiled project starts as a copy of `capsule.tiled-project`, from the root of the package, placed at the root of `Assets/`. The project then holds every map wherever the game files it. Opening the file in Tiled 1.10 or later adds three classes. `CapsuleLayer` gives a layer's Class dropdown a `zIndex`. `Vector2` is a custom property type with `x` and `y` members, for a `Vector2` member. `Rect` is a custom property type with `left`, `top`, `right` and `bottom` members, for a `Rect` member. An existing project imports the same types through Project > Import Types, from `capsule-property-types.json` at the root of the package. Tiled's command-line export (`tiled --export-map`) keeps a class property's type name only when it is also given the project with `--project <file>.tiled-project`.
 
 ## Developing
 
