@@ -211,19 +211,47 @@ public sealed class LayerImportTests
         Assert.Null(TiledFixtures.TileMapOf(document).ScrollFactor);
     }
 
+    // A layer collides only when it sets collider. A layered tileset alone paints decoration, which may scroll.
     [Fact]
-    public void Import_RejectsParallaxOnATileLayerWhosePaletteCollides()
+    public void Import_GivesATileLayerAColliderOnlyWhenItSetsOne()
     {
-        TiledImportException error = TiledFixtures.ImportFailure(
-            WithParallax(TiledFixtures.Read("room.tmj"), "\"name\":\"terrain\",", "0.5", "1"),
-            TiledFixtures.Mutate(
-                TiledFixtures.Read("tiles.tsj"),
-                "\"type\":\"hazard\"",
-                "\"properties\":[{\"name\":\"layer\",\"type\":\"string\",\"value\":\"solid\"}],\"type\":\"hazard\""));
+        using TiledFixtures.Workspace workspace = new();
+        workspace.Write("tiles.tsj", CollidingTileset());
+        SceneDocument scrolled = MapImporter.Import(
+            workspace.Write("scrolled.tmj", WithParallax(TiledFixtures.Read("room.tmj"), "\"name\":\"terrain\",", "0.5", "1")),
+            ".");
+        SceneDocument colliding = MapImporter.Import(
+            workspace.Write("room.tmj", WithCollider(TiledFixtures.Read("room.tmj"), "\"name\":\"terrain\",")),
+            ".");
 
-        Assert.Contains("tile layer 'terrain' has a Parallax Factor", error.Message, StringComparison.Ordinal);
-        Assert.Contains("'hazard'", error.Message, StringComparison.Ordinal);
+        Assert.False(TiledFixtures.TileMapOf(scrolled).HasCollider);
+        Assert.Equal(new Vector2(0.5f, 1f), TiledFixtures.TileMapOf(scrolled).ScrollFactor);
+        Assert.True(TiledFixtures.TileMapOf(colliding).HasCollider);
     }
+
+    [Theory]
+    [InlineData("terrain", "0.5", true, "tile layer 'terrain' has a Parallax Factor and sets 'collider'")]
+    [InlineData("terrain", "1", false, "tile layer 'terrain' sets 'collider' but paints from a tileset with no colliding tile")]
+    [InlineData("things", "1", true, "object layer 'things' sets 'collider'")]
+    public void Import_RejectsAColliderTheLayerCannotHave(string layer, string parallaxX, bool layeredTileset, string expected)
+    {
+        string anchor = $"\"name\":\"{layer}\",";
+        TiledImportException error = TiledFixtures.ImportFailure(
+            WithCollider(WithParallax(TiledFixtures.Read("room.tmj"), anchor, parallaxX, "1"), anchor),
+            layeredTileset ? CollidingTileset() : TiledFixtures.Read("tiles.tsj"));
+
+        Assert.Contains(expected, error.Message, StringComparison.Ordinal);
+    }
+
+    private static string CollidingTileset() => TiledFixtures.Mutate(
+        TiledFixtures.Read("tiles.tsj"),
+        "\"type\":\"hazard\"",
+        "\"properties\":[{\"name\":\"layer\",\"type\":\"string\",\"value\":\"solid\"}],\"type\":\"hazard\"");
+
+    private static string WithCollider(string map, string anchor) => TiledFixtures.Mutate(
+        map,
+        anchor,
+        $"\"properties\":[{{\"name\":\"collider\",\"type\":\"bool\",\"value\":true}}],{anchor}");
 
     [Fact]
     public void Import_RejectsATileLayerWhosePaletteTheEngineRefuses()

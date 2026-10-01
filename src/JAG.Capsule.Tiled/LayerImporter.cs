@@ -10,6 +10,7 @@ namespace JAG.Capsule.Tiled;
 internal static class LayerImporter
 {
     internal const string ZIndexProperty = "zIndex";
+    internal const string ColliderProperty = "collider";
     private const string SizeProperty = "size";
     private const string PathProperty = "path";
 
@@ -62,21 +63,39 @@ internal static class LayerImporter
         string owner = $"tile layer '{layer.Name}'";
         TileGrid grid = ReadGrid(layer, map, tilesets);
         Vector2? scrollFactor = ScrollFactorOf(layer);
+        TiledProperties properties = new(layer.Properties, owner);
+        bool collider = properties.Bool(ColliderProperty);
 
-        // The engine refuses a scrolled grid whose palette collides, and a layer's palette is its
-        // tileset's every Class, painted or not.
-        if (scrollFactor is not null && CollidingTile(grid) is { } colliding)
+        // A layer's palette is its tileset's every Class, painted or not, so one layered tile anywhere in
+        // the tileset lets the layer collide.
+        if (collider && CollidingTile(grid) is null)
         {
             throw new TiledImportException(
-                $"{owner} has a Parallax Factor but paints from a tileset with colliding tiles ('{colliding.Name}' has a '{TilesetImporter.LayerProperty}' property); a layer that collides cannot scroll apart from the camera. Split the colliding tiles into their own tileset painted on a layer whose Parallax Factor is 1, 1.");
+                $"{owner} sets '{ColliderProperty}' but paints from a tileset with no colliding tile. Give a tile in the tileset a '{TilesetImporter.LayerProperty}' string property, or remove '{ColliderProperty}' from the layer.");
         }
 
-        return new TileMapPlacement(id, grid, new TiledProperties(layer.Properties, owner).Int(ZIndexProperty), scrollFactor);
+        // The engine refuses a scrolled grid that collides.
+        if (collider && scrollFactor is not null)
+        {
+            throw new TiledImportException(
+                $"{owner} has a Parallax Factor and sets '{ColliderProperty}'; a layer that collides cannot scroll apart from the camera. Remove '{ColliderProperty}' from the layer, or set its Parallax Factor to 1, 1.");
+        }
+
+        return new TileMapPlacement(id, grid, properties.Int(ZIndexProperty), scrollFactor, collider);
     }
 
     private static EntityPlacement[] ObjectLayer(TiledLayer layer, ResolvedTileset[] tilesets, FileRoots files)
     {
-        int? layerZIndex = new TiledProperties(layer.Properties, $"object layer '{layer.Name}'").Int(ZIndexProperty);
+        TiledProperties properties = new(layer.Properties, $"object layer '{layer.Name}'");
+        int? layerZIndex = properties.Int(ZIndexProperty);
+
+        // An object's collision is its class's own. A layer switch that reached none would mislead.
+        if (properties.Bool(ColliderProperty))
+        {
+            throw new TiledImportException(
+                $"{properties.Owner} sets '{ColliderProperty}'; Capsule reads it on tile layers only, and an object collides as its class does. Remove the property.");
+        }
+
         Vector2? scrollFactor = ScrollFactorOf(layer);
 
         return [.. (layer.Objects ?? []).Select(placed => Placement(placed, layer, tilesets, files, layerZIndex, scrollFactor))];

@@ -15,8 +15,10 @@ public sealed class PropertyTypesTests
         Assert.Equal(Canonical(Types(TypesFile)), Canonical(Project()["propertyTypes"]!.AsArray()));
     }
 
+    // Tiled writes a class member only when the layer changes it. The class's collider is then false, as
+    // the importer reads an absent one.
     [Fact]
-    public void TheLayerClassBandsALayerThroughTheZIndexTheImporterReads()
+    public void TheLayerClassCarriesTheLayerPropertiesTheImporterReads()
     {
         JsonNode layer = TypeNamed("CapsuleLayer");
 
@@ -25,9 +27,12 @@ public sealed class PropertyTypesTests
         // A tile's or an object's Class is already its Capsule type. Only a layer's Class is free.
         Assert.Equal(["layer"], layer["useAs"]!.AsArray().Select(static use => use!.GetValue<string>()).ToArray());
 
-        JsonNode member = Assert.Single(layer["members"]!.AsArray())!;
-        Assert.Equal(LayerImporter.ZIndexProperty, member["name"]!.GetValue<string>());
-        Assert.Equal("int", member["type"]!.GetValue<string>());
+        Assert.Equal(
+            [(LayerImporter.ColliderProperty, "bool", "false"), (LayerImporter.ZIndexProperty, "int", "0")],
+            layer["members"]!.AsArray().Select(static member => (
+                member!["name"]!.GetValue<string>(),
+                member["type"]!.GetValue<string>(),
+                member["value"]!.ToJsonString())));
     }
 
     // Tiled writes a class value's members by name, so the order the importer writes them in is its own.

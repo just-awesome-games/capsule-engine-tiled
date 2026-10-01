@@ -8,6 +8,12 @@
          "id":1,
          "name":"Terrain",
          "opacity":1,
+         "properties":[
+                {
+                 "name":"collider",
+                 "type":"bool",
+                 "value":true
+                }],
          "type":"tilelayer",
          "visible":true,
          "width":4,

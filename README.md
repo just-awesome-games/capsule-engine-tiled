@@ -62,6 +62,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Polyline or polygon object points | `path` property, `[[x, y], ...]` in pixels from the object's position; a polygon repeats its first point at the end |
 | Object custom property other than `zIndex` | entry `properties`, by name, in the value forms below |
 | `zIndex` int property on a tile layer, object layer or object | entry `zIndex` |
+| `collider` bool property on a tile layer | tile map `collider`; true gives the map a collider, and a layer without it only draws |
 | Tile layer or object layer Parallax Factor other than 1, 1 | entry `scrollFactor` on the tile map or on each of the layer's objects |
 
 An object's `zIndex` overrides its layer's. A placement with no `zIndex` keeps its class's band.
@@ -78,11 +79,11 @@ An object's `zIndex` overrides its layer's. A placement with no `zIndex` keeps i
 
 Capsule's build checks every scene property against the scene class's `[Authorable]` members, every entry property against the entity class's, and every tile type property against the tile type class's. A rectangle or ellipse with a width and height already writes `size`, so a custom property of its own named `size` fails the import. A polyline or polygon already writes `path`, so a custom property named `path` on one fails it the same way. A file outside `Assets/`, an enum stored as a number and any other class value fail it too. Tiled has no list property, so an array member other than `path` is authored by hand in a scene document.
 
-A tile layer painted from a tileset with any `layer` tile keeps a Parallax Factor of 1, 1. A scene previews in Tiled exactly as it plays when the Tiled view is centred where the game camera is. Tiled's renderer adds the Parallax Origin to the view centre. Set it to minus half the game's viewport, for example -128, -112 for 256x224, to line the layers up at the first screen.
+A tile layer collides only when it sets `collider` to true. Its tileset must then hold a tile with a `layer`, and the layer keeps a Parallax Factor of 1, 1. One tileset paints the solid layer and its decorative or parallax copies, which set no `collider`. An object layer refuses `collider` set to true, because an object collides as its class does. A scene previews in Tiled exactly as it plays when the Tiled view is centred where the game camera is. Tiled's renderer adds the Parallax Origin to the view centre. Set it to minus half the game's viewport, for example -128, -112 for 256x224, to line the layers up at the first screen.
 
 ## Property types
 
-A new Tiled project starts as a copy of `capsule.tiled-project`, from the root of the package, placed at the root of `Assets/`. The project then holds every map wherever the game files it. Opening the file in Tiled 1.10 or later adds three classes. `CapsuleLayer` gives a layer's Class dropdown a `zIndex`. `Vector2` is a custom property type with `x` and `y` members, for a `Vector2` member. `Rect` is a custom property type with `left`, `top`, `right` and `bottom` members, for a `Rect` member. An existing project imports the same types through Project > Import Types, from `capsule-property-types.json` at the root of the package. Tiled's command-line export (`tiled --export-map`) keeps a class property's type name only when it is also given the project with `--project <file>.tiled-project`.
+A new Tiled project starts as a copy of `capsule.tiled-project`, from the root of the package, placed at the root of `Assets/`. The project then holds every map wherever the game files it. Opening the file in Tiled 1.10 or later adds three classes. `CapsuleLayer` gives a layer's Class dropdown a `zIndex` and a `collider` that defaults to false. `Vector2` is a custom property type with `x` and `y` members, for a `Vector2` member. `Rect` is a custom property type with `left`, `top`, `right` and `bottom` members, for a `Rect` member. An existing project imports the same types through Project > Import Types, from `capsule-property-types.json` at the root of the package. Tiled's command-line export (`tiled --export-map`) keeps a class property's type name only when it is also given the project with `--project <file>.tiled-project`.
 
 ## Developing
 

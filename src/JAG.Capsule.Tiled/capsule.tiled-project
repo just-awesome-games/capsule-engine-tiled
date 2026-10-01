@@ -17,6 +17,11 @@
       ],
       "members": [
         {
+          "name": "collider",
+          "type": "bool",
+          "value": false
+        },
+        {
           "name": "zIndex",
           "type": "int",
           "value": 0
