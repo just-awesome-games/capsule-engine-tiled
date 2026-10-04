@@ -76,12 +76,12 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
 
     // Every property but the ones read elsewhere, in the scene document's value forms, as members of the
     // object the writer has open. Each sets the authorable member of that name, which the engine checks
-    // when the scene loads. A property named after a key the importer writes itself would write that key
-    // twice. Tiled writes a file relative to the directory of the map or tileset holding the property.
+    // when the scene loads. A property named after a key the importer writes itself, or one the scene
+    // document reserves there, would write that key twice. Tiled writes a file relative to the directory of the map or tileset holding the property.
     internal void WriteValues(
         Utf8JsonWriter writer,
         ReadOnlySpan<string> read,
-        ReadOnlySpan<string> written,
+        Func<string, bool> written,
         string directory,
         string assetRoot)
     {
@@ -93,7 +93,7 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
                 continue;
             }
 
-            if (written.Contains(name))
+            if (written(name))
             {
                 throw new TiledImportException(
                     $"{owner} has a '{name}' property, but Capsule writes '{name}' itself. Rename or remove the property.");

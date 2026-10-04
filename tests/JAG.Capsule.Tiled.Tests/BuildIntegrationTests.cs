@@ -34,7 +34,7 @@ public sealed class BuildIntegrationTests
         string shipped = Inflated(key);
         Assert.True(JsonNode.DeepEquals(
             JsonNode.Parse(shipped),
-            JsonNode.Parse(SceneDocumentFile.ToJson(SceneDocumentFile.Parse(shipped)))));
+            JsonNode.Parse(SceneDocument.Parse(shipped).ToJson())));
     }
 
     // Assets/Scenes/dev/ holds a .capsuleignore. Its map ships in every build but a shipping one.

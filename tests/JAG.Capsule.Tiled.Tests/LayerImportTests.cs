@@ -58,12 +58,11 @@ public sealed class LayerImportTests
         SceneDocumentEntry placed = document.Entries[^1];
 
         Assert.Equal("crate", placed.Type);
-        Assert.Equal(2f, placed.ScaleX);
-        Assert.Equal(0.5f, placed.ScaleY);
+        Assert.Equal(new Vector2(2f, 0.5f), placed.Spawn.Scale);
 
         // A point keeps the identity scale, which the canonical form leaves out.
-        Assert.Equal(1f, document.Entries[1].ScaleX);
-        Assert.Equal(1, SceneDocumentFile.ToJson(document).Split("\"scale\"").Length - 1);
+        Assert.Equal(1f, document.Entries[1].Spawn.Scale.X);
+        Assert.Equal(1, document.ToJson().Split("\"scale\"").Length - 1);
     }
 
     [Fact]
@@ -133,14 +132,14 @@ public sealed class LayerImportTests
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        Assert.Equal(-10, document.Entries[0].ZIndex);
-        Assert.Equal(5, document.Entries[1].ZIndex);
+        Assert.Equal(-10, document.Entries[0].Spawn.ZIndex);
+        Assert.Equal(5, document.Entries[1].Spawn.ZIndex);
 
         // A band is the spawn's, never an entry member.
-        Assert.Null(document.Entries[1].Properties);
+        Assert.Null(document.Entries[1].Members);
 
         // The coin authors nothing, so the document says nothing and its class keeps the default.
-        Assert.Null(document.Entries[2].ZIndex);
+        Assert.Null(document.Entries[2].Spawn.ZIndex);
     }
 
     [Fact]
@@ -153,9 +152,9 @@ public sealed class LayerImportTests
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        Assert.Null(document.Entries[0].ZIndex);
-        Assert.Equal(7, document.Entries[1].ZIndex);
-        Assert.Equal(3, document.Entries[2].ZIndex);
+        Assert.Null(document.Entries[0].Spawn.ZIndex);
+        Assert.Equal(7, document.Entries[1].Spawn.ZIndex);
+        Assert.Equal(3, document.Entries[2].Spawn.ZIndex);
     }
 
     [Theory]
@@ -187,9 +186,9 @@ public sealed class LayerImportTests
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        Assert.Equal(new Vector2(0.5f, 1f), document.Entries[0].ScrollFactor);
-        Assert.Equal(new Vector2(0.25f, 0.75f), document.Entries[1].ScrollFactor);
-        Assert.Equal(new Vector2(0.25f, 0.75f), document.Entries[2].ScrollFactor);
+        Assert.Equal(new Vector2(0.5f, 1f), document.Entries[0].Spawn.ScrollFactor);
+        Assert.Equal(new Vector2(0.25f, 0.75f), document.Entries[1].Spawn.ScrollFactor);
+        Assert.Equal(new Vector2(0.25f, 0.75f), document.Entries[2].Spawn.ScrollFactor);
     }
 
     [Fact]
@@ -201,7 +200,7 @@ public sealed class LayerImportTests
             "room.tmj",
             WithParallax(TiledFixtures.Read("room.tmj"), "\"name\":\"terrain\",", "1", "1")), ".");
 
-        Assert.Null(document.Entries[0].ScrollFactor);
+        Assert.Null(document.Entries[0].Spawn.ScrollFactor);
     }
 
     // A layer collides only when it sets collider. A layered tileset alone paints decoration, which may scroll.
@@ -218,7 +217,7 @@ public sealed class LayerImportTests
             ".");
 
         Assert.False(TiledFixtures.TileMapOf(scrolled).TryGetProperty("collider", out _));
-        Assert.Equal(new Vector2(0.5f, 1f), scrolled.Entries[0].ScrollFactor);
+        Assert.Equal(new Vector2(0.5f, 1f), scrolled.Entries[0].Spawn.ScrollFactor);
         Assert.True(TiledFixtures.TileMapOf(colliding).GetProperty("collider").GetBoolean());
     }
 

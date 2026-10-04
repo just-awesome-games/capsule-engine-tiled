@@ -63,7 +63,7 @@ internal static class TiledFixtures
     {
         Assert.Equal("tile-map", document.Entries[index].Type);
 
-        return document.Entries[index].Properties!.Value;
+        return document.Entries[index].Members!.Value;
     }
 
     internal static JsonElement[] Palette(SceneDocument document, int index = 0) =>

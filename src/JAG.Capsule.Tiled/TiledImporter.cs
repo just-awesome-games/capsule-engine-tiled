@@ -39,6 +39,6 @@ public sealed class TiledImporter : IAssetImporter
 
         SceneDocument document = MapImporter.Import(
             context.SourcePath, context.AssetRoot, context.TileSize, context.ReadAllBytes, context.Exists);
-        context.Write(Path.ChangeExtension(context.AssetPath, DocumentExtension), SceneDocumentFile.ToJson(document));
+        context.Write(Path.ChangeExtension(context.AssetPath, DocumentExtension), document.ToJson());
     }
 }

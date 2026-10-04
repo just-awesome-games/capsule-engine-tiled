@@ -198,7 +198,7 @@ internal static class TilesetImporter
                 writer.WriteEndArray();
             }
 
-            properties.WriteValues(writer, [LayerProperty], [NameKey, CellKey, ShapeKey], tilesetDirectory, assetRoot);
+            properties.WriteValues(writer, [LayerProperty], static name => name is NameKey or CellKey or ShapeKey, tilesetDirectory, assetRoot);
         })!.Value;
     }
 

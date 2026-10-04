@@ -6,14 +6,12 @@ namespace JAG.Capsule.Tiled;
 
 internal static class MapImporter
 {
-    private const string BaseSceneProperty = "baseScene";
+    private const string BaseSceneProperty = SceneDocumentKeys.Document.BaseScene;
     private const string CameraProperty = "camera";
     private const string BackgroundColor = "Background Color";
 
-    // The scene members and root keys the importer writes itself.
+    // The scene members the importer writes itself.
     private const string ClearColorKey = "clearColor";
-    private const string EntitiesKey = "entities";
-    private const string TypeKey = "type";
     private const string ScrollCenterKey = "scrollCenter";
 
     private const string MapOwner = "the map";
@@ -138,7 +136,7 @@ internal static class MapImporter
                 writer.WriteStartObject(CameraProperty);
                 if (camera is not null)
                 {
-                    writer.WriteString(TypeKey, camera);
+                    writer.WriteString(SceneDocumentKeys.MemberObject.Type, camera);
                 }
 
                 if (scrollCenter is (double x, double y))
@@ -152,7 +150,12 @@ internal static class MapImporter
                 writer.WriteEndObject();
             }
 
-            properties.WriteValues(writer, [BaseSceneProperty, CameraProperty], [ClearColorKey, EntitiesKey], mapDirectory, assetRoot);
+            properties.WriteValues(
+                writer,
+                [BaseSceneProperty, CameraProperty],
+                static name => name == ClearColorKey || SceneDocumentKeys.Document.Contains(name),
+                mapDirectory,
+                assetRoot);
         });
 
     // Tiled's renderer adds the Parallax Origin to the view centre (mapscene.cpp), so an origin O

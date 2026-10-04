@@ -12,7 +12,7 @@ public sealed class MapImportTests
 
         SceneDocument document = MapImporter.Import("room.tmj", ".");
 
-        Assert.Equal(TiledFixtures.Read("room.scene.json"), SceneDocumentFile.ToJson(document));
+        Assert.Equal(TiledFixtures.Read("room.scene.json"), document.ToJson());
     }
 
     [Fact]
@@ -95,8 +95,8 @@ public sealed class MapImportTests
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        Assert.Equal(written ? $$$"""{"camera":{"scrollCenter":[{{{-x}}},{{{-y}}}]}}""" : null, document.Properties?.GetRawText());
-        Assert.DoesNotContain("-0", SceneDocumentFile.ToJson(document), StringComparison.Ordinal);
+        Assert.Equal(written ? $$$"""{"camera":{"scrollCenter":[{{{-x}}},{{{-y}}}]}}""" : null, document.Members?.GetRawText());
+        Assert.DoesNotContain("-0", document.ToJson(), StringComparison.Ordinal);
     }
 
     // Tiled writes an opaque Background Color as #rrggbb and a color property as #aarrggbb. The camera
@@ -126,7 +126,7 @@ public sealed class MapImportTests
         Assert.Equal("jag/rooms/room-scene", document.BaseScene);
         Assert.Equal(
             """{"clearColor":"#101820","camera":{"type":"jag/rooms/room-camera"},"ambient":"#484c68","area":"Upper Halls","music":"Audio/room.ogg","sampling":"point","tint":"#10182080"}""",
-            document.Properties?.GetRawText());
+            document.Members?.GetRawText());
     }
 
     [Theory]

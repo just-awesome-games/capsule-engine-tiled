@@ -11,7 +11,7 @@ public sealed class ObjectImportTests
     {
         SceneDocumentEntry placed = Imported(Crate("\"rotation\":22.5,\"width\":0,\"height\":0"));
 
-        Assert.Equal(22.5f, placed.RotationDegrees);
+        Assert.Equal(float.DegreesToRadians(22.5f), placed.Spawn.Rotation);
     }
 
     // A click-placed rectangle is the spawn marker existing maps rely on, and keeps no size. A path's
@@ -26,7 +26,7 @@ public sealed class ObjectImportTests
     {
         SceneDocumentEntry placed = Imported(Crate(shape));
 
-        Assert.Equal(expected, placed.Properties?.GetRawText());
+        Assert.Equal(expected, placed.Members?.GetRawText());
     }
 
     // A custom property named after a key the importer writes would write that key twice.
@@ -60,7 +60,7 @@ public sealed class ObjectImportTests
     {
         SceneDocumentEntry placed = Imported(Crate($"\"width\":0,\"height\":0,\"properties\":[{property}]"));
 
-        Assert.Equal(expected, placed.Properties?.GetRawText());
+        Assert.Equal(expected, placed.Members?.GetRawText());
     }
 
     [Theory]

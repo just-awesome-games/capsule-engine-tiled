@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Text.Json;
 using Capsule.Scenes.Documents;
+using Capsule.Scenes.Spawning;
 using Capsule.Tiles;
 
 namespace JAG.Capsule.Tiled;
@@ -14,9 +15,6 @@ internal static class LayerImporter
     private const string PathProperty = "path";
 
     private const string TileMapType = "tile-map";
-
-    // The keys an entry reserves, which a custom property of the same name would write twice.
-    private static readonly string[] SpawnKeys = ["id", "type", "x", "y", "rotation", "scale", "scrollFactor"];
 
     // Tiled packs flip and rotation into the top nibble of a gid. It applies the anti-diagonal flip
     // first, then the horizontal, then the vertical, the order TileTransform applies Transpose, FlipX
@@ -61,11 +59,9 @@ internal static class LayerImporter
     {
         TiledProperties properties = new(layer.Properties, $"tile layer '{layer.Name}'");
 
-        return new SceneDocumentEntry(
-            TileMapType,
-            ZIndex: properties.Int(ZIndexProperty),
-            ScrollFactor: ScrollFactorOf(layer),
-            Properties: TileMapMembers(layer, map, tilesets, properties.Bool(ColliderProperty)));
+        EntitySpawn spawn = new(Vector2.Zero) { ZIndex = properties.Int(ZIndexProperty), ScrollFactor = ScrollFactorOf(layer) };
+
+        return new SceneDocumentEntry(TileMapType, spawn, TileMapMembers(layer, map, tilesets, properties.Bool(ColliderProperty)));
     }
 
     private static SceneDocumentEntry[] ObjectLayer(TiledLayer layer, ResolvedTileset[] tilesets, FileRoots files)
@@ -109,21 +105,18 @@ internal static class LayerImporter
         TiledProperties properties = new(placed.Properties, owner);
 
         // An object's own zIndex overrides its layer's.
-        int? zIndex = properties.Int(ZIndexProperty) ?? layerZIndex;
-        float rotation = (float)placed.Rotation;
+        EntitySpawn spawn = new(new Vector2((float)placed.X, (float)placed.Y))
+        {
+            Rotation = float.DegreesToRadians((float)placed.Rotation),
+            ZIndex = properties.Int(ZIndexProperty) ?? layerZIndex,
+            ScrollFactor = scrollFactor,
+        };
 
         if (placed.Gid is not { } gid)
         {
             bool sized = placed.Width > 0 && placed.Height > 0;
 
-            return new SceneDocumentEntry(
-                placed.Type,
-                (float)placed.X,
-                (float)placed.Y,
-                ZIndex: zIndex,
-                ScrollFactor: scrollFactor,
-                RotationDegrees: rotation,
-                Properties: EntityMembers(properties, files, sized ? (placed.Width, placed.Height) : null, PathOf(placed, owner)))
+            return new SceneDocumentEntry(placed.Type, spawn, EntityMembers(properties, files, sized ? (placed.Width, placed.Height) : null, PathOf(placed, owner)))
             {
                 Id = placed.Id,
             };
@@ -138,19 +131,9 @@ internal static class LayerImporter
         ResolvedTileset drawn = OwnerOf(gid, tilesets)
             ?? throw new TiledImportException($"{owner} has tile gid {gid}, which belongs to no tileset in the map.");
 
-        return new SceneDocumentEntry(
-            placed.Type,
-            (float)placed.X,
-            (float)placed.Y,
-            (float)(placed.Width / drawn.TileSize),
-            (float)(placed.Height / drawn.TileSize),
-            zIndex,
-            scrollFactor,
-            rotation,
-            EntityMembers(properties, files, null, null))
-        {
-            Id = placed.Id,
-        };
+        spawn = spawn with { Scale = new Vector2((float)(placed.Width / drawn.TileSize), (float)(placed.Height / drawn.TileSize)) };
+
+        return new SceneDocumentEntry(placed.Type, spawn, EntityMembers(properties, files, null, null)) { Id = placed.Id };
     }
 
     // A template instance carries only what it overrides, its Class included, and the importer
@@ -226,8 +209,12 @@ internal static class LayerImporter
                 writer.WriteEndArray();
             }
 
-            string[] written = [.. SpawnKeys, .. size is null ? [] : new[] { SizeProperty }, .. path is null ? [] : new[] { PathProperty }];
-            properties.WriteValues(writer, [ZIndexProperty], written, files.MapDirectory, files.AssetRoot);
+            properties.WriteValues(
+                writer,
+                [ZIndexProperty],
+                name => SceneDocumentKeys.Entry.Contains(name) || (name == SizeProperty && size is not null) || (name == PathProperty && path is not null),
+                files.MapDirectory,
+                files.AssetRoot);
         });
 
     // A layer's Parallax Factor. Tiled's default of 1, 1 is absent, as the document writes it.
