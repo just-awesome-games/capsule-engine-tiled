@@ -8,14 +8,15 @@ This repository is one authoring module for Capsule. It turns Tiled maps into Ca
 
 ## Where code goes
 
-`TiledImporter` is what a game's build project adds. `MapImporter` turns one map into one scene document.
+`TiledImporter` is what a game's build project adds, and it holds the whole flow from map to scene document in order. A map check or scene setting goes there.
 
-- A map property is a scene setting in `MapImporter`.
-- A tile property belongs to the tile definition in `TilesetImporter`.
-- A layer or object property goes in `LayerImporter`. A new Tiled layer type is a new case in its dispatch and a new method beside the others.
-- A new property value type is a new read on `TiledProperties`.
+- A tile layer goes in `TileLayers`. Reading the gid grid is stage 1, decode. Turning gids into the tile map is stage 2, convert.
+- An object layer or object goes in `ObjectLayers`, each object through its own conversion.
+- A tileset or tile type goes in `Tilesets`.
+- A property value form goes in the one conversion function in `TiledProperties`.
+- A new Tiled layer type is a new case in the layer switch in `TiledImporter`.
 
-Each addition lands with its README table row and one test in the matching test class: `MapImportTests`, `TilesetImportTests`, `LayerImportTests` or `ObjectImportTests` for object placement and properties. A test class that outgrows its file splits by concern.
+Throw `FormatException` naming the defect and its fix. The boundary that owns the thing adds its context.
 
 ## Documentation
 
@@ -31,4 +32,4 @@ Fix a warning, or suppress it with the reason at the suppression site. Every com
 
 ## Tests
 
-Test the importer's contracts and failure modes over fixture maps. Test the build seam end to end through this repository's own test project and its build project. Do not test obvious implementation steps or chase coverage.
+Each addition lands with its README row and one of two tests. An accepted form is an element of the golden fixture, `Fixtures/Scenes/golden.tmj` and its tileset, with `Fixtures/golden.scene.json` updated to match. A refusal is one row of the refusal theory in `ImportTests`, an edit to the golden fixture and the message fragment it raises. `BuildTests` covers the build seam end to end through this repository's test project and its build project. Do not test obvious implementation steps or chase coverage.

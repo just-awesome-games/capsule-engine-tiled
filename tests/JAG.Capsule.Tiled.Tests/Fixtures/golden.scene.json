@@ -1,0 +1,324 @@
+{
+  "baseScene": "jag/rooms/room-scene",
+  "clearColor": "#101820",
+  "camera": {
+    "type": "jag/rooms/room-camera",
+    "scrollCenter": [
+      128,
+      112
+    ]
+  },
+  "ambient": "#484c68",
+  "area": "Upper Halls",
+  "gravity": 0.25,
+  "lives": 3,
+  "music": "Audio/room.ogg",
+  "outdoors": false,
+  "entities": [
+    {
+      "type": "tile-map",
+      "zIndex": -10,
+      "tileSize": 16,
+      "width": 4,
+      "height": 3,
+      "texture": "Textures/terrain.png",
+      "columns": 4,
+      "tileTypes": [
+        {
+          "name": "empty"
+        },
+        {
+          "name": "ground",
+          "cell": 0,
+          "layer": "solid"
+        },
+        {
+          "name": "slope",
+          "cell": 1,
+          "layer": "solid",
+          "shape": [
+            [
+              0,
+              16
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              16,
+              16
+            ]
+          ]
+        },
+        {
+          "name": "ledge",
+          "cell": 2,
+          "layer": "platform",
+          "shape": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              16,
+              4
+            ],
+            [
+              0,
+              4
+            ]
+          ],
+          "oneWay": true,
+          "solidSides": "top"
+        },
+        {
+          "name": "ice",
+          "cell": 3,
+          "grip": 0.1,
+          "sound": "Audio/ice.ogg",
+          "type": "slippery-tile"
+        },
+        {
+          "name": "hazard",
+          "cell": 4
+        },
+        {
+          "name": "spikes",
+          "cell": 6
+        }
+      ],
+      "tiles": [
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        3,
+        1,
+        1,
+        3,
+        4
+      ],
+      "transforms": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        2,
+        4,
+        7
+      ],
+      "collider": true
+    },
+    {
+      "type": "tile-map",
+      "scrollFactor": [
+        0.5,
+        1
+      ],
+      "tileSize": 16,
+      "width": 4,
+      "height": 3,
+      "texture": "Textures/props.png",
+      "columns": 2,
+      "tileTypes": [
+        {
+          "name": "empty"
+        },
+        {
+          "name": "crate",
+          "cell": 0
+        },
+        {
+          "name": "barrel",
+          "cell": 1
+        }
+      ],
+      "tiles": [
+        1,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "tile-map",
+      "tileSize": 16,
+      "width": 4,
+      "height": 3,
+      "tileTypes": [
+        {
+          "name": "empty"
+        }
+      ],
+      "tiles": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": 1,
+      "type": "player",
+      "x": 16,
+      "y": 32,
+      "zIndex": 7,
+      "scrollFactor": [
+        0.25,
+        0.75
+      ]
+    },
+    {
+      "id": 2,
+      "type": "door",
+      "x": 64,
+      "y": 48,
+      "rotation": 22.5,
+      "zIndex": 3,
+      "scrollFactor": [
+        0.25,
+        0.75
+      ],
+      "size": [
+        32,
+        8
+      ],
+      "destination": "Scenes/hall",
+      "music": "Audio/door.ogg"
+    },
+    {
+      "id": 3,
+      "type": "glow",
+      "x": 8,
+      "y": 8,
+      "zIndex": 3,
+      "scrollFactor": [
+        0.25,
+        0.75
+      ],
+      "size": [
+        12.5,
+        4
+      ],
+      "core": "#00ff00",
+      "tint": "#ff800080"
+    },
+    {
+      "id": 4,
+      "type": "rail",
+      "y": 40,
+      "zIndex": 3,
+      "scrollFactor": [
+        0.25,
+        0.75
+      ],
+      "path": [
+        [
+          0,
+          0
+        ],
+        [
+          32,
+          -8.5
+        ]
+      ],
+      "lift": 6
+    },
+    {
+      "id": 5,
+      "type": "zone",
+      "x": 24,
+      "y": 24,
+      "zIndex": 3,
+      "scrollFactor": [
+        0.25,
+        0.75
+      ],
+      "path": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "biome": "iceCave",
+      "hazards": "spikes,fire"
+    },
+    {
+      "id": 6,
+      "type": "spawn",
+      "x": 4,
+      "y": 4,
+      "zIndex": 3,
+      "scrollFactor": [
+        0.25,
+        0.75
+      ],
+      "bounds": [
+        0,
+        -16,
+        320.5,
+        240
+      ],
+      "drift": [
+        1.5,
+        -2
+      ]
+    },
+    {
+      "id": 7,
+      "type": "crate",
+      "x": 64,
+      "y": 48,
+      "scale": [
+        2,
+        0.5
+      ],
+      "zIndex": 3,
+      "scrollFactor": [
+        0.25,
+        0.75
+      ]
+    }
+  ]
+}

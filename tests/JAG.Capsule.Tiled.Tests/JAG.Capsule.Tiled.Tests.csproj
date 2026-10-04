@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- The project imports scenes like a game's logic library. Its build project adds the importer,
-       and its Assets/Scenes maps ship beside the test binary.
-
+  <!-- The project imports Assets/ like a game's logic library, through its build project.
        CapsuleAssetSourcesDir is explicit for a pinned release whose default looks a directory
        above the project. -->
   <PropertyGroup>
@@ -29,7 +27,7 @@
     <ProjectReference Include="../../src/JAG.Capsule.Tiled/JAG.Capsule.Tiled.csproj" />
   </ItemGroup>
 
-  <!-- The importer resolves paths relative to its inputs. Fixtures keep their layout in the output. -->
+  <!-- The importer resolves paths relative to the map, so fixtures keep their layout. -->
   <ItemGroup>
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
@@ -39,12 +37,6 @@
     <None Include="../../src/JAG.Capsule.Tiled/capsule.tiled-project;../../src/JAG.Capsule.Tiled/capsule-property-types.json"
           Link="Fixtures/%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <!-- The shipping spec builds this project again, from the engine this build used. -->
-  <ItemGroup>
-    <AssemblyMetadata Include="RepositoryRoot" Value="$(MSBuildThisFileDirectory)../.." />
-    <AssemblyMetadata Include="CapsuleSourcePath" Value="$(CapsuleSourcePath)" />
   </ItemGroup>
 
   <ItemGroup>

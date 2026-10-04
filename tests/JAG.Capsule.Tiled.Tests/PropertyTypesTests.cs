@@ -2,64 +2,46 @@ using System.Text.Json.Nodes;
 
 namespace JAG.Capsule.Tiled.Tests;
 
-// Holds the shipped property types to the importer's names and to each other.
 public sealed class PropertyTypesTests
 {
-    private const string TypesFile = "capsule-property-types.json";
-
-    private const string ProjectFile = "capsule.tiled-project";
-
     [Fact]
     public void TheProjectTemplateCarriesTheSameTypesAsTheStandaloneFile()
     {
-        Assert.Equal(Canonical(Types(TypesFile)), Canonical(Project()["propertyTypes"]!.AsArray()));
+        JsonNode project = JsonNode.Parse(File.ReadAllText(Fixture("capsule.tiled-project")))!;
+
+        Assert.Equal(Types().ToJsonString(), project["propertyTypes"]!.ToJsonString());
     }
 
-    // Tiled writes a class member only when the layer changes it. The class's collider is then false, as
-    // the importer reads an absent one.
+    // Tiled writes a layer's class member only when it differs from the default, so the defaults are
+    // what the importer reads when a member is absent.
     [Fact]
-    public void TheLayerClassCarriesTheLayerPropertiesTheImporterReads()
+    public void TheShippedClassesCarryTheMembersTheImporterReads()
     {
         JsonNode layer = TypeNamed("CapsuleLayer");
-
         Assert.Equal("class", layer["type"]!.GetValue<string>());
-
-        // A tile's or an object's Class is already its Capsule type. Only a layer's Class is free.
-        Assert.Equal(["layer"], layer["useAs"]!.AsArray().Select(static use => use!.GetValue<string>()).ToArray());
-
+        Assert.Equal(["layer"], UseAs(layer));
         Assert.Equal(
-            [(LayerImporter.ColliderProperty, "bool", "false"), (LayerImporter.ZIndexProperty, "int", "0")],
-            layer["members"]!.AsArray().Select(static member => (
-                member!["name"]!.GetValue<string>(),
-                member["type"]!.GetValue<string>(),
-                member["value"]!.ToJsonString())));
+            [("collider", "bool", "false"), ("zIndex", "int", "0")],
+            Members(layer).Select(static member => (Name(member), member["type"]!.GetValue<string>(), member["value"]!.ToJsonString())));
+
+        foreach ((string name, string[] members) in new[] { ("Vector2", new[] { "x", "y" }), ("Rect", ["bottom", "left", "right", "top"]) })
+        {
+            JsonNode type = TypeNamed(name);
+            Assert.Equal(["property"], UseAs(type));
+            Assert.Equal(members, Members(type).Select(Name).Order(StringComparer.Ordinal));
+            Assert.All(Members(type), static member => Assert.Equal("float", member["type"]!.GetValue<string>()));
+        }
     }
 
-    // Tiled writes a class value's members by name, so the order the importer writes them in is its own.
-    [Theory]
-    [InlineData("Vector2")]
-    [InlineData("Rect")]
-    public void EachValueClassCarriesTheNumbersTheImporterConverts(string name)
-    {
-        JsonNode type = TypeNamed(name);
-        string[] converted = name == "Vector2" ? TiledProperties.VectorMembers : TiledProperties.RectMembers;
+    private static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "Fixtures", name);
 
-        Assert.Equal(["property"], type["useAs"]!.AsArray().Select(static use => use!.GetValue<string>()).ToArray());
-        JsonNode[] members = [.. type["members"]!.AsArray().Select(static member => member!)];
-        Assert.Equal(
-            converted.Order(StringComparer.Ordinal),
-            members.Select(static member => member["name"]!.GetValue<string>()).Order(StringComparer.Ordinal));
-        Assert.All(members, static member => Assert.Equal("float", member["type"]!.GetValue<string>()));
-    }
+    private static JsonArray Types() => JsonNode.Parse(File.ReadAllText(Fixture("capsule-property-types.json")))!.AsArray();
 
-    private static JsonNode TypeNamed(string name) => Assert.Single(
-        Types(TypesFile),
-        type => string.Equals(type!["name"]!.GetValue<string>(), name, StringComparison.Ordinal))!;
+    private static JsonNode TypeNamed(string name) => Assert.Single(Types(), type => Name(type!) == name)!;
 
-    private static JsonArray Types(string file) => JsonNode.Parse(TiledFixtures.Read(file))!.AsArray();
+    private static string[] UseAs(JsonNode type) => [.. type["useAs"]!.AsArray().Select(static use => use!.GetValue<string>())];
 
-    private static JsonObject Project() => JsonNode.Parse(TiledFixtures.Read(ProjectFile))!.AsObject();
+    private static JsonNode[] Members(JsonNode type) => [.. type["members"]!.AsArray().Select(static member => member!)];
 
-    // Compared as text rather than by reference equality, which JsonNode does not define.
-    private static string Canonical(JsonArray types) => types.ToJsonString();
+    private static string Name(JsonNode node) => node["name"]!.GetValue<string>();
 }

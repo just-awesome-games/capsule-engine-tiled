@@ -1,1 +1,0 @@
-{"entities":[{"type":"tile-map","tileSize":16,"width":4,"height":3,"texture":"Textures/tiles.png","columns":4,"tileTypes":[{"name":"empty"},{"name":"ground","cell":0},{"name":"wall","cell":1},{"name":"ledge","cell":2},{"name":"hazard","cell":3}],"tiles":[0,0,0,0,1,1,2,0,1,1,1,4]},{"id":3,"type":"player","x":16,"y":32},{"id":5,"type":"coin","x":40.5,"y":24}]}
