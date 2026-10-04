@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Text.Json.Nodes;
-using Capsule.Assets;
 using Capsule.Scenes.Documents;
 
 namespace JAG.Capsule.Tiled.Tests;
@@ -22,11 +21,11 @@ public sealed class BuildIntegrationTests
         return inflated.ReadToEnd();
     }
 
-    private static SceneDocument Load(string key) => SceneDocumentFile.Parse(Inflated(key));
-
+    // Assets/Scenes/UpperHalls/Room02.tmj ships at the key Capsule spells for it.
     [Theory]
     [InlineData("scenes/room")]
     [InlineData("scenes/halls/room")]
+    [InlineData("scenes/upper-halls/room-02")]
     public void TheBuildShipsAMapAsACanonicalSceneDocumentAtItsKey(string key)
     {
         string path = Shipped(key);
@@ -36,39 +35,6 @@ public sealed class BuildIntegrationTests
         Assert.True(JsonNode.DeepEquals(
             JsonNode.Parse(shipped),
             JsonNode.Parse(SceneDocumentFile.ToJson(SceneDocumentFile.Parse(shipped)))));
-    }
-
-    [Theory]
-    [InlineData("scenes/room", "Assets/Scenes/room.tmj")]
-    [InlineData("scenes/halls/room", "Assets/Scenes/halls/room.tmj")]
-    public void TheShippedDocumentKeepsItsMapAsItsProvenance(string key, string source)
-    {
-        SceneDocument document = Load(key);
-
-        Assert.Equal(MapImporter.ToolName, document.Source?.Tool);
-        Assert.EndsWith(source, document.Source?.Path, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void TheShippedDocumentNamesANestedAtlasByItsPathUnderAssets()
-    {
-        SceneDocument document = Load("scenes/halls/room");
-
-        Assert.Equal(
-            new TextureHandle("textures/terrain/tiles", ".png"),
-            document.Entries[0].TileMap!.Value.Grid.Texture);
-    }
-
-    // The module spells key and handle as the authoring tree does. Capsule normalizes both.
-    // Assets/Scenes/UpperHalls/Room02.tmj draws Assets/Textures/CaveWalls/CaveTiles.png.
-    [Fact]
-    public void TheBuildNormalizesAnAuthoredSpellingIntoTheShippedKeyAndHandle()
-    {
-        SceneDocument document = Load("scenes/upper-halls/room-02");
-
-        Assert.Equal(
-            new TextureHandle("textures/cave-walls/cave-tiles", ".png"),
-            document.Entries[0].TileMap!.Value.Grid.Texture);
     }
 
     // Assets/Scenes/dev/ holds a .capsuleignore. Its map ships in every build but a shipping one.

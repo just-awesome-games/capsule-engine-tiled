@@ -1,5 +1,3 @@
-using System.Numerics;
-using Capsule.Rendering;
 using Capsule.Scenes.Documents;
 
 namespace JAG.Capsule.Tiled.Tests;
@@ -43,29 +41,9 @@ public sealed class MapImportTests
 
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("tiles.tsj", tileset);
+        SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        Assert.Equal(8, TiledFixtures.TileMapOf(MapImporter.Import(workspace.Write("room.tmj", map), ".")).Grid.TileSize);
-    }
-
-    [Fact]
-    public void Import_ForwardSlashesTheSourcePathItStamps()
-    {
-        using TiledFixtures.Workspace workspace = TiledFixtures.CopyTiledSources("scenes/room");
-
-        SceneDocument document = MapImporter.Import(Path.Combine("scenes", "room.tmj"), ".");
-
-        Assert.Equal("scenes/room.tmj", document.Source?.Path);
-    }
-
-    [Fact]
-    public void Import_RefusesAnAbsoluteSourcePath()
-    {
-        using TiledFixtures.Workspace workspace = TiledFixtures.CopyTiledSources("room");
-
-        TiledImportException error = Assert.Throws<TiledImportException>(
-            () => MapImporter.Import(Path.GetFullPath("room.tmj"), "."));
-
-        Assert.Contains("must be relative", error.Message, StringComparison.Ordinal);
+        Assert.Equal(8, TiledFixtures.TileMapOf(document).GetProperty("tileSize").GetInt32());
     }
 
     [Theory]
@@ -80,7 +58,6 @@ public sealed class MapImportTests
     [InlineData("\"source\":\"tiles.tsj\"", "\"source\":\"tiles.tsx\"", "XML")]
     [InlineData("\"source\":\"tiles.tsj\"", "\"source\":\"missing.tsj\"", "is missing")]
     [InlineData("\"data\":[0, 0, 0, 0, 1, 1, 2, 0, 1, 1, 1, 4],", "\"data\":\"AAAA\",\"encoding\":\"base64\",", "CSV")]
-    [InlineData("\"infinite\":false", "\"backgroundcolor\":\"#80101820\",\"infinite\":false", "the map has 'Background Color' of '#80101820'")]
     [InlineData("\"version\":\"1.10\"", "\"version\":\"1.9\"", "re-save it with Tiled 1.10 or later")]
     public void Import_RejectsWhatItCannotRepresent(string from, string to, string expected)
     {
@@ -91,13 +68,14 @@ public sealed class MapImportTests
         Assert.Contains(expected, error.Message, StringComparison.Ordinal);
     }
 
-    // The Parallax Origin is the scroll centre negated, and a zero origin writes 0, not -0. A map with a parallax layer writes it
-    // even at 0, 0, and a map with neither writes none and leaves the camera its default.
+    // The Parallax Origin is the camera's scroll centre negated, and a zero origin writes 0, not -0. A map
+    // with a parallax layer writes it even at 0, 0, and a map with neither writes no camera and leaves the
+    // scene its default.
     [Theory]
     [InlineData(-128, -112, false, true)]
     [InlineData(0, 0, true, true)]
     [InlineData(0, 0, false, false)]
-    public void Import_CarriesTheParallaxOriginAsTheScrollCenter(int x, int y, bool parallaxLayer, bool written)
+    public void Import_CarriesTheParallaxOriginAsTheCamerasScrollCenter(int x, int y, bool parallaxLayer, bool written)
     {
         string map = TiledFixtures.Read("room.tmj");
         if (x != 0 || y != 0)
@@ -117,13 +95,15 @@ public sealed class MapImportTests
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        Assert.Equal(written ? new Vector2(-x, -y) : (Vector2?)null, document.Settings.ScrollCenter);
+        Assert.Equal(written ? $$$"""{"camera":{"scrollCenter":[{{{-x}}},{{{-y}}}]}}""" : null, document.Properties?.GetRawText());
         Assert.DoesNotContain("-0", SceneDocumentFile.ToJson(document), StringComparison.Ordinal);
     }
 
-    // Tiled writes an opaque Background Color as #rrggbb and a color property as #aarrggbb.
+    // Tiled writes an opaque Background Color as #rrggbb and a color property as #aarrggbb. The camera
+    // property names the camera's class, and every other map property but baseScene sets the member of
+    // its name, in Tiled's order.
     [Fact]
-    public void Import_CarriesTheMapsSceneSettingsIntoTheDocument()
+    public void Import_WritesTheMapsBackgroundCameraAndPropertiesAsSceneMembers()
     {
         string map = TiledFixtures.Mutate(
             TiledFixtures.Read("room.tmj"),
@@ -131,38 +111,11 @@ public sealed class MapImportTests
             "\"backgroundcolor\":\"#101820\","
                 + "\"properties\":["
                 + "{\"name\":\"ambient\",\"type\":\"color\",\"value\":\"#ff484c68\"},"
+                + "{\"name\":\"area\",\"type\":\"string\",\"value\":\"Upper Halls\"},"
                 + "{\"name\":\"baseScene\",\"type\":\"string\",\"value\":\"jag/rooms/room-scene\"},"
                 + "{\"name\":\"camera\",\"type\":\"string\",\"value\":\"jag/rooms/room-camera\"},"
-                + "{\"name\":\"sampling\",\"type\":\"string\",\"value\":\"point\"}],"
-                + "\"orientation\":\"orthogonal\",");
-
-        using TiledFixtures.Workspace workspace = new();
-        workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
-        SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
-
-        Assert.Equal(
-            new SceneSettings
-            {
-                BaseScene = "jag/rooms/room-scene",
-                Camera = "jag/rooms/room-camera",
-                ClearColor = new ColorRgba(16, 24, 32),
-                Ambient = new ColorRgba(72, 76, 104),
-                Sampling = TextureSampling.Point,
-            },
-            document.Settings);
-    }
-
-    // A scene setting stays top-level, and every other map property sets a member of the scene's class.
-    [Fact]
-    public void Import_CarriesEveryOtherMapPropertyIntoTheScenesProperties()
-    {
-        string map = TiledFixtures.Mutate(
-            TiledFixtures.Read("room.tmj"),
-            "\"orientation\":\"orthogonal\",",
-            "\"properties\":["
-                + "{\"name\":\"area\",\"type\":\"string\",\"value\":\"Upper Halls\"},"
-                + "{\"name\":\"baseScene\",\"type\":\"string\",\"value\":\"playable-scene\"},"
                 + "{\"name\":\"music\",\"type\":\"file\",\"value\":\"Audio/room.ogg\"},"
+                + "{\"name\":\"sampling\",\"type\":\"string\",\"value\":\"point\"},"
                 + "{\"name\":\"tint\",\"type\":\"color\",\"value\":\"#80101820\"}],"
                 + "\"orientation\":\"orthogonal\",");
 
@@ -170,18 +123,18 @@ public sealed class MapImportTests
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        Assert.Equal("playable-scene", document.Settings.BaseScene);
+        Assert.Equal("jag/rooms/room-scene", document.BaseScene);
         Assert.Equal(
-            """{"area":"Upper Halls","music":"Audio/room.ogg","tint":"#10182080"}""",
-            document.Settings.Properties?.GetRawText());
+            """{"clearColor":"#101820","camera":{"type":"jag/rooms/room-camera"},"ambient":"#484c68","area":"Upper Halls","music":"Audio/room.ogg","sampling":"point","tint":"#10182080"}""",
+            document.Properties?.GetRawText());
     }
 
     [Theory]
     [InlineData("baseScene", "int", "1", "the map has 'baseScene' of type int")]
     [InlineData("camera", "int", "1", "the map has 'camera' of type int")]
     [InlineData("baseScene", "string", "7", "the map has 'baseScene' of '7'")]
-    [InlineData("ambient", "string", "\"#ff484c68\"", "the map has 'ambient' of type string")]
-    public void Import_RejectsAMapPropertyOfTheWrongType(string name, string type, string value, string expected)
+    [InlineData("baseScene", "string", "\"Not A Key\"", "baseScene is 'Not A Key', which is not a key")]
+    public void Import_RejectsAMapPropertyItCannotWrite(string name, string type, string value, string expected)
     {
         TiledImportException error = TiledFixtures.ImportFailure(
             WithMapProperty(TiledFixtures.Read("room.tmj"), name, type, value),

@@ -1,23 +1,20 @@
-using System.Buffers;
-using System.Globalization;
-using System.Numerics;
-using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
-using Capsule.Rendering;
 using Capsule.Scenes.Documents;
 
 namespace JAG.Capsule.Tiled;
 
 internal static class MapImporter
 {
-    internal const string ToolName = "tiled";
-
     private const string BaseSceneProperty = "baseScene";
     private const string CameraProperty = "camera";
-    private const string AmbientProperty = "ambient";
-    private const string SamplingProperty = "sampling";
     private const string BackgroundColor = "Background Color";
+
+    // The scene members and root keys the importer writes itself.
+    private const string ClearColorKey = "clearColor";
+    private const string EntitiesKey = "entities";
+    private const string TypeKey = "type";
+    private const string ScrollCenterKey = "scrollCenter";
 
     private const string MapOwner = "the map";
 
@@ -35,32 +32,24 @@ internal static class MapImporter
     {
         read ??= File.ReadAllBytes;
         exists ??= File.Exists;
-        byte[] mapBytes = read(mapPath);
-        TiledMap map = Deserialize(mapBytes, MapOwner, TiledJsonContext.Default.TiledMap);
+        TiledMap map = Deserialize(read(mapPath), MapOwner, TiledJsonContext.Default.TiledMap);
         RequireSupportedFormat(map.Version, MapOwner);
         RequireSupportedMap(map, tileSize);
 
-        using IncrementalHash sourceHash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        sourceHash.AppendData(mapBytes);
         string fullAssetRoot = Path.GetFullPath(assetRoot);
-        ResolvedTileset[] tilesets = TilesetImporter.Load(map, mapPath, fullAssetRoot, sourceHash, read, exists);
-
-        // Tiled mints ids for objects only. Tile layers continue from its next object id, and the
-        // document keeps one id space.
-        int nextEntityId = map.NextObjectId;
+        ResolvedTileset[] tilesets = TilesetImporter.Load(map, mapPath, fullAssetRoot, read, exists);
         string mapDirectory = Path.GetDirectoryName(Path.GetFullPath(mapPath))!;
-        List<SceneDocumentEntry> entries = LayerImporter.Read(map, tilesets, mapDirectory, fullAssetRoot, ref nextEntityId);
-
-        SceneDocumentSource source = new(
-            ToolName,
-            mapPath.Replace('\\', '/'),
-            Convert.ToHexStringLower(sourceHash.GetHashAndReset()));
+        List<SceneDocumentEntry> entries = LayerImporter.Read(map, tilesets, mapDirectory, fullAssetRoot);
+        TiledProperties properties = new(map.Properties, MapOwner);
 
         try
         {
-            return new SceneDocument(entries, nextEntityId, source, SettingsOf(map, mapDirectory, fullAssetRoot));
+            return new SceneDocument(
+                entries,
+                SceneMembers(map, properties, mapDirectory, fullAssetRoot),
+                properties.String(BaseSceneProperty));
         }
-        catch (Exception ex) when (ex is SceneDocumentFormatException or ArgumentException)
+        catch (ArgumentException ex)
         {
             throw new TiledImportException($"the map imports to an invalid scene: {ex.Message}", ex);
         }
@@ -132,55 +121,46 @@ internal static class MapImporter
         }
     }
 
-    // The document authors no size. A map's size is its tiles.
-    private static SceneSettings SettingsOf(TiledMap map, string mapDirectory, string assetRoot)
-    {
-        TiledProperties properties = new(map.Properties, MapOwner);
-
-        return new SceneSettings
+    // The scene's members. The document authors no size, because a map's size is its tiles. Every map
+    // property but baseScene and camera sets the member of its name.
+    private static JsonElement? SceneMembers(TiledMap map, TiledProperties properties, string mapDirectory, string assetRoot) =>
+        TiledProperties.ObjectOf(writer =>
         {
-            BaseScene = properties.String(BaseSceneProperty),
-            Camera = properties.String(CameraProperty),
-            ClearColor = map.BackgroundColor is { } background ? properties.OpaqueColor(BackgroundColor, background) : null,
-            Ambient = properties.Color(AmbientProperty),
-            ScrollCenter = ScrollCenterOf(map),
-
-            // A typed setting cannot carry a misspelling to the engine's check. The two spellings are
-            // the document format's.
-            Sampling = properties.String(SamplingProperty) switch
+            if (map.BackgroundColor is { } background)
             {
-                null => null,
-                "linear" => TextureSampling.Linear,
-                "point" => TextureSampling.Point,
-                { } other => throw properties.Invalid(SamplingProperty, other, "linear or point"),
-            },
-            Properties = SceneProperties(properties, mapDirectory, assetRoot),
-        };
-    }
+                writer.WriteString(ClearColorKey, properties.ColorText(BackgroundColor, background));
+            }
 
-    // Every map property that is not a scene setting sets a member of the class composing the scene. A map
-    // with none writes no properties object.
-    private static JsonElement? SceneProperties(TiledProperties properties, string mapDirectory, string assetRoot)
-    {
-        ArrayBufferWriter<byte> buffer = new();
-        using (Utf8JsonWriter writer = new(buffer))
-        {
-            writer.WriteStartObject();
-            properties.WriteValues(writer, [BaseSceneProperty, CameraProperty, AmbientProperty, SamplingProperty], mapDirectory, assetRoot);
-            writer.WriteEndObject();
-        }
+            string? camera = properties.String(CameraProperty);
+            (double X, double Y)? scrollCenter = ScrollCenterOf(map);
+            if (camera is not null || scrollCenter is not null)
+            {
+                writer.WriteStartObject(CameraProperty);
+                if (camera is not null)
+                {
+                    writer.WriteString(TypeKey, camera);
+                }
 
-        using JsonDocument document = JsonDocument.Parse(buffer.WrittenMemory);
+                if (scrollCenter is (double x, double y))
+                {
+                    writer.WriteStartArray(ScrollCenterKey);
+                    writer.WriteNumberValue(x);
+                    writer.WriteNumberValue(y);
+                    writer.WriteEndArray();
+                }
 
-        return document.RootElement.GetPropertyCount() == 0 ? null : document.RootElement.Clone();
-    }
+                writer.WriteEndObject();
+            }
+
+            properties.WriteValues(writer, [BaseSceneProperty, CameraProperty], [ClearColorKey, EntitiesKey], mapDirectory, assetRoot);
+        });
 
     // Tiled's renderer adds the Parallax Origin to the view centre (mapscene.cpp), so an origin O
     // previews as a scroll centre of -O. A map with a parallax layer writes even 0, 0, because the
     // camera's own default would draw those layers away from where Tiled previews them. Subtracting
     // from zero keeps a zero origin from writing -0.
-    private static Vector2? ScrollCenterOf(TiledMap map) =>
+    private static (double X, double Y)? ScrollCenterOf(TiledMap map) =>
         map.ParallaxOriginX != 0 || map.ParallaxOriginY != 0 || map.Layers.Any(layer => layer.ParallaxX != 1 || layer.ParallaxY != 1)
-            ? new Vector2((float)(0 - map.ParallaxOriginX), (float)(0 - map.ParallaxOriginY))
+            ? (0 - map.ParallaxOriginX, 0 - map.ParallaxOriginY)
             : null;
 }

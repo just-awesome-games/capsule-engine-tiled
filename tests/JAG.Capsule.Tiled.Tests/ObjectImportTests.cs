@@ -9,7 +9,7 @@ public sealed class ObjectImportTests
     [Fact]
     public void Import_CarriesAnObjectsRotation()
     {
-        EntityPlacement placed = Imported(Crate("\"rotation\":22.5,\"width\":0,\"height\":0"));
+        SceneDocumentEntry placed = Imported(Crate("\"rotation\":22.5,\"width\":0,\"height\":0"));
 
         Assert.Equal(22.5f, placed.RotationDegrees);
     }
@@ -24,18 +24,21 @@ public sealed class ObjectImportTests
     [InlineData("\"polygon\":[{\"x\":0,\"y\":0},{\"x\":8,\"y\":0},{\"x\":0,\"y\":8}],\"width\":0,\"height\":0", "{\"path\":[[0,0],[8,0],[0,8],[0,0]]}")]
     public void Import_WritesAnObjectsShapeAsItsSizeOrPath(string shape, string? expected)
     {
-        EntityPlacement placed = Imported(Crate(shape));
+        SceneDocumentEntry placed = Imported(Crate(shape));
 
         Assert.Equal(expected, placed.Properties?.GetRawText());
     }
 
-    [Fact]
-    public void Import_RefusesASizePropertyBesideAnExtent()
+    // A custom property named after a key the importer writes would write that key twice.
+    [Theory]
+    [InlineData("\"width\":32,\"height\":8,\"properties\":[{\"name\":\"size\",\"propertytype\":\"Vector2\",\"type\":\"class\",\"value\":{\"x\":1,\"y\":2}}]", "size")]
+    [InlineData("\"polyline\":[{\"x\":0,\"y\":0},{\"x\":8,\"y\":0}],\"width\":0,\"height\":0,\"properties\":[{\"name\":\"path\",\"type\":\"string\",\"value\":\"\"}]", "path")]
+    [InlineData("\"width\":0,\"height\":0,\"properties\":[{\"name\":\"x\",\"type\":\"float\",\"value\":1}]", "x")]
+    public void Import_RefusesAPropertyNamedAfterAKeyItWrites(string members, string name)
     {
-        TiledImportException error = Failure(Crate(
-            "\"width\":32,\"height\":8,\"properties\":[{\"name\":\"size\",\"propertytype\":\"Vec\",\"type\":\"class\",\"value\":{\"x\":1,\"y\":2}}]"));
+        TiledImportException error = Failure(Crate(members));
 
-        Assert.Contains("object 4 on layer 'things' has both an extent and a 'size' property", error.Message, StringComparison.Ordinal);
+        Assert.Contains($"object 4 on layer 'things' has a '{name}' property, but Capsule writes '{name}' itself", error.Message, StringComparison.Ordinal);
     }
 
     // Tiled writes a colour alpha first. An unset colour is an empty string, and an unset object
@@ -55,7 +58,7 @@ public sealed class ObjectImportTests
     [InlineData("{\"name\":\"music\",\"type\":\"file\",\"value\":\"\"}", null)]
     public void Import_WritesACustomPropertyInTheDocumentsValueForm(string property, string? expected)
     {
-        EntityPlacement placed = Imported(Crate($"\"width\":0,\"height\":0,\"properties\":[{property}]"));
+        SceneDocumentEntry placed = Imported(Crate($"\"width\":0,\"height\":0,\"properties\":[{property}]"));
 
         Assert.Equal(expected, placed.Properties?.GetRawText());
     }
@@ -63,7 +66,7 @@ public sealed class ObjectImportTests
     [Theory]
     [InlineData(
         "{\"name\":\"loot\",\"propertytype\":\"Loot\",\"type\":\"class\",\"value\":{\"count\":2,\"x\":1}}",
-        "has 'loot' of class 'Loot' with members count, x; Capsule converts only a class whose members are the numbers x and y, or the numbers left, top, right and bottom. Use one property per member instead.")]
+        "has 'loot' of class 'Loot' with members count, x; Capsule converts only a class whose members are the numbers x and y, or the numbers left, top, right and bottom, and imports no other class value.")]
     [InlineData(
         "{\"name\":\"drift\",\"propertytype\":\"Vec\",\"type\":\"class\",\"value\":{\"y\":4}}",
         "has 'drift' of class 'Vec' setting only y; Tiled saves only the members a value sets. Set both x and y even where one is 0")]
@@ -96,7 +99,6 @@ public sealed class ObjectImportTests
     // not draw it.
     [Theory]
     [InlineData("\"polygon\":[{\"x\":0,\"y\":0},{\"x\":8,\"y\":0},{\"x\":0,\"y\":8}],\"rotation\":90,\"width\":0,\"height\":0", "is a polygon turned 90 degrees")]
-    [InlineData("\"polyline\":[{\"x\":0,\"y\":0},{\"x\":8,\"y\":0}],\"width\":0,\"height\":0,\"properties\":[{\"name\":\"path\",\"type\":\"string\",\"value\":\"\"}]", "has both points and a 'path' property")]
     [InlineData("\"text\":{\"text\":\"hi\",\"wrap\":true},\"width\":16,\"height\":8", "is a text object")]
     [InlineData("\"width\":16,\"height\":0", "is 16x0, an extent with no area")]
     public void Import_RefusesAnObjectItCannotPlace(string shape, string expected)
@@ -133,13 +135,13 @@ public sealed class ObjectImportTests
                         }],
         """);
 
-    private static EntityPlacement Imported(string map)
+    private static SceneDocumentEntry Imported(string map)
     {
         using TiledFixtures.Workspace workspace = new();
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        return document.Entries.ToArray()[^1].Entity!.Value;
+        return document.Entries[^1];
     }
 
     private static TiledImportException Failure(string map) => TiledFixtures.ImportFailure(map, TiledFixtures.Read("tiles.tsj"));

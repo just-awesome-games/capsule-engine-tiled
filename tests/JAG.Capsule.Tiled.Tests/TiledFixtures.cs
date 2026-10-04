@@ -1,6 +1,6 @@
 using System.Reflection;
+using System.Text.Json;
 using Capsule.Scenes.Documents;
-using Capsule.Tiles;
 
 namespace JAG.Capsule.Tiled.Tests;
 
@@ -58,11 +58,16 @@ internal static class TiledFixtures
         return Assert.Throws<TiledImportException>(() => MapImporter.Import(mapPath, "."));
     }
 
-    internal static TileMapPlacement TileMapOf(SceneDocument document, int index = 0) =>
-        document.Entries[index].TileMap!.Value;
+    // The members of the document's tile map entry at index.
+    internal static JsonElement TileMapOf(SceneDocument document, int index = 0)
+    {
+        Assert.Equal("tile-map", document.Entries[index].Type);
 
-    internal static ReadOnlySpan<TileType> Palette(SceneDocument document) =>
-        document.Entries[0].TileMap!.Value.Grid.TileTypes;
+        return document.Entries[index].Properties!.Value;
+    }
+
+    internal static JsonElement[] Palette(SceneDocument document, int index = 0) =>
+        [.. TileMapOf(document, index).GetProperty("tileTypes").EnumerateArray()];
 
     internal sealed class Workspace : IDisposable
     {

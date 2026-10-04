@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Globalization;
 using System.Numerics;
 using System.Text.Json;
@@ -14,6 +13,11 @@ internal static class LayerImporter
     private const string SizeProperty = "size";
     private const string PathProperty = "path";
 
+    private const string TileMapType = "tile-map";
+
+    // The keys an entry reserves, which a custom property of the same name would write twice.
+    private static readonly string[] SpawnKeys = ["id", "type", "x", "y", "rotation", "scale", "scrollFactor"];
+
     // Tiled packs flip and rotation into the top nibble of a gid. It applies the anti-diagonal flip
     // first, then the horizontal, then the vertical, the order TileTransform applies Transpose, FlipX
     // and FlipY.
@@ -28,8 +32,7 @@ internal static class LayerImporter
         TiledMap map,
         ResolvedTileset[] tilesets,
         string mapDirectory,
-        string assetRoot,
-        ref int nextEntityId)
+        string assetRoot)
     {
         List<SceneDocumentEntry> entries = [];
 
@@ -38,15 +41,11 @@ internal static class LayerImporter
             switch (layer.Type)
             {
                 case "tilelayer":
-                    entries.Add(TileLayer(layer, map, tilesets, nextEntityId++));
+                    entries.Add(TileLayer(layer, map, tilesets));
                     break;
 
                 case "objectgroup":
-                    foreach (EntityPlacement placed in ObjectLayer(layer, tilesets, new FileRoots(mapDirectory, assetRoot)))
-                    {
-                        entries.Add(placed);
-                    }
-
+                    entries.AddRange(ObjectLayer(layer, tilesets, new FileRoots(mapDirectory, assetRoot)));
                     break;
 
                 default:
@@ -58,33 +57,18 @@ internal static class LayerImporter
         return entries;
     }
 
-    private static TileMapPlacement TileLayer(TiledLayer layer, TiledMap map, ResolvedTileset[] tilesets, int id)
+    private static SceneDocumentEntry TileLayer(TiledLayer layer, TiledMap map, ResolvedTileset[] tilesets)
     {
-        string owner = $"tile layer '{layer.Name}'";
-        TileGrid grid = ReadGrid(layer, map, tilesets);
-        Vector2? scrollFactor = ScrollFactorOf(layer);
-        TiledProperties properties = new(layer.Properties, owner);
-        bool collider = properties.Bool(ColliderProperty);
+        TiledProperties properties = new(layer.Properties, $"tile layer '{layer.Name}'");
 
-        // A layer's palette is its tileset's every Class, painted or not, so one layered tile anywhere in
-        // the tileset lets the layer collide.
-        if (collider && CollidingTile(grid) is null)
-        {
-            throw new TiledImportException(
-                $"{owner} sets '{ColliderProperty}' but paints from a tileset with no colliding tile. Give a tile in the tileset a '{TilesetImporter.LayerProperty}' string property, or remove '{ColliderProperty}' from the layer.");
-        }
-
-        // The engine refuses a scrolled grid that collides.
-        if (collider && scrollFactor is not null)
-        {
-            throw new TiledImportException(
-                $"{owner} has a Parallax Factor and sets '{ColliderProperty}'; a layer that collides cannot scroll apart from the camera. Remove '{ColliderProperty}' from the layer, or set its Parallax Factor to 1, 1.");
-        }
-
-        return new TileMapPlacement(id, grid, properties.Int(ZIndexProperty), scrollFactor, collider);
+        return new SceneDocumentEntry(
+            TileMapType,
+            ZIndex: properties.Int(ZIndexProperty),
+            ScrollFactor: ScrollFactorOf(layer),
+            Properties: TileMapMembers(layer, map, tilesets, properties.Bool(ColliderProperty)));
     }
 
-    private static EntityPlacement[] ObjectLayer(TiledLayer layer, ResolvedTileset[] tilesets, FileRoots files)
+    private static SceneDocumentEntry[] ObjectLayer(TiledLayer layer, ResolvedTileset[] tilesets, FileRoots files)
     {
         TiledProperties properties = new(layer.Properties, $"object layer '{layer.Name}'");
         int? layerZIndex = properties.Int(ZIndexProperty);
@@ -102,10 +86,11 @@ internal static class LayerImporter
     }
 
     // A tile object's size over its tileset's tile size is its scale. A rectangle's or ellipse's
-    // extent is its size property, a polyline's or polygon's points are its path property, and a
+    // extent is its size member, a polyline's or polygon's points are its path member, and a
     // point or zero-size marker imports its position alone. Tiled turns an object about its own
-    // position, which is the placement's.
-    private static EntityPlacement Placement(
+    // position, which is the entry's. Every object keeps its Tiled id, which an object property names
+    // it by.
+    private static SceneDocumentEntry Placement(
         TiledObject placed,
         TiledLayer layer,
         ResolvedTileset[] tilesets,
@@ -130,28 +115,18 @@ internal static class LayerImporter
         if (placed.Gid is not { } gid)
         {
             bool sized = placed.Width > 0 && placed.Height > 0;
-            if (sized && properties.Has(SizeProperty))
-            {
-                throw new TiledImportException(
-                    $"{owner} has both an extent and a '{SizeProperty}' property; Capsule imports the extent as '{SizeProperty}'. Remove the property, or click-place the object with no extent.");
-            }
 
-            TiledPoint[]? path = PathOf(placed, owner);
-            if (path is not null && properties.Has(PathProperty))
-            {
-                throw new TiledImportException(
-                    $"{owner} has both points and a '{PathProperty}' property; Capsule imports the points as '{PathProperty}'. Remove the property.");
-            }
-
-            return new EntityPlacement(
-                placed.Id,
+            return new SceneDocumentEntry(
                 placed.Type,
                 (float)placed.X,
                 (float)placed.Y,
                 ZIndex: zIndex,
                 ScrollFactor: scrollFactor,
                 RotationDegrees: rotation,
-                Properties: EntityProperties(properties, files, sized ? (placed.Width, placed.Height) : null, path));
+                Properties: EntityMembers(properties, files, sized ? (placed.Width, placed.Height) : null, PathOf(placed, owner)))
+            {
+                Id = placed.Id,
+            };
         }
 
         if ((gid & OrientationFlags) != 0)
@@ -163,8 +138,7 @@ internal static class LayerImporter
         ResolvedTileset drawn = OwnerOf(gid, tilesets)
             ?? throw new TiledImportException($"{owner} has tile gid {gid}, which belongs to no tileset in the map.");
 
-        return new EntityPlacement(
-            placed.Id,
+        return new SceneDocumentEntry(
             placed.Type,
             (float)placed.X,
             (float)placed.Y,
@@ -173,7 +147,10 @@ internal static class LayerImporter
             zIndex,
             scrollFactor,
             rotation,
-            EntityProperties(properties, files, null, null));
+            EntityMembers(properties, files, null, null))
+        {
+            Id = placed.Id,
+        };
     }
 
     // A template instance carries only what it overrides, its Class included, and the importer
@@ -219,18 +196,14 @@ internal static class LayerImporter
         return path;
     }
 
-    // The extent or path comes first, then the custom properties in Tiled's order. A placement with
-    // none of them carries no properties object.
-    private static JsonElement? EntityProperties(
+    // The extent or path comes first, then the custom properties in Tiled's order.
+    private static JsonElement? EntityMembers(
         TiledProperties properties,
         FileRoots files,
         (double Width, double Height)? size,
-        TiledPoint[]? path)
-    {
-        ArrayBufferWriter<byte> buffer = new();
-        using (Utf8JsonWriter writer = new(buffer))
+        TiledPoint[]? path) =>
+        TiledProperties.ObjectOf(writer =>
         {
-            writer.WriteStartObject();
             if (size is (double width, double height))
             {
                 writer.WriteStartArray(SizeProperty);
@@ -253,27 +226,9 @@ internal static class LayerImporter
                 writer.WriteEndArray();
             }
 
-            properties.WriteValues(writer, [ZIndexProperty], files.MapDirectory, files.AssetRoot);
-            writer.WriteEndObject();
-        }
-
-        using JsonDocument document = JsonDocument.Parse(buffer.WrittenMemory);
-
-        return document.RootElement.GetPropertyCount() == 0 ? null : document.RootElement.Clone();
-    }
-
-    private static TileType? CollidingTile(TileGrid grid)
-    {
-        foreach (TileType tileType in grid.TileTypes)
-        {
-            if (tileType.Layer is not null)
-            {
-                return tileType;
-            }
-        }
-
-        return null;
-    }
+            string[] written = [.. SpawnKeys, .. size is null ? [] : new[] { SizeProperty }, .. path is null ? [] : new[] { PathProperty }];
+            properties.WriteValues(writer, [ZIndexProperty], written, files.MapDirectory, files.AssetRoot);
+        });
 
     // A layer's Parallax Factor. Tiled's default of 1, 1 is absent, as the document writes it.
     private static Vector2? ScrollFactorOf(TiledLayer layer) =>
@@ -281,14 +236,14 @@ internal static class LayerImporter
             ? null
             : new Vector2((float)layer.ParallaxX, (float)layer.ParallaxY);
 
-    // A grid cuts its cells from one texture, and a layer paints from one tileset. A layer that
-    // paints nothing keeps the empty palette and names no texture.
-    private static TileGrid ReadGrid(TiledLayer layer, TiledMap map, ResolvedTileset[] tilesets)
+    // The tile map's members. A grid cuts its cells from one texture, and a layer paints from one
+    // tileset. A layer that paints nothing keeps the empty palette and names no texture.
+    private static JsonElement? TileMapMembers(TiledLayer layer, TiledMap map, ResolvedTileset[] tilesets, bool collider)
     {
         RequireReadableTileData(layer, map);
 
         int[] tiles = new int[(long)map.Width * map.Height];
-        TileTransform[]? transforms = null;
+        int[]? transforms = null;
         ResolvedTileset? painted = null;
         int index = 0;
 
@@ -312,8 +267,8 @@ internal static class LayerImporter
 
             if ((gid & OrientationFlags) != 0)
             {
-                transforms ??= new TileTransform[tiles.Length];
-                transforms[index] = TransformOf(gid);
+                transforms ??= new int[tiles.Length];
+                transforms[index] = (int)TransformOf(gid);
                 gid &= ~OrientationFlags;
             }
 
@@ -344,16 +299,46 @@ internal static class LayerImporter
             throw TileCountMismatch(layer, map, index, "only");
         }
 
-        try
+        return TiledProperties.ObjectOf(writer =>
         {
-            return painted is null
-                ? new TileGrid(map.TileWidth, map.Width, map.Height, [TileGrid.EmptyTile], tiles)
-                : new TileGrid(map.TileWidth, map.Width, map.Height, painted.Palette, tiles, painted.Texture, painted.Columns, transforms, painted.Authored);
-        }
-        catch (ArgumentException ex)
+            writer.WriteNumber("tileSize", map.TileWidth);
+            writer.WriteNumber("width", map.Width);
+            writer.WriteNumber("height", map.Height);
+            if (painted is not null)
+            {
+                writer.WriteString("texture", painted.Texture);
+                writer.WriteNumber("columns", painted.Columns);
+            }
+
+            writer.WriteStartArray("tileTypes");
+            foreach (JsonElement tileType in painted?.Palette ?? [TilesetImporter.EmptyTileType])
+            {
+                tileType.WriteTo(writer);
+            }
+
+            writer.WriteEndArray();
+            WriteInts(writer, "tiles", tiles);
+            if (transforms is not null)
+            {
+                WriteInts(writer, "transforms", transforms);
+            }
+
+            if (collider)
+            {
+                writer.WriteBoolean(ColliderProperty, true);
+            }
+        });
+    }
+
+    private static void WriteInts(Utf8JsonWriter writer, string name, int[] values)
+    {
+        writer.WriteStartArray(name);
+        foreach (int value in values)
         {
-            throw new TiledImportException($"tile layer '{layer.Name}' imports to an invalid tile map: {ex.Message}", ex);
+            writer.WriteNumberValue(value);
         }
+
+        writer.WriteEndArray();
     }
 
     private static TileTransform TransformOf(uint gid)

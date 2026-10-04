@@ -13,7 +13,6 @@ internal sealed class TiledMap
     public int Height { get; set; }
     public int TileWidth { get; set; }
     public int TileHeight { get; set; }
-    public int NextObjectId { get; set; }
 
     // "#rrggbb" or "#aarrggbb", and absent when the map sets no Background Color.
     public string? BackgroundColor { get; set; }

@@ -38,36 +38,32 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 
 | Tiled | Scene document |
 | --- | --- |
-| Map Background Color | `clearColor`, opaque |
-| Map `ambient` color property | `ambient`, opaque |
-| Map `sampling` string property, `linear` or `point` | `sampling` |
+| Map Background Color | scene `clearColor` |
 | Map `baseScene` string property | `baseScene`, the abstract `Scene` subclass key |
-| Map `camera` string property | `camera`, the `Camera` subclass key |
-| Map custom property other than `ambient`, `sampling`, `baseScene` and `camera` | scene `properties`, by name, in the value forms below |
-| Map Parallax Origin | `scrollCenter`, negated, when the origin is not 0, 0 or any layer has a Parallax Factor other than 1, 1 |
-| Tile layer | a tile map entry drawn from one tileset |
+| Map `camera` string property | `camera` object `type`, the `Camera` subclass key |
+| Map Parallax Origin | `camera` object `scrollCenter`, negated, when the origin is not 0, 0 or any layer has a Parallax Factor other than 1, 1 |
+| Map custom property other than `baseScene` and `camera` | the scene member of its name, such as `ambient` or `sampling`, in the value forms below |
+| Tile layer | a `tile-map` entry drawn from one tileset, with its `tileSize`, `width`, `height`, `tileTypes` and `tiles` |
 | Tile layer tile flipped horizontally, vertically or diagonally | tile map `transforms`, which turns its drawing and collision shape alike |
 | Tileset image path under `Assets/` | tile map `texture`, for example `Textures/Terrain/Cave.png` |
 | Tileset columns | tile map `columns` |
 | Tile Class and local tile id | tile type `name` and `cell` |
-| Tile `type` string property | tile type `type`, the `TileType` subclass key |
-| Tile `layer` string property | tile type `layer` |
-| Tile `oneWay` and `solidSides` bool properties | tile type `oneWay` and `solidSides` |
-| Tile custom property other than `type`, `layer`, `oneWay` and `solidSides` | tile type `properties`, by name, in the value forms below |
-| Tile Collision Editor holding one unrotated convex polygon of 3 or 4 points, or one rectangle, on a tile with a `layer` | tile type `shape`; an empty editor, or a rectangle covering the tile, is the whole tile |
-| Object Class and position | entry `type`, `x` and `y` |
+| Tile `layer` string property | tile type `layer`, trimmed of surrounding whitespace |
+| Tile custom property other than `layer` | the tile type member of its name, in the value forms below; `type` names the `TileType` subclass, and `oneWay` and `solidSides` set those members |
+| Tile Collision Editor holding one unrotated polygon or rectangle, on a tile with a `layer` | tile type `shape`, `[[x, y], ...]` in pixels from the tile's top-left corner; an empty editor, or a rectangle covering the tile, is the whole tile |
+| Object ID, Class and position | entry `id`, `type`, `x` and `y` |
 | Object Rotation | entry `rotation` |
 | Tile object size over its tile size | entry `scale` |
-| Rectangle or ellipse object Width and Height, when not 0 | `size` property, `[w, h]` in pixels |
-| Polyline or polygon object points | `path` property, `[[x, y], ...]` in pixels from the object's position; a polygon repeats its first point at the end |
-| Object custom property other than `zIndex` | entry `properties`, by name, in the value forms below |
+| Rectangle or ellipse object Width and Height, when not 0 | entry `size`, `[w, h]` in pixels |
+| Polyline or polygon object points | entry `path`, `[[x, y], ...]` in pixels from the object's position; a polygon repeats its first point at the end |
+| Object custom property other than `zIndex` | the entry member of its name, in the value forms below |
 | `zIndex` int property on a tile layer, object layer or object | entry `zIndex` |
 | `collider` bool property on a tile layer | tile map `collider`; true gives the map a collider, and a layer without it only draws |
 | Tile layer or object layer Parallax Factor other than 1, 1 | entry `scrollFactor` on the tile map or on each of the layer's objects |
 
 An object's `zIndex` overrides its layer's. A placement with no `zIndex` keeps its class's band.
 
-| Map, object or tile property | Scene, entry or tile type property |
+| Map, object or tile property | Scene, entry or tile type member |
 | --- | --- |
 | string, int, float or bool | the same value |
 | file | the asset's key, its path under `Assets/` (`"Textures/Hazard.png"`); a `.tmj`, `.tmx` or `.scene.json` file is the scene's key, its path with no extension; an unset file is left out |
@@ -77,7 +73,7 @@ An object's `zIndex` overrides its layer's. A placement with no `zIndex` keeps i
 | class whose members are `x` and `y`, both set | `[x, y]` |
 | class whose members are `left`, `top`, `right` and `bottom`, all set | `[left, top, right, bottom]` |
 
-Capsule's build checks every scene property against the scene class's `[Authorable]` members, every entry property against the entity class's, and every tile type property against the tile type class's. A rectangle or ellipse with a width and height already writes `size`, so a custom property of its own named `size` fails the import. A polyline or polygon already writes `path`, so a custom property named `path` on one fails it the same way. A file outside `Assets/`, an enum stored as a number and any other class value fail it too. Tiled has no list property, so an array member other than `path` is authored by hand in a scene document.
+Capsule checks each member against the `[Authorable]` members of the scene's, the entity's or the tile type's class when the scene loads, and so does a game test that runs `CapsuleScenes.Registry.ComposeAll()`. That check also holds a tile type's `shape` to a convex polygon of 3 or 4 points inside its tile. A custom property named after a key the importer writes itself fails the import. Those keys are an object's `id`, `type`, `x`, `y`, `rotation`, `scale` and `scrollFactor`, a rectangle's or ellipse's `size` and a polyline's or polygon's `path`, a tile's `name`, `cell` and `shape`, and the map's `clearColor` and `entities`. A file outside `Assets/`, an enum stored as a number and any other class value fail the import too. Tiled has no list property, so an array member other than `path` is authored by hand in a scene document.
 
 A tile layer collides only when it sets `collider` to true. Its tileset must then hold a tile with a `layer`, and the layer keeps a Parallax Factor of 1, 1. One tileset paints the solid layer and its decorative or parallax copies, which set no `collider`. An object layer refuses `collider` set to true, because an object collides as its class does. A scene previews in Tiled exactly as it plays when the Tiled view is centred where the game camera is. Tiled's renderer adds the Parallax Origin to the view centre. Set it to minus half the game's viewport, for example -128, -112 for 256x224, to line the layers up at the first screen.
 

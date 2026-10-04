@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text.Json;
 using Capsule.Rendering;
 
@@ -47,37 +48,55 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
         { } value => throw Invalid(name, value.ToString(), IntType),
     };
 
-    internal ColorRgba? Color(string name) => Value(name, ColorType) switch
+    // A colour in the scene document's value form, "#rrggbb", or "#rrggbbaa" when not opaque.
+    internal string ColorText(string name, string text)
     {
-        null => null,
-        { ValueKind: JsonValueKind.String } value => OpaqueColor(name, value.GetString()!),
-        { } value => throw Invalid(name, value.ToString(), ColorType),
-    };
+        ColorRgba color = ParseColor(name, text, ColorType);
 
-    // A scene's colours are opaque.
-    internal ColorRgba OpaqueColor(string name, string text)
-    {
-        const string expected = "opaque colour";
-        ColorRgba parsed = ParseColor(name, text, expected);
-
-        return parsed.A == byte.MaxValue ? parsed : throw Invalid(name, text, expected);
+        return color.A == byte.MaxValue
+            ? $"#{color.R:x2}{color.G:x2}{color.B:x2}"
+            : $"#{color.R:x2}{color.G:x2}{color.B:x2}{color.A:x2}";
     }
 
-    internal bool Has(string name) =>
-        (properties ?? []).Any(property => string.Equals(property.Name, name, StringComparison.Ordinal));
+    // The members write adds to one JSON object, or null when it adds none.
+    internal static JsonElement? ObjectOf(Action<Utf8JsonWriter> write)
+    {
+        ArrayBufferWriter<byte> buffer = new();
+        using (Utf8JsonWriter writer = new(buffer))
+        {
+            writer.WriteStartObject();
+            write(writer);
+            writer.WriteEndObject();
+        }
 
-    // Every property but the excluded ones, in the scene document's value forms, as members of the
-    // object the writer has open. The engine's build checks each against the authorable members of the
-    // entity's, the scene's or the tile type's class. Tiled writes a file relative to the directory of
-    // the map or tileset holding the property.
-    internal void WriteValues(Utf8JsonWriter writer, ReadOnlySpan<string> excluded, string directory, string assetRoot)
+        using JsonDocument document = JsonDocument.Parse(buffer.WrittenMemory);
+
+        return document.RootElement.GetPropertyCount() == 0 ? null : document.RootElement.Clone();
+    }
+
+    // Every property but the ones read elsewhere, in the scene document's value forms, as members of the
+    // object the writer has open. Each sets the authorable member of that name, which the engine checks
+    // when the scene loads. A property named after a key the importer writes itself would write that key
+    // twice. Tiled writes a file relative to the directory of the map or tileset holding the property.
+    internal void WriteValues(
+        Utf8JsonWriter writer,
+        ReadOnlySpan<string> read,
+        ReadOnlySpan<string> written,
+        string directory,
+        string assetRoot)
     {
         foreach (TiledProperty property in properties ?? [])
         {
             string name = property.Name ?? string.Empty;
-            if (excluded.Contains(name))
+            if (read.Contains(name))
             {
                 continue;
+            }
+
+            if (written.Contains(name))
+            {
+                throw new TiledImportException(
+                    $"{owner} has a '{name}' property, but Capsule writes '{name}' itself. Rename or remove the property.");
             }
 
             switch (property.Type ?? StringType)
@@ -101,10 +120,7 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
 
                 // An unset colour is an empty string, which the document leaves to the member's initializer.
                 case ColorType when property.Value.ValueKind == JsonValueKind.String && property.Value.GetString() is { Length: > 0 } text:
-                    ColorRgba color = ParseColor(name, text, ColorType);
-                    writer.WriteString(name, color.A == byte.MaxValue
-                        ? $"#{color.R:x2}{color.G:x2}{color.B:x2}"
-                        : $"#{color.R:x2}{color.G:x2}{color.B:x2}{color.A:x2}");
+                    writer.WriteString(name, ColorText(name, text));
                     break;
 
                 case ColorType:
@@ -162,7 +178,7 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
         if (members.Any(member => !shape.Contains(member.Name) || member.Value.ValueKind != JsonValueKind.Number))
         {
             throw new TiledImportException(
-                $"{owner} has '{name}' of class '{className}' with members {string.Join(", ", members.Select(static member => member.Name))}; Capsule converts only a class whose members are the numbers x and y, or the numbers left, top, right and bottom. Use one property per member instead.");
+                $"{owner} has '{name}' of class '{className}' with members {string.Join(", ", members.Select(static member => member.Name))}; Capsule converts only a class whose members are the numbers x and y, or the numbers left, top, right and bottom, and imports no other class value.");
         }
 
         string every = shape == VectorMembers ? "both x and y" : "all of left, top, right and bottom";
@@ -205,7 +221,7 @@ internal sealed class TiledProperties(TiledProperty[]? properties, string owner)
         }
     }
 
-    internal TiledImportException Invalid(string name, string value, string expected) =>
+    private TiledImportException Invalid(string name, string value, string expected) =>
         Refusal(name, $"'{value}'", expected);
 
     private JsonElement? Value(string name, string type)

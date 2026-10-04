@@ -1,11 +1,6 @@
-using System.Buffers;
-using System.Buffers.Binary;
 using System.Globalization;
 using System.Numerics;
-using System.Security.Cryptography;
 using System.Text.Json;
-using Capsule.Assets;
-using Capsule.Physics;
 using Capsule.Tiles;
 
 namespace JAG.Capsule.Tiled;
@@ -13,12 +8,18 @@ namespace JAG.Capsule.Tiled;
 internal static class TilesetImporter
 {
     internal const string LayerProperty = "layer";
-    private const string OneWayProperty = "oneWay";
-    private const string SolidSidesProperty = "solidSides";
-    private const string TypeProperty = "type";
 
-    // Every tileset the map names, in ascending firstgid order. External tilesets feed the source hash.
-    internal static ResolvedTileset[] Load(TiledMap map, string mapPath, string assetRoot, IncrementalHash sourceHash, Func<string, byte[]> read, Func<string, bool> exists)
+    // The tile type keys the importer writes itself.
+    private const string NameKey = "name";
+    private const string CellKey = "cell";
+    private const string ShapeKey = "shape";
+
+    // The palette entry every unpainted cell points at.
+    internal static readonly JsonElement EmptyTileType =
+        TiledProperties.ObjectOf(static writer => writer.WriteString(NameKey, TileGrid.EmptyTileName))!.Value;
+
+    // Every tileset the map names, in ascending firstgid order.
+    internal static ResolvedTileset[] Load(TiledMap map, string mapPath, string assetRoot, Func<string, byte[]> read, Func<string, bool> exists)
     {
         string mapDirectory = Path.GetDirectoryName(Path.GetFullPath(mapPath))!;
         List<(TiledTileset Tileset, string Directory)> loaded = [];
@@ -51,9 +52,7 @@ internal static class TilesetImporter
                 throw new TiledImportException($"{owner} is missing (expected at '{path}').");
             }
 
-            byte[] tilesetBytes = read(path);
-            AppendLengthPrefixed(sourceHash, tilesetBytes);
-            TiledTileset tileset = MapImporter.Deserialize(tilesetBytes, owner, TiledJsonContext.Default.TiledTileset);
+            TiledTileset tileset = MapImporter.Deserialize(read(path), owner, TiledJsonContext.Default.TiledTileset);
             MapImporter.RequireSupportedFormat(tileset.Version, owner);
             tileset.FirstGid = entry.FirstGid;
             tileset.Name ??= Path.GetFileNameWithoutExtension(entry.Source);
@@ -62,12 +61,10 @@ internal static class TilesetImporter
 
         loaded.Sort(static (left, right) => left.Tileset.FirstGid.CompareTo(right.Tileset.FirstGid));
 
-        // A tile type is an identity. Class names are unique across the whole map.
-        Dictionary<string, string> tilesetByClass = new(StringComparer.Ordinal);
         ResolvedTileset[] tilesets = new ResolvedTileset[loaded.Count];
         for (int i = 0; i < tilesets.Length; i++)
         {
-            tilesets[i] = Resolve(loaded[i].Tileset, loaded[i].Directory, map, assetRoot, tilesetByClass);
+            tilesets[i] = Resolve(loaded[i].Tileset, loaded[i].Directory, map, assetRoot);
         }
 
         return tilesets;
@@ -77,8 +74,7 @@ internal static class TilesetImporter
         TiledTileset tileset,
         string tilesetDirectory,
         TiledMap map,
-        string assetRoot,
-        Dictionary<string, string> tilesetByClass)
+        string assetRoot)
     {
         string name = tileset.Name ?? "?";
 
@@ -86,12 +82,6 @@ internal static class TilesetImporter
         {
             throw new TiledImportException(
                 $"tileset '{name}' is a collection of images; Capsule imports image tilesets only. Make it a single-image tileset in Tiled.");
-        }
-
-        if (tileset.Columns < 1)
-        {
-            throw new TiledImportException(
-                $"tileset '{name}' declares {tileset.Columns} columns; an image tileset is at least one tile across.");
         }
 
         if (tileset.TileWidth != tileset.TileHeight || tileset.TileWidth != map.TileWidth)
@@ -106,8 +96,7 @@ internal static class TilesetImporter
                 $"tileset '{name}' declares {tileset.Columns} columns of {tileset.TileWidth}px over a {tileset.ImageWidth}px image; re-save the tileset in Tiled so its columns match its image.");
         }
 
-        TileType[] palette = BuildPalette(
-            tileset, name, tilesetDirectory, assetRoot, tilesetByClass, out AuthoredTileType[]? authored, out Dictionary<int, int> indexByGid);
+        JsonElement[] palette = BuildPalette(tileset, name, tilesetDirectory, assetRoot, out Dictionary<int, int> indexByGid);
 
         return new ResolvedTileset(
             name,
@@ -116,12 +105,11 @@ internal static class TilesetImporter
             tileset.Columns,
             tileset.TileWidth,
             palette,
-            authored,
             indexByGid);
     }
 
-    // The handle's name is the atlas's path under the asset root, directories included.
-    private static TextureHandle TextureOf(string authored, string name, string tilesetDirectory, string assetRoot)
+    // The atlas's path under the asset root, directories and extension included.
+    private static string TextureOf(string authored, string name, string tilesetDirectory, string assetRoot)
     {
         string image = Path.GetFullPath(Path.Combine(tilesetDirectory, authored));
 
@@ -131,14 +119,7 @@ internal static class TilesetImporter
                 $"tileset '{name}' draws from '{authored}', which resolves to '{image}'; a scene document names a texture by its path under '{assetRoot}', so move the image under that root.");
         }
 
-        string extension = Path.GetExtension(image);
-        if (extension.Length == 0)
-        {
-            throw new TiledImportException(
-                $"tileset '{name}' draws from '{authored}'; a scene document names a texture by its path, extension included, so the image needs one.");
-        }
-
-        return new TextureHandle(Path.GetRelativePath(assetRoot, image).Replace('\\', '/')[..^extension.Length], extension);
+        return Path.GetRelativePath(assetRoot, image).Replace('\\', '/');
     }
 
     internal static bool IsWithin(string path, string root)
@@ -149,28 +130,16 @@ internal static class TilesetImporter
             && !relative.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
     }
 
-    private static void AppendLengthPrefixed(IncrementalHash hash, byte[] bytes)
-    {
-        Span<byte> length = stackalloc byte[sizeof(int)];
-        BinaryPrimitives.WriteInt32LittleEndian(length, bytes.Length);
-        hash.AppendData(length);
-        hash.AppendData(bytes);
-    }
-
     // Every Class in the tileset enters the palette in tile-id order, painted or not. Painting a new
-    // type never renumbers the types a scene's tiles already index. A palette in which no tile authors a
-    // class key or properties has no authored entries.
-    private static TileType[] BuildPalette(
+    // type never renumbers the types a scene's tiles already index.
+    private static JsonElement[] BuildPalette(
         TiledTileset tileset,
         string tilesetName,
         string tilesetDirectory,
         string assetRoot,
-        Dictionary<string, string> tilesetByClass,
-        out AuthoredTileType[]? authored,
         out Dictionary<int, int> indexByGid)
     {
-        List<TileType> palette = [TileGrid.EmptyTile];
-        List<AuthoredTileType> authoredEntries = [default];
+        List<JsonElement> palette = [EmptyTileType];
         indexByGid = [];
 
         foreach (TiledTile tile in (tileset.Tiles ?? []).OrderBy(tile => tile.Id))
@@ -180,36 +149,22 @@ internal static class TilesetImporter
                 continue;
             }
 
-            if (string.Equals(tile.Type, TileGrid.EmptyTileName, StringComparison.Ordinal))
-            {
-                throw new TiledImportException(
-                    $"tileset '{tilesetName}' tile {tile.Id} has Class '{TileGrid.EmptyTileName}', which is reserved for the absence of a tile; rename it.");
-            }
-
-            if (!tilesetByClass.TryAdd(tile.Type, tilesetName))
-            {
-                throw new TiledImportException(
-                    $"Class '{tile.Type}' is defined by more than one tile (tilesets '{tilesetByClass[tile.Type]}' and '{tilesetName}'); a Class must name exactly one tile.");
-            }
-
             indexByGid[tileset.FirstGid + tile.Id] = palette.Count;
             TiledProperties properties = new(tile.Properties, $"tileset '{tilesetName}' tile {tile.Id} (Class '{tile.Type}')");
-            palette.Add(TileTypeOf(tile, tile.Type, properties, tileset.TileWidth));
-            authoredEntries.Add(new AuthoredTileType(
-                ClassKeyOf(properties),
-                AuthoredProperties(properties, tilesetDirectory, assetRoot)));
+            palette.Add(TileTypeOf(tile, properties, tileset.TileWidth, tilesetDirectory, assetRoot));
         }
-
-        authored = authoredEntries.Exists(static entry => entry.Type is not null || entry.Properties is not null)
-            ? [.. authoredEntries]
-            : null;
 
         return [.. palette];
     }
 
-    private static TileType TileTypeOf(TiledTile tile, string tileClass, TiledProperties properties, int tileSize)
+    // The tile's Class is its name and its tile id its cell. Every other tile property, a "type" naming a
+    // TileType subclass among them, sets the member of its name. Tiled writes a tile's file property
+    // relative to its tileset's directory.
+    private static JsonElement TileTypeOf(TiledTile tile, TiledProperties properties, int tileSize, string tilesetDirectory, string assetRoot)
     {
-        string? layer = LayerOf(properties);
+        // Trimmed of the whitespace Tiled's property editor leaves. An untrimmed layer would never match
+        // the layer a mover collides with.
+        string? layer = properties.String(LayerProperty)?.Trim();
 
         // Checked on the authored objects. A whole-tile rectangle writes no shape and still collides.
         if (layer is null && tile.ObjectGroup?.Objects is { Length: > 0 })
@@ -218,61 +173,39 @@ internal static class TilesetImporter
                 $"{properties.Owner} has a collision shape but no '{LayerProperty}' property, so it collides as nothing; name the collision layer the tile is on in a '{LayerProperty}' property, or clear its collision in the Tile Collision Editor.");
         }
 
-        // The engine refuses oneWay on a tile with no layer, and solidSides on one that is not oneWay.
-        return new TileType
+        Vector2[]? shape = ShapeOf(tile, properties.Owner, tileSize);
+
+        return TiledProperties.ObjectOf(writer =>
         {
-            Name = tileClass,
-            Cell = tile.Id,
-            Layer = layer,
-            Shape = ShapeOf(tile, properties.Owner, tileSize),
-            OneWay = properties.Bool(OneWayProperty),
-            SolidSides = properties.Bool(SolidSidesProperty),
-        };
+            writer.WriteString(NameKey, tile.Type);
+            writer.WriteNumber(CellKey, tile.Id);
+            if (layer is not null)
+            {
+                writer.WriteString(LayerProperty, layer);
+            }
+
+            if (shape is not null)
+            {
+                writer.WriteStartArray(ShapeKey);
+                foreach (Vector2 point in shape)
+                {
+                    writer.WriteStartArray();
+                    writer.WriteNumberValue(point.X);
+                    writer.WriteNumberValue(point.Y);
+                    writer.WriteEndArray();
+                }
+
+                writer.WriteEndArray();
+            }
+
+            properties.WriteValues(writer, [LayerProperty], [NameKey, CellKey, ShapeKey], tilesetDirectory, assetRoot);
+        })!.Value;
     }
 
-    // The key of the TileType subclass a tile composes, trimmed as its layer is. The engine's build checks
-    // it against the game's classes.
-    private static string? ClassKeyOf(TiledProperties properties) => properties.String(TypeProperty)?.Trim() switch
-    {
-        null => null,
-
-        // Read as absent, a blank key would ship a plain tile type where the author meant a subclass.
-        "" => throw new TiledImportException(
-            $"{properties.Owner} has a blank '{TypeProperty}'; name the TileType subclass key in it, or delete the property for a plain tile type."),
-        { } key => key,
-    };
-
-    // Every tile property that is not a tile type field or the class key sets a member of the tile's
-    // class. Tiled writes a tile's file property relative to its tileset's directory.
-    private static JsonElement? AuthoredProperties(TiledProperties properties, string tilesetDirectory, string assetRoot)
-    {
-        ArrayBufferWriter<byte> buffer = new();
-        using (Utf8JsonWriter writer = new(buffer))
-        {
-            writer.WriteStartObject();
-            properties.WriteValues(writer, [LayerProperty, OneWayProperty, SolidSidesProperty, TypeProperty], tilesetDirectory, assetRoot);
-            writer.WriteEndObject();
-        }
-
-        using JsonDocument document = JsonDocument.Parse(buffer.WrittenMemory);
-
-        return document.RootElement.GetPropertyCount() == 0 ? null : document.RootElement.Clone();
-    }
-
-    // The collision layer a tile is on, trimmed of the whitespace Tiled's property editor leaves.
-    private static string? LayerOf(TiledProperties properties) => properties.String(LayerProperty)?.Trim() switch
-    {
-        null => null,
-
-        // Read as absent, a blank layer would ship a tile that never collides.
-        "" => throw properties.Invalid(LayerProperty, string.Empty, "one collision layer name"),
-        { } layer => layer,
-    };
-
-    // The one polygon or rectangle a tile's Tile Collision Editor holds. None is the whole tile, and so
-    // is a rectangle covering it, which the document writes as no shape. Shape2D owns convexity and
-    // winding.
-    private static Shape2D? ShapeOf(TiledTile tile, string owner, int tileSize)
+    // The points of the one polygon or rectangle a tile's Tile Collision Editor holds. None is the whole
+    // tile, and so is a rectangle covering it, which the document writes as no shape. The engine checks
+    // that the points make a convex polygon inside the tile.
+    private static Vector2[]? ShapeOf(TiledTile tile, string owner, int tileSize)
     {
         TiledObject[] objects = tile.ObjectGroup?.Objects ?? [];
         if (objects.Length == 0)
@@ -311,66 +244,26 @@ internal static class TilesetImporter
         }
 
         Vector2 origin = new((float)drawn.X, (float)drawn.Y);
-        Span<Vector2> corners = stackalloc Vector2[Shape2D.MaxPoints];
-        int count;
         if (drawn.Polygon is { } polygon)
         {
-            if (polygon.Length is < 3 or > Shape2D.MaxPoints)
-            {
-                throw new TiledImportException(
-                    $"{owner} has a collision polygon of {polygon.Length} points; a tile collides as 3 or {Shape2D.MaxPoints}. Redraw it in the Tile Collision Editor.");
-            }
-
-            for (int i = 0; i < polygon.Length; i++)
-            {
-                corners[i] = origin + new Vector2((float)polygon[i].X, (float)polygon[i].Y);
-            }
-
-            count = polygon.Length;
-        }
-        else
-        {
-            Vector2 far = origin + new Vector2((float)drawn.Width, (float)drawn.Height);
-            corners[0] = origin;
-            corners[1] = new Vector2(far.X, origin.Y);
-            corners[2] = far;
-            corners[3] = new Vector2(origin.X, far.Y);
-            count = 4;
+            return [.. polygon.Select(point => origin + new Vector2((float)point.X, (float)point.Y))];
         }
 
-        Shape2D shape;
-        try
-        {
-            shape = Shape2D.Polygon(corners[..count]);
-        }
-        catch (ArgumentException ex)
-        {
-            throw new TiledImportException(
-                $"{owner} has a collision shape Capsule cannot collide as: {ex.Message} Redraw it as a convex polygon of 3 or 4 separate points, or a rectangle with a width and a height.",
-                ex);
-        }
+        Vector2 far = origin + new Vector2((float)drawn.Width, (float)drawn.Height);
 
-        Aabb2D bounds = shape.Bounds;
-        if (bounds.Min.X < 0f || bounds.Min.Y < 0f || bounds.Max.X > tileSize || bounds.Max.Y > tileSize)
-        {
-            throw new TiledImportException(
-                $"{owner} has a collision shape reaching outside its {tileSize}px tile; keep every point within the tile in the Tile Collision Editor.");
-        }
-
-        return shape.Kind == ShapeKind2D.Box && bounds.Min == Vector2.Zero && bounds.Max == new Vector2(tileSize)
+        return origin == Vector2.Zero && far == new Vector2(tileSize)
             ? null
-            : shape;
+            : [origin, new Vector2(far.X, origin.Y), far, new Vector2(origin.X, far.Y)];
     }
 }
 
 // One tileset as a layer consumes it: the atlas it names, how that atlas is cut, and the palette a
-// layer painted from it takes whole.
+// layer painted from it takes whole, each entry a tile type object.
 internal sealed record ResolvedTileset(
     string Name,
     int FirstGid,
-    TextureHandle Texture,
+    string Texture,
     int Columns,
     int TileSize,
-    TileType[] Palette,
-    AuthoredTileType[]? Authored,
+    JsonElement[] Palette,
     Dictionary<int, int> IndexByGid);

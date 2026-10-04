@@ -1,5 +1,4 @@
 using System.Numerics;
-using Capsule.Assets;
 using Capsule.Scenes.Documents;
 
 namespace JAG.Capsule.Tiled.Tests;
@@ -31,13 +30,9 @@ public sealed class LayerImportTests
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        Assert.Collection(
-            document.Entries.ToArray(),
-            entry => Assert.NotNull(entry.TileMap),
-            entry => Assert.Equal("player", entry.Entity!.Value.Type),
-            entry => Assert.Equal("coin", entry.Entity!.Value.Type),
-            entry => Assert.NotNull(entry.TileMap));
-        Assert.Equal(8, document.NextEntityId);
+        Assert.Equal(
+            ["tile-map", "player", "coin", "tile-map"],
+            document.Entries.ToArray().Select(static entry => entry.Type));
     }
 
     [Fact]
@@ -49,7 +44,7 @@ public sealed class LayerImportTests
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        Assert.All(document.Entries.ToArray(), entry => Assert.NotNull(entry.Entity));
+        Assert.Equal(["player", "coin"], document.Entries.ToArray().Select(static entry => entry.Type));
     }
 
     [Fact]
@@ -60,14 +55,14 @@ public sealed class LayerImportTests
 
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", TileObject("\"gid\":1,")), ".");
 
-        EntityPlacement placed = document.Entries.ToArray()[^1].Entity!.Value;
+        SceneDocumentEntry placed = document.Entries[^1];
 
         Assert.Equal("crate", placed.Type);
         Assert.Equal(2f, placed.ScaleX);
         Assert.Equal(0.5f, placed.ScaleY);
 
         // A point keeps the identity scale, which the canonical form leaves out.
-        Assert.Equal(1f, document.Entries.ToArray()[1].Entity!.Value.ScaleX);
+        Assert.Equal(1f, document.Entries[1].ScaleX);
         Assert.Equal(1, SceneDocumentFile.ToJson(document).Split("\"scale\"").Length - 1);
     }
 
@@ -100,12 +95,10 @@ public sealed class LayerImportTests
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
         Assert.Equal(
-            TiledFixtures.TileMapOf(unflipped).Grid.Tiles.ToArray(),
-            TiledFixtures.TileMapOf(document).Grid.Tiles.ToArray());
-        Assert.Contains(
-            "\"transforms\": [\n          0, 0, 0, 0,\n          1, 2, 4, 0,\n          7, 0, 0, 0\n        ]",
-            SceneDocumentFile.ToJson(document),
-            StringComparison.Ordinal);
+            TiledFixtures.TileMapOf(unflipped).GetProperty("tiles").GetRawText(),
+            TiledFixtures.TileMapOf(document).GetProperty("tiles").GetRawText());
+        Assert.False(TiledFixtures.TileMapOf(unflipped).TryGetProperty("transforms", out _));
+        Assert.Equal("[0,0,0,0,1,2,4,0,7,0,0,0]", TiledFixtures.TileMapOf(document).GetProperty("transforms").GetRawText());
     }
 
     // One 32x8 tile object of the 16px tileset, appended to the object layer.
@@ -140,14 +133,14 @@ public sealed class LayerImportTests
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        Assert.Equal(-10, TiledFixtures.TileMapOf(document).ZIndex);
-        Assert.Equal(5, document.Entries[1].Entity!.Value.ZIndex);
+        Assert.Equal(-10, document.Entries[0].ZIndex);
+        Assert.Equal(5, document.Entries[1].ZIndex);
 
-        // A band is the spawn's, never an entry property.
-        Assert.Null(document.Entries[1].Entity!.Value.Properties);
+        // A band is the spawn's, never an entry member.
+        Assert.Null(document.Entries[1].Properties);
 
         // The coin authors nothing, so the document says nothing and its class keeps the default.
-        Assert.Null(document.Entries[2].Entity!.Value.ZIndex);
+        Assert.Null(document.Entries[2].ZIndex);
     }
 
     [Fact]
@@ -160,9 +153,9 @@ public sealed class LayerImportTests
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        Assert.Null(TiledFixtures.TileMapOf(document).ZIndex);
-        Assert.Equal(7, document.Entries[1].Entity!.Value.ZIndex);
-        Assert.Equal(3, document.Entries[2].Entity!.Value.ZIndex);
+        Assert.Null(document.Entries[0].ZIndex);
+        Assert.Equal(7, document.Entries[1].ZIndex);
+        Assert.Equal(3, document.Entries[2].ZIndex);
     }
 
     [Theory]
@@ -194,9 +187,9 @@ public sealed class LayerImportTests
         workspace.Write("tiles.tsj", TiledFixtures.Read("tiles.tsj"));
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        Assert.Equal(new Vector2(0.5f, 1f), TiledFixtures.TileMapOf(document).ScrollFactor);
-        Assert.Equal(new Vector2(0.25f, 0.75f), document.Entries[1].Entity!.Value.ScrollFactor);
-        Assert.Equal(new Vector2(0.25f, 0.75f), document.Entries[2].Entity!.Value.ScrollFactor);
+        Assert.Equal(new Vector2(0.5f, 1f), document.Entries[0].ScrollFactor);
+        Assert.Equal(new Vector2(0.25f, 0.75f), document.Entries[1].ScrollFactor);
+        Assert.Equal(new Vector2(0.25f, 0.75f), document.Entries[2].ScrollFactor);
     }
 
     [Fact]
@@ -208,7 +201,7 @@ public sealed class LayerImportTests
             "room.tmj",
             WithParallax(TiledFixtures.Read("room.tmj"), "\"name\":\"terrain\",", "1", "1")), ".");
 
-        Assert.Null(TiledFixtures.TileMapOf(document).ScrollFactor);
+        Assert.Null(document.Entries[0].ScrollFactor);
     }
 
     // A layer collides only when it sets collider. A layered tileset alone paints decoration, which may scroll.
@@ -224,23 +217,20 @@ public sealed class LayerImportTests
             workspace.Write("room.tmj", WithCollider(TiledFixtures.Read("room.tmj"), "\"name\":\"terrain\",")),
             ".");
 
-        Assert.False(TiledFixtures.TileMapOf(scrolled).HasCollider);
-        Assert.Equal(new Vector2(0.5f, 1f), TiledFixtures.TileMapOf(scrolled).ScrollFactor);
-        Assert.True(TiledFixtures.TileMapOf(colliding).HasCollider);
+        Assert.False(TiledFixtures.TileMapOf(scrolled).TryGetProperty("collider", out _));
+        Assert.Equal(new Vector2(0.5f, 1f), scrolled.Entries[0].ScrollFactor);
+        Assert.True(TiledFixtures.TileMapOf(colliding).GetProperty("collider").GetBoolean());
     }
 
-    [Theory]
-    [InlineData("terrain", "0.5", true, "tile layer 'terrain' has a Parallax Factor and sets 'collider'")]
-    [InlineData("terrain", "1", false, "tile layer 'terrain' sets 'collider' but paints from a tileset with no colliding tile")]
-    [InlineData("things", "1", true, "object layer 'things' sets 'collider'")]
-    public void Import_RejectsAColliderTheLayerCannotHave(string layer, string parallaxX, bool layeredTileset, string expected)
+    // An object collides as its class does, so a collider switch on its layer would reach nothing.
+    [Fact]
+    public void Import_RejectsAColliderOnAnObjectLayer()
     {
-        string anchor = $"\"name\":\"{layer}\",";
         TiledImportException error = TiledFixtures.ImportFailure(
-            WithCollider(WithParallax(TiledFixtures.Read("room.tmj"), anchor, parallaxX, "1"), anchor),
-            layeredTileset ? CollidingTileset() : TiledFixtures.Read("tiles.tsj"));
+            WithCollider(TiledFixtures.Read("room.tmj"), "\"name\":\"things\","),
+            TiledFixtures.Read("tiles.tsj"));
 
-        Assert.Contains(expected, error.Message, StringComparison.Ordinal);
+        Assert.Contains("object layer 'things' sets 'collider'", error.Message, StringComparison.Ordinal);
     }
 
     private static string CollidingTileset() => TiledFixtures.Mutate(
@@ -252,19 +242,6 @@ public sealed class LayerImportTests
         map,
         anchor,
         $"\"properties\":[{{\"name\":\"collider\",\"type\":\"bool\",\"value\":true}}],{anchor}");
-
-    [Fact]
-    public void Import_RejectsATileLayerWhosePaletteTheEngineRefuses()
-    {
-        TiledImportException error = TiledFixtures.ImportFailure(
-            TiledFixtures.Read("room.tmj"),
-            TiledFixtures.Mutate(
-                TiledFixtures.Read("tiles.tsj"),
-                "\"type\":\"ground\"",
-                "\"properties\":[{\"name\":\"oneWay\",\"type\":\"bool\",\"value\":true}],\"type\":\"ground\""));
-
-        Assert.Contains("tile layer 'terrain' imports to an invalid tile map", error.Message, StringComparison.Ordinal);
-    }
 
     // A layer's Parallax Factor as Tiled writes it.
     private static string WithParallax(string map, string anchor, string x, string y) => TiledFixtures.Mutate(
@@ -290,10 +267,10 @@ public sealed class LayerImportTests
 
         SceneDocument document = MapImporter.Import("room.tmj", ".");
 
-        Assert.Equal(new TextureHandle("Textures/tiles", ".png"), TiledFixtures.TileMapOf(document).Grid.Texture);
+        Assert.Equal("Textures/tiles.png", TiledFixtures.TileMapOf(document).GetProperty("texture").GetString());
         Assert.Equal(
             ["empty", "ground", "wall", "ledge", "hazard"],
-            TiledFixtures.TileMapOf(document).Grid.TileTypes.ToArray().Select(static tileType => tileType.Name));
+            TiledFixtures.Palette(document).Select(static tileType => tileType.GetProperty("name").GetString()));
     }
 
     [Fact]
@@ -308,9 +285,9 @@ public sealed class LayerImportTests
 
         SceneDocument document = MapImporter.Import(workspace.Write("room.tmj", map), ".");
 
-        Assert.Null(TiledFixtures.TileMapOf(document).Grid.Texture);
-        Assert.Equal(0, TiledFixtures.TileMapOf(document).Grid.Columns);
-        Assert.Equal("empty", Assert.Single(TiledFixtures.TileMapOf(document).Grid.TileTypes.ToArray()).Name);
+        Assert.False(TiledFixtures.TileMapOf(document).TryGetProperty("texture", out _));
+        Assert.False(TiledFixtures.TileMapOf(document).TryGetProperty("columns", out _));
+        Assert.Equal("""{"name":"empty"}""", Assert.Single(TiledFixtures.Palette(document)).GetRawText());
     }
 
     private static TiledFixtures.Workspace TwoTilesets(string lastRow)
