@@ -7,7 +7,7 @@ using Capsule.Tiles;
 
 namespace JAG.Capsule.Tiled;
 
-internal sealed record Tileset(string Name, int FirstGid, string Texture, int Columns, int TileSize, JsonArray Palette, Dictionary<int, int> IndexByTileId);
+internal sealed record Tileset(string Name, int FirstGid, string Texture, int Columns, int TileSize, JsonArray Palette, Dictionary<int, int> IndexByTileId, Func<int, JsonObject> UnclassedTileType);
 
 internal static class Tilesets
 {
@@ -71,19 +71,44 @@ internal static class Tilesets
         // scene's tiles already index.
         JsonArray palette = [EmptyTileType()];
         Dictionary<int, int> indexByTileId = [];
-        foreach (TiledTile tile in (tileset.Tiles ?? []).Where(static tile => !string.IsNullOrWhiteSpace(tile.Type)).OrderBy(static tile => tile.Id))
+        Dictionary<int, TiledTile> unclassed = [];
+        foreach (TiledTile tile in (tileset.Tiles ?? []).OrderBy(static tile => tile.Id))
         {
+            if (string.IsNullOrWhiteSpace(tile.Type))
+            {
+                unclassed[tile.Id] = tile;
+                continue;
+            }
+
             indexByTileId[tile.Id] = palette.Count;
-            palette.Add(TiledImporter.Within($"tile {tile.Id} (Class '{tile.Type}')", () => TileType(tile, tileset.TileWidth, directory, assetRoot)));
+            palette.Add(TiledImporter.Within($"tile {tile.Id} (Class '{tile.Type}')", () => TileType(tile, tile.Type, tileset.TileWidth, directory, assetRoot)));
         }
 
-        return new Tileset(name, tileset.FirstGid, texture, tileset.Columns, tileset.TileWidth, palette, indexByTileId);
+        HashSet<string> classes = [.. palette.Select(static tileType => (string)tileType!["name"]!)];
+
+        // An unclassed tile is named after its cell, as the tileset identifies it. It is converted only
+        // where a layer paints it. An unpainted one is never read.
+        JsonObject UnclassedTileType(int tileId) => TiledImporter.Within($"tile {tileId}", () =>
+        {
+            string cellName = UnclassedName(tileId);
+            if (classes.Contains(cellName))
+            {
+                throw new FormatException(
+                    $"the tile has no Class, so Capsule names it '{cellName}', which another tile's Class already is; give this tile a Class, or rename the other one.");
+            }
+
+            return TileType(unclassed.GetValueOrDefault(tileId) ?? new TiledTile { Id = tileId }, cellName, tileset.TileWidth, directory, assetRoot);
+        });
+
+        return new Tileset(name, tileset.FirstGid, texture, tileset.Columns, tileset.TileWidth, palette, indexByTileId, UnclassedTileType);
     }
 
-    private static JsonObject TileType(TiledTile tile, int tileSize, string directory, string assetRoot)
+    private static string UnclassedName(int tileId) => string.Create(CultureInfo.InvariantCulture, $"cell-{tileId}");
+
+    private static JsonObject TileType(TiledTile tile, string name, int tileSize, string directory, string assetRoot)
     {
         TiledProperties properties = new(tile.Properties);
-        JsonObject tileType = new() { ["name"] = tile.Type, ["cell"] = tile.Id };
+        JsonObject tileType = new() { ["name"] = name, ["cell"] = tile.Id };
         if (properties.TakeString("layer")?.Trim() is { } layer)
         {
             tileType["layer"] = layer;

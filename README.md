@@ -46,6 +46,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Tile layer | a `tile-map` entry |
 | Tile layer tile flipped horizontally, vertically or diagonally | tile map `transforms`, which turns its drawing and collision shape alike |
 | Tile Class | a tile type named after it; unpainted Classes included |
+| Painted tile with no Class | a tile type named `cell-<ID>` after its tile ID, following the classed ones in the tile map's `tileTypes` |
 | Tile `layer` string property | tile type `layer`, trimmed of surrounding whitespace |
 | Tile custom property | the tile type member of its name; `type` names the `TileType` subclass |
 | Tile Collision Editor holding one unrotated polygon or rectangle, on a tile with a `layer` | tile type `shape`, `[[x, y], ...]` in pixels from the tile's top-left corner; an empty editor, or a rectangle covering the tile, is the whole tile |
@@ -69,8 +70,9 @@ Custom properties take these value forms. A property named after a key the impor
 | enum stored as a string | the value as written, as `"iceCave"` or `"spikes,fire"` |
 | class value setting exactly `x` and `y` | `[x, y]` |
 | class value setting exactly `left`, `top`, `right` and `bottom` | `[left, top, right, bottom]` |
+| list, saved by Tiled 1.12 or later | an array of its items in order, each in the form above for its type, for a `T[]` member such as `[10, 12]` |
 
-Tiled saves only the members a class value sets, so set each one even where it is 0. An enum stored as a number and any other class value fail the import.
+Tiled saves only the members a class value sets, so set each one even where it is 0. An enum stored as a number, any other class value and an unset list item fail the import. A `[Flags]` enum member takes one enum value naming its flags, as `"spikes,fire"`, and an array of enums takes a list.
 
 A scene previews in Tiled as it plays when the Tiled view is centred where the game camera is. Tiled's renderer adds the Parallax Origin to the view centre. Set it to minus half the game's viewport, for example -128, -112 for 256x224, to line the layers up at the first screen.
 

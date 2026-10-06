@@ -4,7 +4,7 @@
  "infinite":false,
  "layers":[
         {
-         "data":[0, 0, 0, 0, 2, 0, 0, 2147483651, 1, 1073741825, 536870915, 3758096388],
+         "data":[0, 6, 0, 0, 2, 0, 0, 2147483651, 1, 1073741825, 536870915, 3758096388],
          "height":3,
          "id":1,
          "name":"terrain",
@@ -223,6 +223,19 @@
                              "x":1.5,
                              "y":-2
                             }
+                        },
+                        {
+                         "name":"ticks",
+                         "type":"list",
+                         "value":[
+                                {
+                                 "type":"int",
+                                 "value":10
+                                },
+                                {
+                                 "type":"int",
+                                 "value":12
+                                }]
                         }],
                  "rotation":0,
                  "type":"spawn",
@@ -304,7 +317,7 @@
          "value":false
         }],
  "renderorder":"right-down",
- "tiledversion":"1.11.2",
+ "tiledversion":"1.12.2",
  "tileheight":16,
  "tilesets":[
         {

@@ -90,11 +90,16 @@
         {
           "name": "spikes",
           "cell": 6
+        },
+        {
+          "name": "cell-5",
+          "cell": 5,
+          "note": "an untyped tile"
         }
       ],
       "tiles": [
         0,
-        0,
+        7,
         0,
         0,
         2,
@@ -303,6 +308,10 @@
       "drift": [
         1.5,
         -2
+      ],
+      "ticks": [
+        10,
+        12
       ]
     },
     {

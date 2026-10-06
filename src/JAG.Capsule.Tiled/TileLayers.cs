@@ -30,7 +30,7 @@ internal static class TileLayers
                     $"the layer is {layer.Width}x{layer.Height} but the map is {map.Width}x{map.Height}; resize the map in Map > Resize Map with every layer.");
             }
 
-            (Tileset? painted, int[] tiles, int[]? transforms) = Convert(Decode(layer), tilesets);
+            (Tileset? painted, int[] tiles, int[]? transforms, JsonArray? palette) = Convert(Decode(layer), tilesets);
 
             JsonObject members = new() { ["tileSize"] = map.TileWidth, ["width"] = map.Width, ["height"] = map.Height };
             if (painted is not null)
@@ -39,7 +39,7 @@ internal static class TileLayers
                 members["columns"] = painted.Columns;
             }
 
-            members["tileTypes"] = painted?.Palette.DeepClone() ?? new JsonArray(Tilesets.EmptyTileType());
+            members["tileTypes"] = palette ?? new JsonArray(Tilesets.EmptyTileType());
             members["tiles"] = Ints(tiles);
             if (transforms is not null)
             {
@@ -83,11 +83,12 @@ internal static class TileLayers
         return gids;
     }
 
-    private static (Tileset? Painted, int[] Tiles, int[]? Transforms) Convert(uint[] gids, Tileset[] tilesets)
+    private static (Tileset? Painted, int[] Tiles, int[]? Transforms, JsonArray? Palette) Convert(uint[] gids, Tileset[] tilesets)
     {
         int[] tiles = new int[gids.Length];
         int[]? transforms = null;
         Tileset? painted = null;
+        SortedDictionary<int, List<int>> unclassedCells = [];
         for (int index = 0; index < gids.Length; index++)
         {
             uint gid = gids[index];
@@ -119,13 +120,38 @@ internal static class TileLayers
             }
 
             int tileId = (int)gid - owner.FirstGid;
-            tiles[index] = owner.IndexByTileId.TryGetValue(tileId, out int paletteIndex)
-                ? paletteIndex
-                : throw new FormatException(
-                    $"tile {tileId} of tileset '{owner.Name}' is painted at index {index} but has no Class; give every painted tile a Class in Tiled.");
+            if (owner.IndexByTileId.TryGetValue(tileId, out int paletteIndex))
+            {
+                tiles[index] = paletteIndex;
+            }
+            else if (unclassedCells.TryGetValue(tileId, out List<int>? cells))
+            {
+                cells.Add(index);
+            }
+            else
+            {
+                unclassedCells[tileId] = [index];
+            }
         }
 
-        return (painted, tiles, transforms);
+        if (painted is null)
+        {
+            return (null, tiles, transforms, null);
+        }
+
+        // Unclassed tiles follow every classed one. Painting one never renumbers a classed type.
+        JsonArray palette = (JsonArray)painted.Palette.DeepClone();
+        foreach ((int tileId, List<int> cells) in unclassedCells)
+        {
+            foreach (int cell in cells)
+            {
+                tiles[cell] = palette.Count;
+            }
+
+            palette.Add(painted.UnclassedTileType(tileId));
+        }
+
+        return (painted, tiles, transforms, palette);
     }
 
     private static TileTransform TransformOf(uint gid)

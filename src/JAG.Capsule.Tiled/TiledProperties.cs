@@ -82,9 +82,28 @@ internal sealed class TiledProperties(TiledProperty[]? properties)
             "object" when value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out int id) && id >= 0 => id == 0 ? null : id,
             "object" => throw new FormatException($"'{value}' is not an object id; pick the object again in Tiled."),
             "class" => ClassValue(value, property.PropertyType ?? "class"),
+            "list" => ListValue(value, directory, assetRoot),
             { } other => throw new FormatException(
-                $"Capsule does not import a {other} property; use a string, int, float, bool, color, file, object, enum, x/y class or left/top/right/bottom class property."),
+                $"Capsule does not import a {other} property; use a string, int, float, bool, color, file, object, enum, x/y class, left/top/right/bottom class or list property."),
         };
+    }
+
+    // An item takes the form a property of its type takes. An unset item fails, because leaving it out
+    // would move every later item.
+    private static JsonArray ListValue(JsonElement value, string directory, string assetRoot)
+    {
+        TiledProperty[] items = value.ValueKind == JsonValueKind.Array
+            ? TiledJson.ReadItems(value)
+            : throw new FormatException($"'{value}' is not a list; set the list again in Tiled.");
+        JsonArray list = [];
+        for (int index = 0; index < items.Length; index++)
+        {
+            TiledProperty item = items[index];
+            list.Add(TiledImporter.Within($"item {index}", () => ValueOf(item, directory, assetRoot))
+                ?? throw new FormatException($"item {index} is unset; set it or remove it from the list in Tiled."));
+        }
+
+        return list;
     }
 
     private static string AssetKeyOf(string file, string directory, string assetRoot)

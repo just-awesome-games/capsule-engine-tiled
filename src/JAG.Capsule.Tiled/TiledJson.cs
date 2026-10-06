@@ -9,6 +9,7 @@ namespace JAG.Capsule.Tiled;
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
 [JsonSerializable(typeof(TiledMap))]
 [JsonSerializable(typeof(TiledTileset))]
+[JsonSerializable(typeof(TiledProperty[]))]
 internal sealed partial class TiledJson : JsonSerializerContext
 {
     // Tiled 1.9 writes a tile's and an object's Class as "class". Tiled 1.10 writes it as "type".
@@ -34,6 +35,9 @@ internal sealed partial class TiledJson : JsonSerializerContext
             throw new FormatException($"format version '{version}' is older than 1.10; re-save the file with Tiled 1.10 or later.");
         }
     }
+
+    internal static TiledProperty[] ReadItems(JsonElement list) =>
+        list.Deserialize(Default.TiledPropertyArray) ?? [];
 
     internal static JsonElement? ToElement(JsonObject members) =>
         members.Count == 0 ? null : System.Text.Json.JsonElement.Parse(members.ToJsonString());
