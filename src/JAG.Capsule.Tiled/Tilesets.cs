@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Capsule.Build;
+using Capsule.Physics;
 using Capsule.Tiles;
 
 namespace JAG.Capsule.Tiled;
@@ -140,7 +141,7 @@ internal static class Tilesets
         if (objects.Length > 1)
         {
             throw new FormatException(
-                $"the tile has {objects.Length} objects in its collision; merge them in the Tile Collision Editor into one polygon of 3 or 4 points, or one rectangle.");
+                $"the tile has {objects.Length} objects in its collision; merge them in the Tile Collision Editor into one convex polygon of 3 to {Shape2D.MaxPoints} points, or one rectangle.");
         }
 
         TiledObject drawn = objects[0];
@@ -157,7 +158,7 @@ internal static class Tilesets
         if (refused is not null)
         {
             throw new FormatException(
-                $"the tile collides as {refused}; draw its collision in the Tile Collision Editor as one polygon of 3 or 4 points, or one rectangle.");
+                $"the tile collides as {refused}; draw its collision in the Tile Collision Editor as one convex polygon of 3 to {Shape2D.MaxPoints} points, or one rectangle.");
         }
 
         if (drawn.Rotation != 0)
