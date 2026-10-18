@@ -1,5 +1,5 @@
 using System.IO.Compression;
-using Capsule.Scenes.Documents;
+using Capsule.Scenes;
 
 namespace JAG.Capsule.Tiled.Tests;
 

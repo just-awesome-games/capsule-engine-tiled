@@ -1,8 +1,7 @@
 using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Capsule.Scenes.Documents;
-using Capsule.Scenes.Spawning;
+using Capsule.Scenes;
 using Capsule.Tiles;
 
 namespace JAG.Capsule.Tiled;

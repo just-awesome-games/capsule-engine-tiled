@@ -7,7 +7,7 @@ Capsule Tiled imports [Tiled](https://www.mapeditor.org/) maps into [Capsule Eng
 1. Reference the package from the game's build project, the console app that references `JAG.Capsule.Build` and whose `Program.cs` runs `CapsuleBuild`:
 
    ```xml
-   <PackageReference Include="JAG.Capsule.Tiled" Version="[0.8.0]" />
+   <PackageReference Include="JAG.Capsule.Tiled" Version="[0.9.0]" />
    ```
 
    To build against a `capsule-engine-tiled` clone, name it in the game's ignored `Directory.Build.local.props` beside the engine clone, as Capsule's [source mode](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/build-and-publish.md#consuming-capsule) shows:

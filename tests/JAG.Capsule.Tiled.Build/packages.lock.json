@@ -4,18 +4,18 @@
     "net10.0": {
       "JAG.Capsule.Build": {
         "type": "Direct",
-        "requested": "[0.10.0, 0.10.0]",
-        "resolved": "0.10.0",
-        "contentHash": "2lDsYnk3a8bszFflJA6GhM3KInqzrBEUJUiyGM39F1WUXZLz4uNG2Vwgx2KUL8bln8gM9kPXRhC/RbOQlq3lBA==",
+        "requested": "[0.11.0, 0.11.0]",
+        "resolved": "0.11.0",
+        "contentHash": "lfZk8+a7GrpP+JoIY2lMM7u7UrGRYSgNOngIKycm5NR/wbzEYtyvc8XdB+DJ1zA7L7mR2bUf/H+I/0Hla9ubBw==",
         "dependencies": {
-          "JAG.Capsule": "[0.10.0]",
+          "JAG.Capsule": "[0.11.0]",
           "StbImageSharp": "2.30.16"
         }
       },
       "JAG.Capsule": {
         "type": "Transitive",
-        "resolved": "0.10.0",
-        "contentHash": "b4JZOBssTqdpHByl9gjEeDhrpLz58B2vPeXIsUuyr+D0MoUxR2pQ8Z3GDDawtG9Ch5GOtSopWVSjv8ah6Izjmw==",
+        "resolved": "0.11.0",
+        "contentHash": "CoYqH1+kR1ssCKfdPlvNKUzJdQziDsXbgJVg54d7LhR782gepZ77cNzeVOkLnn02t8Dyp7iprhG9xvcEgJdZXQ==",
         "dependencies": {
           "MonoGame.Tool.Dxc": "[1.9.2607.1]",
           "MonoGame.Tool.Spirvcross": "[1.4.350]"
@@ -39,7 +39,7 @@
       "jag.capsule.tiled": {
         "type": "Project",
         "dependencies": {
-          "JAG.Capsule.Build": "[0.10.0, 0.10.0]"
+          "JAG.Capsule.Build": "[0.11.0, 0.11.0]"
         }
       }
     }
