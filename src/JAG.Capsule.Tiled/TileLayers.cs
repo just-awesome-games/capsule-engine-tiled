@@ -147,7 +147,7 @@ internal static class TileLayers
                 tiles[cell] = palette.Count;
             }
 
-            palette.Add(painted.UnclassedTileType(tileId));
+            palette.Add((JsonNode)painted.UnclassedTileType(tileId));
         }
 
         return (painted, tiles, transforms, palette);

@@ -82,7 +82,7 @@ internal static class Tilesets
             }
 
             indexByTileId[tile.Id] = palette.Count;
-            palette.Add(TiledImporter.Within($"tile {tile.Id} (Class '{tile.Type}')", () => TileType(tile, tile.Type, tileset.TileWidth, directory, assetRoot)));
+            palette.Add((JsonNode)TiledImporter.Within($"tile {tile.Id} (Class '{tile.Type}')", () => TileType(tile, tile.Type, tileset.TileWidth, directory, assetRoot)));
         }
 
         HashSet<string> classes = [.. palette.Select(static tileType => (string)tileType!["name"]!)];

@@ -8,6 +8,9 @@
     <Description>Tiled (.tmj/.tsj) scene authoring for Capsule games: imports maps into Capsule scene documents at build time.</Description>
     <IncludeSymbols>false</IncludeSymbols>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- A game's NativeAOT publish builds its build project, and this library, with PublishAot set,
+         so the trim and AOT analyzers run on every build here too. -->
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
