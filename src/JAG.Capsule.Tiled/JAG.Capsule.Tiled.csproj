@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="JAG.Capsule.Build" Version="[0.12.0]" />
+    <PackageReference Include="JAG.Capsule.Build" Version="[0.13.0]" />
   </ItemGroup>
 
   <!-- Shipped at the package root, where a developer copies the project template or imports the

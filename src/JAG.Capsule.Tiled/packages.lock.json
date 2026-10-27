@@ -4,11 +4,11 @@
     "net10.0": {
       "JAG.Capsule.Build": {
         "type": "Direct",
-        "requested": "[0.12.0, 0.12.0]",
-        "resolved": "0.12.0",
-        "contentHash": "6AMVumwAwCwuRE+daw9s34nFbVJG2QVTYgZWK0IV59fzmBQyK1sp/uTOQns9pSxl0TINq4+r12a/B5fmHNmQGg==",
+        "requested": "[0.13.0, 0.13.0]",
+        "resolved": "0.13.0",
+        "contentHash": "Hz+ZL77NYozi+fyxvpFevm5I/hCnAF00A3VbYnD2/q5a0ALUkKortlPFfvkwsaz1IunC7rRkP8EyeYyLu5OrmQ==",
         "dependencies": {
-          "JAG.Capsule": "[0.12.0]",
+          "JAG.Capsule": "[0.13.0]",
           "StbImageSharp": "2.30.16"
         }
       },
@@ -20,16 +20,16 @@
       },
       "JAG.Capsule": {
         "type": "Transitive",
-        "resolved": "0.12.0",
-        "contentHash": "P73hh6WeRwo90zWf9tcmm7ood5yx68t4EqJObBTyzh7PNeu8Djdj+iC2wdBpbsEkhUbGmY8L94cx80W5p1yYFA==",
+        "resolved": "0.13.0",
+        "contentHash": "fjgEJPM8JqXRgwX839ufeXiqP3/uthVa0I6ruZZDiaoKDBOSv0lTjueSTI5ynqyC3N5+1AUZXZj14qMM6ViPdw==",
         "dependencies": {
-          "JAG.Capsule.ShaderTools": "[1.0.0]"
+          "JAG.Capsule.ShaderTools": "[1.0.1]"
         }
       },
       "JAG.Capsule.ShaderTools": {
         "type": "Transitive",
-        "resolved": "1.0.0",
-        "contentHash": "Cpiw9J8BWVpwg0Aat/jGwfJjwZWWdGK1d6WMv72V4DLuJmsqA5YfppjjZlShOnLIuKRG2rGD5K8G8GPT7lOHnw=="
+        "resolved": "1.0.1",
+        "contentHash": "cA/fEseGWYfSKP3rJq5rBpYQeV61W25rp+cBIcNt9VPDLDy1QBDD2ji5iXCfwfceGCeWJbUGUQUrjTLlL8GeWg=="
       },
       "StbImageSharp": {
         "type": "Transitive",
