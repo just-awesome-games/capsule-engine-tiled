@@ -7,28 +7,6 @@
   ],
   "propertyTypes": [
     {
-      "id": 2,
-      "name": "CapsuleLayer",
-      "type": "class",
-      "color": "#ff4a90d9",
-      "drawFill": true,
-      "useAs": [
-        "layer"
-      ],
-      "members": [
-        {
-          "name": "collider",
-          "type": "bool",
-          "value": false
-        },
-        {
-          "name": "zIndex",
-          "type": "int",
-          "value": 0
-        }
-      ]
-    },
-    {
       "id": 3,
       "name": "Rect",
       "type": "class",

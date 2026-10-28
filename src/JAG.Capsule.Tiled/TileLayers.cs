@@ -17,7 +17,7 @@ internal static class TileLayers
     private const uint FlippedDiagonally = 0x2000_0000u;
     private const uint RotatedHexagonal120 = 0x1000_0000u;
 
-    internal static SceneDocumentEntry ToEntry(TiledLayer layer, TiledMap map, Tileset[] tilesets) =>
+    internal static SceneDocumentEntry ToEntry(TiledLayer layer, TiledMap map, Tileset[] tilesets, string mapDirectory, string assetRoot) =>
         TiledImporter.Within($"tile layer '{layer.Name}'", () =>
         {
             TiledProperties properties = new(layer.Properties);
@@ -50,7 +50,10 @@ internal static class TileLayers
                 members["collider"] = true;
             }
 
-            return new SceneDocumentEntry("tile-map", spawn, TiledJson.ToElement(members));
+            // Capsule writes these only when the layer paints or turns a tile, and a property never stands in for them.
+            properties.AddTo(members, mapDirectory, assetRoot, "texture", "columns", "transforms");
+
+            return new SceneDocumentEntry(string.IsNullOrWhiteSpace(layer.Class) ? "tile-map" : layer.Class, spawn, TiledJson.ToElement(members));
         });
 
     private static uint[] Decode(TiledLayer layer)

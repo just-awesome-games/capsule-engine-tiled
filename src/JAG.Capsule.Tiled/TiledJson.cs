@@ -12,7 +12,8 @@ namespace JAG.Capsule.Tiled;
 [JsonSerializable(typeof(TiledProperty[]))]
 internal sealed partial class TiledJson : JsonSerializerContext
 {
-    // Tiled 1.9 writes a tile's and an object's Class as "class". Tiled 1.10 writes it as "type".
+    // Tiled 1.9 writes a tile's and an object's Class as "class". Tiled 1.10 writes it as "type", and a
+    // layer's as "class" still.
     private static readonly Version OldestFormat = new(1, 10);
 
     internal static T Read<T>(string json)
@@ -63,6 +64,7 @@ internal sealed class TiledMap
 internal sealed class TiledLayer
 {
     public string? Type { get; set; }
+    public string? Class { get; set; }
     public string? Name { get; set; }
     public int Width { get; set; }
     public int Height { get; set; }

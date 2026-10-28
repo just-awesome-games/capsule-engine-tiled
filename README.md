@@ -44,6 +44,8 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Map Parallax Origin | `camera` object `scrollCenter`, negated, when the origin is not 0, 0 or any layer has a Parallax Factor other than 1, 1 |
 | Map custom property | the scene member of its name, such as `ambient` or `sampling` |
 | Tile layer | a `tile-map` entry |
+| Tile layer Class | entry `type`, the `TileMap` subclass key |
+| Tile layer custom property | the tile map member of its name |
 | Tile layer tile flipped horizontally, vertically or diagonally | tile map `transforms`, which turns its drawing and collision shape alike |
 | Tile Class | a tile type named after it; unpainted Classes included |
 | Painted tile with no Class | a tile type named `cell-<ID>` after its tile ID, following the classed ones in the tile map's `tileTypes` |
@@ -61,7 +63,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 
 Custom properties take these value forms. A property named after a key the importer writes itself fails the import.
 
-| Map, object or tile property | Scene, entry or tile type member |
+| Map, layer, object or tile property | Scene, entry or tile type member |
 | --- | --- |
 | string, int, float or bool | the same value |
 | file | its path under `Assets/`, as `"Textures/Hazard.png"`; a `.tmj` or `.scene.json` file is the scene's key, its path with no extension; an unset file is left out |
@@ -78,7 +80,7 @@ A scene previews in Tiled as it plays when the Tiled view is centred where the g
 
 ## Property types
 
-A new Tiled project starts as a copy of `capsule.tiled-project`, from the root of the package, placed at the root of `Assets/`. It adds three classes. `CapsuleLayer` gives a layer a `zIndex` and a `collider`. `Vector2` and `Rect` are property types for members of those types. An existing project imports the same types from `capsule-property-types.json` through Project > Import Types. Tiled's command-line export (`tiled --export-map`) keeps a class property's type name only when it is given the project with `--project <file>.tiled-project`.
+A new Tiled project starts as a copy of `capsule.tiled-project`, from the root of the package, placed at the root of `Assets/`. It adds two classes, `Vector2` and `Rect`, the property types for members of those types. A layer's `zIndex` and `collider` are plain custom properties, and a game's own layer class may declare them as members. An existing project imports the same types from `capsule-property-types.json` through Project > Import Types. Tiled's command-line export (`tiled --export-map`) keeps a class property's type name only when it is given the project with `--project <file>.tiled-project`.
 
 ## Developing
 

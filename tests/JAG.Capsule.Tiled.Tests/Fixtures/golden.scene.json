@@ -128,7 +128,7 @@
       "collider": true
     },
     {
-      "type": "tile-map",
+      "type": "gated-tile-map",
       "scrollFactor": [
         0.5,
         1
@@ -164,7 +164,8 @@
         0,
         0,
         0
-      ]
+      ],
+      "gate": "boss-cleared"
     },
     {
       "type": "tile-map",

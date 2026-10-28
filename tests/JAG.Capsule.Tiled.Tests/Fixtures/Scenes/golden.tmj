@@ -27,12 +27,19 @@
          "y":0
         },
         {
+         "class":"gated-tile-map",
          "data":[9, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
          "height":3,
          "id":2,
          "name":"backdrop",
          "opacity":1,
          "parallaxx":0.5,
+         "properties":[
+                {
+                 "name":"gate",
+                 "type":"string",
+                 "value":"boss-cleared"
+                }],
          "type":"tilelayer",
          "visible":true,
          "width":4,

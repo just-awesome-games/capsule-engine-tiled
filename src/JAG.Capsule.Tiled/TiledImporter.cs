@@ -36,7 +36,7 @@ public sealed class TiledImporter : IAssetImporter
             switch (layer.Type)
             {
                 case "tilelayer":
-                    entries.Add(TileLayers.ToEntry(layer, map, tilesets));
+                    entries.Add(TileLayers.ToEntry(layer, map, tilesets, mapDirectory, context.AssetRoot));
                     break;
                 case "objectgroup":
                     entries.AddRange(ObjectLayers.ToEntries(layer, tilesets, mapDirectory, context.AssetRoot));

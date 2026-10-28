@@ -12,18 +12,10 @@ public sealed class PropertyTypesTests
         Assert.Equal(Types().ToJsonString(), project["propertyTypes"]!.ToJsonString());
     }
 
-    // Tiled writes a layer's class member only when it differs from the default, so the defaults are
-    // what the importer reads when a member is absent.
     [Fact]
     public void TheShippedClassesCarryTheMembersTheImporterReads()
     {
-        JsonNode layer = TypeNamed("CapsuleLayer");
-        Assert.Equal("class", layer["type"]!.GetValue<string>());
-        Assert.Equal(["layer"], UseAs(layer));
-        Assert.Equal(
-            [("collider", "bool", "false"), ("zIndex", "int", "0")],
-            Members(layer).Select(static member => (Name(member), member["type"]!.GetValue<string>(), member["value"]!.ToJsonString())));
-
+        Assert.Equal(["Rect", "Vector2"], Types().Select(static type => Name(type!)).Order(StringComparer.Ordinal));
         foreach ((string name, string[] members) in new[] { ("Vector2", new[] { "x", "y" }), ("Rect", ["bottom", "left", "right", "top"]) })
         {
             JsonNode type = TypeNamed(name);

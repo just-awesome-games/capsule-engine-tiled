@@ -71,6 +71,7 @@ public sealed class ImportTests : IDisposable
     [InlineData("layers.3.objects.0.properties.0.name=\"x\"", "has a member 'x', which the format reserves for the entry itself")]
     [InlineData("layers.3.objects.1.properties.0.name=\"size\"", "object 2 on layer 'things': property 'size': Capsule writes 'size' itself")]
     [InlineData("tileset:tiles.0.properties.1={\"name\":\"shape\",\"type\":\"int\",\"value\":7}", "tile 0 (Class 'ground'): property 'shape': Capsule writes 'shape' itself")]
+    [InlineData("layers.2.properties=[{\"name\":\"texture\",\"type\":\"string\",\"value\":\"Textures/props.png\"}]", "tile layer 'empty': property 'texture': Capsule writes 'texture' itself")]
     [InlineData("backgroundcolor=null; properties.8={\"name\":\"clearColor\",\"type\":\"color\",\"value\":\"#ff101820\"}", "property 'clearColor': Capsule writes 'clearColor' itself")]
     [InlineData("layers.0.properties.1.type=\"float\"", "tile layer 'terrain': property 'zIndex' is declared float; Capsule reads it as int")]
     [InlineData("layers.3.objects.0.properties.0.value=4294967296", "object 1 on layer 'things': property 'zIndex' holds '4294967296', which is not a valid int")]
