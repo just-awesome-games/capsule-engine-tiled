@@ -110,6 +110,7 @@ public sealed class ImportTests : IDisposable
     [InlineData("tileset:tiles.7.animation.1.tileid=8", "tile 7 (Class 'conveyor'): the tile's animation frame at index 1 shows tile 8, which is not one of the tileset's 8 tiles")]
     [InlineData("tileset:tiles.7.animation.2.duration=0", "tile 7 (Class 'conveyor'): the tile's animation frame at index 2 lasts 0 ms")]
     [InlineData("tileset:tiles.7.properties.1.name=\"cell\"", "tile 7 (Class 'conveyor'): property 'cell': Capsule writes 'cell' itself")]
+    [InlineData("tileset:tiles.0.properties.1={\"name\":\"frames\",\"type\":\"string\",\"value\":\"x\"}", "tile 0 (Class 'ground'): property 'frames': Capsule writes 'frames' itself")]
     public void TheImporterRefusesWhatItCannotRepresent(string edits, string expected)
     {
         Edit(edits);
