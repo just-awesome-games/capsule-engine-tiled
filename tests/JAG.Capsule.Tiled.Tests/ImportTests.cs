@@ -107,6 +107,9 @@ public sealed class ImportTests : IDisposable
     [InlineData("tileset:tiles.0.objectgroup.objects.1={\"id\":2,\"width\":8,\"height\":8}", "tile 0 (Class 'ground'): the tile has 2 objects in its collision")]
     [InlineData("tileset:tiles.0.objectgroup.objects.0.ellipse=true", "tile 0 (Class 'ground'): the tile collides as an ellipse")]
     [InlineData("tileset:tiles.0.objectgroup.objects.0.rotation=45", "tile 0 (Class 'ground'): the tile's collision shape is rotated 45 degrees")]
+    [InlineData("tileset:tiles.7.animation.1.tileid=8", "tile 7 (Class 'conveyor'): the tile's animation frame at index 1 shows tile 8, which is not one of the tileset's 8 tiles")]
+    [InlineData("tileset:tiles.7.animation.2.duration=0", "tile 7 (Class 'conveyor'): the tile's animation frame at index 2 lasts 0 ms")]
+    [InlineData("tileset:tiles.7.properties.1.name=\"cell\"", "tile 7 (Class 'conveyor'): property 'cell': Capsule writes 'cell' itself")]
     public void TheImporterRefusesWhatItCannotRepresent(string edits, string expected)
     {
         Edit(edits);

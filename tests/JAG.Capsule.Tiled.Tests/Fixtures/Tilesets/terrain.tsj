@@ -168,6 +168,61 @@
         {
          "id":6,
          "type":"spikes"
+        },
+        {
+         "animation":[
+                {
+                 "duration":90,
+                 "tileid":7
+                },
+                {
+                 "duration":25,
+                 "tileid":0
+                },
+                {
+                 "duration":110,
+                 "tileid":6
+                },
+                {
+                 "duration":5,
+                 "tileid":4
+                }],
+         "id":7,
+         "objectgroup":
+            {
+             "draworder":"index",
+             "id":2,
+             "name":"",
+             "objects":[
+                    {
+                     "height":8,
+                     "id":1,
+                     "name":"",
+                     "rotation":0,
+                     "type":"",
+                     "visible":true,
+                     "width":16,
+                     "x":0,
+                     "y":8
+                    }],
+             "opacity":1,
+             "type":"objectgroup",
+             "visible":true,
+             "x":0,
+             "y":0
+            },
+         "properties":[
+                {
+                 "name":"layer",
+                 "type":"string",
+                 "value":"platform"
+                },
+                {
+                 "name":"speed",
+                 "type":"int",
+                 "value":2
+                }],
+         "type":"conveyor"
         }],
  "tilewidth":16,
  "type":"tileset",

@@ -89,6 +89,7 @@ internal sealed class TiledTileset
     public string? Image { get; set; }
     public int ImageWidth { get; set; }
     public int Columns { get; set; }
+    public int TileCount { get; set; }
     public int TileWidth { get; set; }
     public int TileHeight { get; set; }
     public TiledTile[]? Tiles { get; set; }
@@ -100,6 +101,13 @@ internal sealed class TiledTile
     public string? Type { get; set; }
     public TiledProperty[]? Properties { get; set; }
     public TiledLayer? ObjectGroup { get; set; }
+    public TiledFrame[]? Animation { get; set; }
+}
+
+internal sealed class TiledFrame
+{
+    public int TileId { get; set; }
+    public int Duration { get; set; }
 }
 
 internal sealed class TiledProperty

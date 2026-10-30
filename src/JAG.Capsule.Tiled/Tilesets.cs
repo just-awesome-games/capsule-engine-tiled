@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Capsule;
 using Capsule.Build;
 using Capsule.Physics;
 using Capsule.Tiles;
@@ -12,6 +13,10 @@ internal sealed record Tileset(string Name, int FirstGid, string Texture, int Co
 
 internal static class Tilesets
 {
+    // Tiled times a frame in milliseconds and Capsule in fixed steps. The build cannot see a game's runtime
+    // step rate, so a frame is counted at the engine's default.
+    private const long StepsPerSecond = StepContext.DefaultStepHertz;
+
     internal static Tileset[] Load(TiledMap map, AssetImportContext context)
     {
         string mapDirectory = Path.GetDirectoryName(Path.GetFullPath(context.SourcePath))!;
@@ -82,7 +87,7 @@ internal static class Tilesets
             }
 
             indexByTileId[tile.Id] = palette.Count;
-            palette.Add((JsonNode)TiledImporter.Within($"tile {tile.Id} (Class '{tile.Type}')", () => TileType(tile, tile.Type, tileset.TileWidth, directory, assetRoot)));
+            palette.Add((JsonNode)TiledImporter.Within($"tile {tile.Id} (Class '{tile.Type}')", () => TileType(tile, tile.Type, tileset, directory, assetRoot)));
         }
 
         HashSet<string> classes = [.. palette.Select(static tileType => (string)tileType!["name"]!)];
@@ -98,7 +103,7 @@ internal static class Tilesets
                     $"the tile has no Class, so Capsule names it '{cellName}', which another tile's Class already is; give this tile a Class, or rename the other one.");
             }
 
-            return TileType(unclassed.GetValueOrDefault(tileId) ?? new TiledTile { Id = tileId }, cellName, tileset.TileWidth, directory, assetRoot);
+            return TileType(unclassed.GetValueOrDefault(tileId) ?? new TiledTile { Id = tileId }, cellName, tileset, directory, assetRoot);
         });
 
         return new Tileset(name, tileset.FirstGid, texture, tileset.Columns, tileset.TileWidth, palette, indexByTileId, UnclassedTileType);
@@ -106,10 +111,21 @@ internal static class Tilesets
 
     private static string UnclassedName(int tileId) => string.Create(CultureInfo.InvariantCulture, $"cell-{tileId}");
 
-    private static JsonObject TileType(TiledTile tile, string name, int tileSize, string directory, string assetRoot)
+    // An animated tile is one tile type whatever its frames show. Its own properties and collision apply,
+    // as in Tiled, and no frame tile's do.
+    private static JsonObject TileType(TiledTile tile, string name, TiledTileset tileset, string directory, string assetRoot)
     {
         TiledProperties properties = new(tile.Properties);
-        JsonObject tileType = new() { ["name"] = name, ["cell"] = tile.Id };
+        JsonObject tileType = new() { ["name"] = name };
+        if (tile.Animation is { Length: > 0 } animation)
+        {
+            tileType["frames"] = FramesOf(animation, tileset.TileCount);
+        }
+        else
+        {
+            tileType["cell"] = tile.Id;
+        }
+
         if (properties.TakeString("layer")?.Trim() is { } layer)
         {
             tileType["layer"] = layer;
@@ -120,14 +136,42 @@ internal static class Tilesets
                 "the tile has a collision shape but no 'layer' property, so it collides as nothing; name its collision layer in a 'layer' property, or clear its collision in the Tile Collision Editor.");
         }
 
-        if (ShapeOf(tile, tileSize) is { } shape)
+        if (ShapeOf(tile, tileset.TileWidth) is { } shape)
         {
             tileType["shape"] = shape;
         }
 
-        properties.AddTo(tileType, directory, assetRoot, "shape");
+        properties.AddTo(tileType, directory, assetRoot, "shape", "cell", "frames");
 
         return tileType;
+    }
+
+    // A frame is held the nearest whole step, half a step rounding up, and at least one.
+    private static JsonArray FramesOf(TiledFrame[] animation, int tileCount)
+    {
+        JsonArray frames = [];
+        for (int i = 0; i < animation.Length; i++)
+        {
+            TiledFrame frame = animation[i];
+            if (frame.TileId < 0 || frame.TileId >= tileCount)
+            {
+                throw new FormatException(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"the tile's animation frame at index {i} shows tile {frame.TileId}, which is not one of the tileset's {tileCount} tiles; pick a tile of this tileset for it in the Tile Animation Editor."));
+            }
+
+            if (frame.Duration <= 0)
+            {
+                throw new FormatException(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"the tile's animation frame at index {i} lasts {frame.Duration} ms; give it a duration of at least 1 ms in the Tile Animation Editor."));
+            }
+
+            int ticks = Math.Max(1, (int)(((frame.Duration * StepsPerSecond) + 500) / 1000));
+            frames.Add((JsonNode)new JsonObject { ["cell"] = frame.TileId, ["ticks"] = ticks });
+        }
+
+        return frames;
     }
 
     private static JsonArray? ShapeOf(TiledTile tile, int tileSize)

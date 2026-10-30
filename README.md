@@ -52,6 +52,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Tile `layer` string property | tile type `layer`, trimmed of surrounding whitespace |
 | Tile custom property | the tile type member of its name; `type` names the `TileType` subclass |
 | Tile Collision Editor holding one unrotated polygon or rectangle, on a tile with a `layer` | tile type `shape`, `[[x, y], ...]` in pixels from the tile's top-left corner; an empty editor, or a rectangle covering the tile, is the whole tile |
+| Tile Animation Editor frames | tile type `frames` in place of `cell`, each frame's tile ID its `cell` and its duration its `ticks` at 60 steps a second, rounded to the nearest step and at least 1; the animated tile's own properties and collision apply |
 | Object ID, Class, position and Rotation | entry `id`, `type`, `x`, `y` and `rotation` |
 | Tile object size over its tile size | entry `scale` |
 | Rectangle or ellipse object Width and Height, when not 0 | entry `size`, `[w, h]` in pixels |

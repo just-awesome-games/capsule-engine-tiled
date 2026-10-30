@@ -92,6 +92,47 @@
           "cell": 6
         },
         {
+          "name": "conveyor",
+          "frames": [
+            {
+              "cell": 7,
+              "ticks": 5
+            },
+            {
+              "cell": 0,
+              "ticks": 2
+            },
+            {
+              "cell": 6,
+              "ticks": 7
+            },
+            {
+              "cell": 4,
+              "ticks": 1
+            }
+          ],
+          "layer": "platform",
+          "shape": [
+            [
+              0,
+              8
+            ],
+            [
+              16,
+              8
+            ],
+            [
+              16,
+              16
+            ],
+            [
+              0,
+              16
+            ]
+          ],
+          "speed": 2
+        },
+        {
           "name": "cell-5",
           "cell": 5,
           "note": "an untyped tile"
@@ -99,8 +140,8 @@
       ],
       "tiles": [
         0,
+        8,
         7,
-        0,
         0,
         2,
         0,
@@ -114,7 +155,7 @@
       "transforms": [
         0,
         0,
-        0,
+        1,
         0,
         0,
         0,
