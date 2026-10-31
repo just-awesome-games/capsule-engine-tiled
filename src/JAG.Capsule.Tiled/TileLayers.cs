@@ -32,7 +32,16 @@ internal static class TileLayers
             (Tileset? painted, int[] tiles, int[]? transforms, JsonArray? palette) = Convert(Decode(layer), tilesets);
 
             JsonObject members = new() { ["tileSize"] = map.TileWidth, ["width"] = map.Width, ["height"] = map.Height };
-            if (painted is not null)
+            if (!layer.Visible)
+            {
+                // A hidden layer draws nothing in the game either, and still collides, as a hidden Godot node does.
+                foreach (JsonObject tileType in palette?.Cast<JsonObject>() ?? [])
+                {
+                    tileType.Remove("cell");
+                    tileType.Remove("frames");
+                }
+            }
+            else if (painted is not null)
             {
                 members["texture"] = painted.Texture;
                 members["columns"] = painted.Columns;

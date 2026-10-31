@@ -370,6 +370,127 @@
         0.25,
         0.75
       ]
+    },
+    {
+      "type": "tile-map",
+      "tileSize": 16,
+      "width": 4,
+      "height": 3,
+      "tileTypes": [
+        {
+          "name": "empty"
+        },
+        {
+          "name": "ground",
+          "layer": "solid"
+        },
+        {
+          "name": "slope",
+          "layer": "solid",
+          "shape": [
+            [
+              0,
+              16
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              16,
+              16
+            ]
+          ]
+        },
+        {
+          "name": "ledge",
+          "layer": "platform",
+          "shape": [
+            [
+              0,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              16,
+              4
+            ],
+            [
+              0,
+              4
+            ]
+          ],
+          "oneWay": true,
+          "solidSides": "top"
+        },
+        {
+          "name": "ice",
+          "grip": 0.1,
+          "sound": "Audio/ice.ogg",
+          "type": "slippery-tile"
+        },
+        {
+          "name": "hazard"
+        },
+        {
+          "name": "spikes"
+        },
+        {
+          "name": "conveyor",
+          "layer": "platform",
+          "shape": [
+            [
+              0,
+              8
+            ],
+            [
+              16,
+              8
+            ],
+            [
+              16,
+              16
+            ],
+            [
+              0,
+              16
+            ]
+          ],
+          "speed": 2
+        }
+      ],
+      "tiles": [
+        1,
+        0,
+        0,
+        7,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0
+      ],
+      "transforms": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "collider": true
     }
   ]
 }

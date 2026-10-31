@@ -276,8 +276,26 @@
          "visible":true,
          "x":0,
          "y":0
+        },
+        {
+         "data":[1, 0, 0, 8, 0, 0, 0, 0, 2147483650, 0, 0, 0],
+         "height":3,
+         "id":5,
+         "name":"collision",
+         "opacity":1,
+         "properties":[
+                {
+                 "name":"collider",
+                 "type":"bool",
+                 "value":true
+                }],
+         "type":"tilelayer",
+         "visible":false,
+         "width":4,
+         "x":0,
+         "y":0
         }],
- "nextlayerid":5,
+ "nextlayerid":6,
  "nextobjectid":8,
  "orientation":"orthogonal",
  "parallaxoriginx":-128,

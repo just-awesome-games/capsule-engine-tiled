@@ -46,6 +46,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Tile layer | a `tile-map` entry |
 | Tile layer Class | entry `type`, the `TileMap` subclass key |
 | Tile layer custom property | the tile map member of its name |
+| Tile layer hidden in Tiled | a tile map with no texture, whose tile types name no cell or frames: it draws nothing and still collides |
 | Tile layer tile flipped horizontally, vertically or diagonally | tile map `transforms`, which turns its drawing and collision shape alike |
 | Tile Class | a tile type named after it; unpainted Classes included |
 | Painted tile with no Class | a tile type named `cell-<ID>` after its tile ID, following the classed ones in the tile map's `tileTypes` |

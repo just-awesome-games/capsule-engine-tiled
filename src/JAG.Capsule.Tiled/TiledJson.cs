@@ -70,6 +70,7 @@ internal sealed class TiledLayer
     public int Height { get; set; }
     public string? Encoding { get; set; }
     public string? Compression { get; set; }
+    public bool Visible { get; set; } = true;
     public double ParallaxX { get; set; } = 1;
     public double ParallaxY { get; set; } = 1;
     public JsonElement Data { get; set; }
