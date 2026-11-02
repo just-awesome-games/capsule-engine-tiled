@@ -460,6 +460,10 @@
             ]
           ],
           "speed": 2
+        },
+        {
+          "name": "cell-5",
+          "note": "an untyped tile"
         }
       ],
       "tiles": [

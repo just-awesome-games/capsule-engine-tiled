@@ -9,7 +9,7 @@ using Capsule.Tiles;
 
 namespace JAG.Capsule.Tiled;
 
-internal sealed record Tileset(string Name, int FirstGid, string Texture, int Columns, int TileSize, JsonArray Palette, Dictionary<int, int> IndexByTileId, Func<int, JsonObject> UnclassedTileType);
+internal sealed record Tileset(string Name, int FirstGid, string Texture, int Columns, int TileSize, JsonArray Palette, Dictionary<int, int> IndexByTileId);
 
 internal static class Tilesets
 {
@@ -73,8 +73,8 @@ internal static class Tilesets
 
         string texture = TiledImporter.AssetPathOf(tileset.Image, directory, assetRoot);
 
-        // Unpainted Classes stay in the palette, so painting a new type never renumbers the types a
-        // scene's tiles already index.
+        // Every tile of the tileset is a tile type, painted or not, so a game can set any of them in a tile map at
+        // run time. Classes come first, then the unclassed tiles in ID order.
         JsonArray palette = [EmptyTileType()];
         Dictionary<int, int> indexByTileId = [];
         Dictionary<int, TiledTile> unclassed = [];
@@ -91,22 +91,24 @@ internal static class Tilesets
         }
 
         HashSet<string> classes = [.. palette.Select(static tileType => (string)tileType!["name"]!)];
-
-        // An unclassed tile is named after its cell, as the tileset identifies it. It is converted only
-        // where a layer paints it. An unpainted one is never read.
-        JsonObject UnclassedTileType(int tileId) => TiledImporter.Within($"tile {tileId}", () =>
+        for (int tileId = 0; tileId < tileset.TileCount; tileId++)
         {
-            string cellName = UnclassedName(tileId);
-            if (classes.Contains(cellName))
+            if (indexByTileId.ContainsKey(tileId))
             {
-                throw new FormatException(
-                    $"the tile has no Class, so Capsule names it '{cellName}', which another tile's Class already is; give this tile a Class, or rename the other one.");
+                continue;
             }
 
-            return TileType(unclassed.GetValueOrDefault(tileId) ?? new TiledTile { Id = tileId }, cellName, tileset, directory, assetRoot);
-        });
+            // An unclassed tile is named after its cell, as the tileset identifies it.
+            string cellName = UnclassedName(tileId);
+            int id = tileId;
+            indexByTileId[tileId] = palette.Count;
+            palette.Add((JsonNode)TiledImporter.Within($"tile {tileId}", () => classes.Contains(cellName)
+                ? throw new FormatException(
+                    $"the tile has no Class, so Capsule names it '{cellName}', which another tile's Class already is; give this tile a Class, or rename the other one.")
+                : TileType(unclassed.GetValueOrDefault(id) ?? new TiledTile { Id = id }, cellName, tileset, directory, assetRoot)));
+        }
 
-        return new Tileset(name, tileset.FirstGid, texture, tileset.Columns, tileset.TileWidth, palette, indexByTileId, UnclassedTileType);
+        return new Tileset(name, tileset.FirstGid, texture, tileset.Columns, tileset.TileWidth, palette, indexByTileId);
     }
 
     private static string UnclassedName(int tileId) => string.Create(CultureInfo.InvariantCulture, $"cell-{tileId}");

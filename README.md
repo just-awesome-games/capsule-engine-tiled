@@ -48,8 +48,9 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Tile layer custom property | the tile map member of its name |
 | Tile layer hidden in Tiled | a tile map with no texture, whose tile types name no cell or frames: it draws nothing and still collides |
 | Tile layer tile flipped horizontally, vertically or diagonally | tile map `transforms`, which turns its drawing and collision shape alike |
-| Tile Class | a tile type named after it; unpainted Classes included |
-| Painted tile with no Class | a tile type named `cell-<ID>` after its tile ID, following the classed ones in the tile map's `tileTypes` |
+| Tileset tile | a tile type in the `tileTypes` of every tile map painting from its tileset, painted there or not, so a game can set any tile of the tileset at run time |
+| Tile Class | a tile type named after it |
+| Tile with no Class | a tile type named `cell-<ID>` after its tile ID, following the classed ones in ID order |
 | Tile `layer` string property | tile type `layer`, trimmed of surrounding whitespace |
 | Tile custom property | the tile type member of its name; `type` names the `TileType` subclass |
 | Tile Collision Editor holding one unrotated polygon or rectangle, on a tile with a `layer` | tile type `shape`, `[[x, y], ...]` in pixels from the tile's top-left corner; an empty editor, or a rectangle covering the tile, is the whole tile |
