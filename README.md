@@ -30,7 +30,7 @@ Capsule Tiled imports [Tiled](https://www.mapeditor.org/) maps into [Capsule Eng
 
 3. Save maps as `.tmj` under the logic project's `Assets/` and tilesets as `.tsj`, then build. A map's key is its path under `Assets/`, normalized by Capsule's [asset rules](https://github.com/just-awesome-games/capsule-engine/blob/main/docs/assets.md#named-assets). `Scenes/Highway/Room02.tmj` is keyed `scenes/highway/room-02`.
 
-`TiledImporter` has no settings of its own. A map whose tile size differs from the one `WithTileSize` sets fails the build, and a game that calls no `WithTileSize` takes each map's own. A tileset may live anywhere, and the map names it relative to itself. A missing tileset fails the build as a missing file.
+`TiledImporter`'s one setting is `Project`, under [Property types](#property-types). A map whose tile size differs from the one `WithTileSize` sets fails the build, and a game that calls no `WithTileSize` takes each map's own. A tileset may live anywhere, and the map names it relative to itself. A missing tileset fails the build as a missing file.
 
 ## Tiled subset
 
@@ -75,15 +75,22 @@ Custom properties take these value forms. A property named after a key the impor
 | enum stored as a string | the value as written, as `"iceCave"` or `"spikes,fire"` |
 | class value setting exactly `x` and `y` | `[x, y]` |
 | class value setting exactly `left`, `top`, `right` and `bottom` | `[left, top, right, bottom]` |
+| value of any other class the project declares, with `Project` set | an object of the members it sets, each in the form above for the type the project gives it, for a member whose class declares `[Authorable]` members. A `type` string member names the subclass to construct |
 | list, saved by Tiled 1.12 or later | an array of its items in order, each in the form above for its type, for a `T[]` member such as `[10, 12]` |
 
-Tiled saves only the members a class value sets, so set each one even where it is 0. An enum stored as a number, any other class value and an unset list item fail the import. A `[Flags]` enum member takes one enum value naming its flags, as `"spikes,fire"`, and an array of enums takes a list.
+Tiled saves only the members a class value sets, so set each member of an x/y or left/top/right/bottom class even where it is 0. A member of any other class left unset keeps the C# member's initializer, whatever default the project shows. An enum stored as a number, a class the project does not declare, a member it does not declare and an unset list item fail the import. A `[Flags]` enum member takes one enum value naming its flags, as `"spikes,fire"`, and an array of enums takes a list.
 
 A scene previews in Tiled as it plays when the Tiled view is centred where the game camera is. Tiled's renderer adds the Parallax Origin to the view centre. Set it to minus half the game's viewport, for example -128, -112 for 256x224, to line the layers up at the first screen.
 
 ## Property types
 
-A new Tiled project starts as a copy of `capsule.tiled-project`, from the root of the package, placed at the root of `Assets/`. It adds two classes, `Vector2` and `Rect`, the property types for members of those types. A layer's `zIndex` and `collider` are plain custom properties, and a game's own layer class may declare them as members. An existing project imports the same types from `capsule-property-types.json` through Project > Import Types. Tiled's command-line export (`tiled --export-map`) keeps a class property's type name only when it is given the project with `--project <file>.tiled-project`.
+A new Tiled project starts as a copy of `capsule.tiled-project`, from the root of the package, placed at the root of `Assets/`. It adds two classes, `Vector2` and `Rect`, the property types for members of those types. A layer's `zIndex` and `collider` are plain custom properties, and a game's own layer class may declare them as members. An existing project imports the same types from `capsule-property-types.json` through Project > Import Types. A map saves a class value's members with no types, so a game with classes of its own names its project, and every map imports again when the project changes:
+
+```csharp
+.AddImporter(new TiledImporter { Project = "Scenes/game.tiled-project" })
+```
+
+Tiled's command-line export (`tiled --export-map`) keeps a class property's type name only when it is given the project with `--project <file>.tiled-project`.
 
 ## Developing
 

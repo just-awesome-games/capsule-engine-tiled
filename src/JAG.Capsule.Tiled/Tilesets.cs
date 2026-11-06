@@ -17,18 +17,17 @@ internal static class Tilesets
     // step rate, so a frame is counted at the engine's default.
     private const long StepsPerSecond = StepContext.DefaultStepHertz;
 
-    internal static Tileset[] Load(TiledMap map, AssetImportContext context)
+    internal static Tileset[] Load(TiledMap map, AssetImportContext context, PropertyScope scope)
     {
-        string mapDirectory = Path.GetDirectoryName(Path.GetFullPath(context.SourcePath))!;
         List<Tileset> tilesets = [];
         foreach (TiledTileset entry in map.Tilesets)
         {
             (TiledTileset tileset, string directory) = entry.Source is { Length: > 0 } source
-                ? TiledImporter.Within($"tileset '{source}'", () => ReadExternal(source, mapDirectory, context))
-                : (entry, mapDirectory);
+                ? TiledImporter.Within($"tileset '{source}'", () => ReadExternal(source, scope.Directory, context))
+                : (entry, scope.Directory);
             tileset.FirstGid = entry.FirstGid;
             string name = tileset.Name ?? Path.GetFileNameWithoutExtension(entry.Source) ?? "?";
-            tilesets.Add(TiledImporter.Within($"tileset '{name}'", () => Resolve(tileset, name, map.TileWidth, directory, context.AssetRoot)));
+            tilesets.Add(TiledImporter.Within($"tileset '{name}'", () => Resolve(tileset, name, map.TileWidth, scope with { Directory = directory })));
         }
 
         return [.. tilesets.OrderBy(static tileset => tileset.FirstGid)];
@@ -52,7 +51,7 @@ internal static class Tilesets
         return (tileset, Path.GetDirectoryName(path)!);
     }
 
-    private static Tileset Resolve(TiledTileset tileset, string name, int mapTileSize, string directory, string assetRoot)
+    private static Tileset Resolve(TiledTileset tileset, string name, int mapTileSize, PropertyScope scope)
     {
         if (string.IsNullOrEmpty(tileset.Image))
         {
@@ -71,7 +70,7 @@ internal static class Tilesets
                 $"the tileset declares {tileset.Columns} columns of {tileset.TileWidth}px over a {tileset.ImageWidth}px image; re-save the tileset in Tiled so its columns match its image.");
         }
 
-        string texture = TiledImporter.AssetPathOf(tileset.Image, directory, assetRoot);
+        string texture = TiledImporter.AssetPathOf(tileset.Image, scope.Directory, scope.AssetRoot);
 
         // Every tile of the tileset is a tile type, painted or not, so a game can set any of them in a tile map at
         // run time. Classes come first, then the unclassed tiles in ID order.
@@ -87,7 +86,7 @@ internal static class Tilesets
             }
 
             indexByTileId[tile.Id] = palette.Count;
-            palette.Add((JsonNode)TiledImporter.Within($"tile {tile.Id} (Class '{tile.Type}')", () => TileType(tile, tile.Type, tileset, directory, assetRoot)));
+            palette.Add((JsonNode)TiledImporter.Within($"tile {tile.Id} (Class '{tile.Type}')", () => TileType(tile, tile.Type, tileset, scope)));
         }
 
         HashSet<string> classes = [.. palette.Select(static tileType => (string)tileType!["name"]!)];
@@ -105,7 +104,7 @@ internal static class Tilesets
             palette.Add((JsonNode)TiledImporter.Within($"tile {tileId}", () => classes.Contains(cellName)
                 ? throw new FormatException(
                     $"the tile has no Class, so Capsule names it '{cellName}', which another tile's Class already is; give this tile a Class, or rename the other one.")
-                : TileType(unclassed.GetValueOrDefault(id) ?? new TiledTile { Id = id }, cellName, tileset, directory, assetRoot)));
+                : TileType(unclassed.GetValueOrDefault(id) ?? new TiledTile { Id = id }, cellName, tileset, scope)));
         }
 
         return new Tileset(name, tileset.FirstGid, texture, tileset.Columns, tileset.TileWidth, palette, indexByTileId);
@@ -115,7 +114,7 @@ internal static class Tilesets
 
     // An animated tile is one tile type whatever its frames show. Its own properties and collision apply,
     // as in Tiled, and no frame tile's do.
-    private static JsonObject TileType(TiledTile tile, string name, TiledTileset tileset, string directory, string assetRoot)
+    private static JsonObject TileType(TiledTile tile, string name, TiledTileset tileset, PropertyScope scope)
     {
         TiledProperties properties = new(tile.Properties);
         JsonObject tileType = new() { ["name"] = name };
@@ -143,7 +142,7 @@ internal static class Tilesets
             tileType["shape"] = shape;
         }
 
-        properties.AddTo(tileType, directory, assetRoot, "shape", "cell", "frames");
+        properties.AddTo(tileType, scope, "shape", "cell", "frames");
 
         return tileType;
     }

@@ -8,7 +8,7 @@ namespace JAG.Capsule.Tiled;
 
 internal static class ObjectLayers
 {
-    internal static SceneDocumentEntry[] ToEntries(TiledLayer layer, Tileset[] tilesets, string mapDirectory, string assetRoot)
+    internal static SceneDocumentEntry[] ToEntries(TiledLayer layer, Tileset[] tilesets, PropertyScope scope)
     {
         int? zIndex = TiledImporter.Within($"object layer '{layer.Name}'", () =>
         {
@@ -23,10 +23,10 @@ internal static class ObjectLayers
 
         return [.. (layer.Objects ?? []).Select(placed => TiledImporter.Within(
             $"object {placed.Id} on layer '{layer.Name}'",
-            () => ToEntry(placed, layer, zIndex, tilesets, mapDirectory, assetRoot)))];
+            () => ToEntry(placed, layer, zIndex, tilesets, scope)))];
     }
 
-    private static SceneDocumentEntry ToEntry(TiledObject placed, TiledLayer layer, int? layerZIndex, Tileset[] tilesets, string mapDirectory, string assetRoot)
+    private static SceneDocumentEntry ToEntry(TiledObject placed, TiledLayer layer, int? layerZIndex, Tileset[] tilesets, PropertyScope scope)
     {
         if (placed.Template is { } template)
         {
@@ -60,7 +60,7 @@ internal static class ObjectLayers
             members["path"] = new JsonArray([.. path.Select(static point => new JsonArray(point.X, point.Y))]);
         }
 
-        properties.AddTo(members, mapDirectory, assetRoot);
+        properties.AddTo(members, scope);
 
         return new SceneDocumentEntry(placed.Type, spawn, TiledJson.ToElement(members)) { Id = placed.Id };
     }

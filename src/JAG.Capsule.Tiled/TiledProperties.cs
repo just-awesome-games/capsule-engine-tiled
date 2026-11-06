@@ -4,6 +4,10 @@ using Capsule.Rendering;
 
 namespace JAG.Capsule.Tiled;
 
+// What a property's value resolves against: the directory of the file holding it, the asset root, and the Tiled
+// project's classes, or null when the game names no project.
+internal sealed record PropertyScope(string Directory, string AssetRoot, TiledClass[]? Classes);
+
 internal sealed class TiledProperties(TiledProperty[]? properties)
 {
     private static readonly string[] SceneExtensions = [".scene.json", ".tmj"];
@@ -33,7 +37,7 @@ internal sealed class TiledProperties(TiledProperty[]? properties)
         { } value => throw NotA(name, value, "int"),
     };
 
-    internal void AddTo(JsonObject members, string directory, string assetRoot, params ReadOnlySpan<string> reserved)
+    internal void AddTo(JsonObject members, PropertyScope scope, params ReadOnlySpan<string> reserved)
     {
         foreach (TiledProperty property in _remaining)
         {
@@ -43,7 +47,7 @@ internal sealed class TiledProperties(TiledProperty[]? properties)
                 throw new FormatException($"property '{name}': Capsule writes '{name}' itself; rename or remove the property.");
             }
 
-            if (TiledImporter.Within($"property '{name}'", () => ValueOf(property, directory, assetRoot)) is { } value)
+            if (TiledImporter.Within($"property '{name}'", () => ValueOf(property, scope)) is { } value)
             {
                 members[name] = value;
             }
@@ -67,7 +71,7 @@ internal sealed class TiledProperties(TiledProperty[]? properties)
             : $"#{color.R:x2}{color.G:x2}{color.B:x2}{color.A:x2}";
     }
 
-    private static JsonNode? ValueOf(TiledProperty property, string directory, string assetRoot)
+    private static JsonNode? ValueOf(TiledProperty property, PropertyScope scope)
     {
         JsonElement value = property.Value;
         string? text = value.ValueKind == JsonValueKind.String ? value.GetString() : null;
@@ -77,20 +81,20 @@ internal sealed class TiledProperties(TiledProperty[]? properties)
             "int" when property.PropertyType is { } enumType => throw new FormatException(
                 $"enum '{enumType}' is stored as a number; set '{enumType}' to save its values as strings in Tiled's Custom Types Editor."),
             "string" or "int" or "float" or "bool" => JsonValue.Create(value),
-            "file" => string.IsNullOrEmpty(text) ? null : AssetKeyOf(text, directory, assetRoot),
+            "file" => string.IsNullOrEmpty(text) ? null : AssetKeyOf(text, scope),
             "color" => string.IsNullOrEmpty(text) ? null : Color(text),
             "object" when value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out int id) && id >= 0 => id == 0 ? null : id,
             "object" => throw new FormatException($"'{value}' is not an object id; pick the object again in Tiled."),
-            "class" => ClassValue(value, property.PropertyType ?? "class"),
-            "list" => ListValue(value, directory, assetRoot),
+            "class" => ClassValue(value, property.PropertyType ?? "class", scope),
+            "list" => ListValue(value, scope),
             { } other => throw new FormatException(
-                $"Capsule does not import a {other} property; use a string, int, float, bool, color, file, object, enum, x/y class, left/top/right/bottom class or list property."),
+                $"Capsule does not import a {other} property; use a string, int, float, bool, color, file, object, enum, class or list property."),
         };
     }
 
     // An item takes the form a property of its type takes. An unset item fails, because leaving it out
     // would move every later item.
-    private static JsonArray ListValue(JsonElement value, string directory, string assetRoot)
+    private static JsonArray ListValue(JsonElement value, PropertyScope scope)
     {
         TiledProperty[] items = value.ValueKind == JsonValueKind.Array
             ? TiledJson.ReadItems(value)
@@ -99,33 +103,62 @@ internal sealed class TiledProperties(TiledProperty[]? properties)
         for (int index = 0; index < items.Length; index++)
         {
             TiledProperty item = items[index];
-            list.Add(TiledImporter.Within($"item {index}", () => ValueOf(item, directory, assetRoot))
+            list.Add(TiledImporter.Within($"item {index}", () => ValueOf(item, scope))
                 ?? throw new FormatException($"item {index} is unset; set it or remove it from the list in Tiled."));
         }
 
         return list;
     }
 
-    private static string AssetKeyOf(string file, string directory, string assetRoot)
+    private static string AssetKeyOf(string file, PropertyScope scope)
     {
-        string key = TiledImporter.AssetPathOf(file, directory, assetRoot);
+        string key = TiledImporter.AssetPathOf(file, scope.Directory, scope.AssetRoot);
         string? sceneExtension = Array.Find(SceneExtensions, extension => key.EndsWith(extension, StringComparison.OrdinalIgnoreCase));
 
         return sceneExtension is null ? key : key[..^sceneExtension.Length];
     }
 
-    private static JsonArray ClassValue(JsonElement value, string className)
+    // A class declaring exactly x and y, or left, top, right and bottom, is the array its member reads. Any other class
+    // the project declares is an object of its members.
+    private static JsonNode ClassValue(JsonElement value, string className, PropertyScope scope)
     {
         JsonProperty[] members = value.ValueKind == JsonValueKind.Object ? [.. value.EnumerateObject()] : [];
         string[] names = [.. members.Select(static member => member.Name)];
-        string[]? shape = Array.Find([VectorMembers, RectMembers], shape => names.Length == shape.Length && shape.All(names.Contains));
-        if (shape is null || members.Any(static member => member.Value.ValueKind != JsonValueKind.Number))
+        TiledClass? declared = Array.Find(scope.Classes ?? [], type => type.Name == className);
+        string[]? shape = ShapeOf(declared is null ? names : [.. declared.Members.Select(static member => member.Name ?? string.Empty)]);
+        if (shape is null && declared is not null)
         {
-            throw new FormatException(
-                $"class '{className}' sets {(names.Length == 0 ? "no member" : string.Join(", ", names))}; Capsule imports a class value that sets exactly the numbers x and y, or exactly left, top, right and bottom, once each. Tiled saves only the members a value sets, so set every member even where it is 0.");
+            return ObjectValue(members, declared, scope);
         }
 
-        return [.. shape.Select(member => JsonValue.Create(value.GetProperty(member)))];
+        if (shape is null || ShapeOf(names) != shape || members.Any(static member => member.Value.ValueKind != JsonValueKind.Number))
+        {
+            throw new FormatException(
+                $"class '{className}' sets {(names.Length == 0 ? "no member" : string.Join(", ", names))}; Capsule imports a class value that sets exactly the numbers x and y, or exactly left, top, right and bottom, once each, or any other class the project in TiledImporter.Project declares. Tiled saves only the members a value sets, so set every member of an x/y or left/top/right/bottom class even where it is 0.");
+        }
+
+        return new JsonArray([.. shape.Select(member => JsonValue.Create(value.GetProperty(member)))]);
+    }
+
+    private static string[]? ShapeOf(string[] names) =>
+        Array.Find([VectorMembers, RectMembers], shape => names.Length == shape.Length && shape.All(names.Contains));
+
+    // A map saves a class value's members with no types, so only the project tells a colour or a file from a string.
+    private static JsonObject ObjectValue(JsonProperty[] members, TiledClass declared, PropertyScope scope)
+    {
+        JsonObject read = [];
+        foreach (JsonProperty member in members)
+        {
+            TiledProperty type = Array.Find(declared.Members, candidate => candidate.Name == member.Name)
+                ?? throw new FormatException($"class '{declared.Name}' sets '{member.Name}', which the project does not declare; add the member in Tiled's Custom Types Editor or remove it from the value.");
+            TiledProperty typed = new() { Name = member.Name, Type = type.Type, PropertyType = type.PropertyType, Value = member.Value };
+            if (TiledImporter.Within($"member '{member.Name}'", () => ValueOf(typed, scope)) is { } value)
+            {
+                read[member.Name] = value;
+            }
+        }
+
+        return read;
     }
 
     private JsonElement? Take(string name, string type)

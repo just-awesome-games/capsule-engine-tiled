@@ -372,6 +372,33 @@
       ]
     },
     {
+      "id": 8,
+      "type": "anchor",
+      "x": 8,
+      "y": 8,
+      "zIndex": 3,
+      "scrollFactor": [
+        0.25,
+        0.75
+      ],
+      "part": {
+        "destination": "Scenes/hall",
+        "inner": {
+          "depth": 2
+        },
+        "offset": [
+          1,
+          2
+        ],
+        "target": 1,
+        "ticks": [
+          10
+        ],
+        "tint": "#112233",
+        "type": "keyed"
+      }
+    },
+    {
       "type": "tile-map",
       "tileSize": 16,
       "width": 4,

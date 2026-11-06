@@ -19,6 +19,12 @@ public sealed class TiledImporter : IAssetImporter
     /// <summary>The map extension, <c>.tmj</c>.</summary>
     public IReadOnlyList<string> Extensions { get; } = [".tmj"];
 
+    /// <summary>
+    /// The Tiled project below the asset root, as <c>Scenes/game.tiled-project</c>, whose classes give a class value's
+    /// members their types. Null reads only class values setting x and y, or left, top, right and bottom.
+    /// </summary>
+    public string? Project { get; init; }
+
     /// <summary>Imports one map into one scene document.</summary>
     /// <exception cref="FormatException">The map or a tileset it names falls outside the supported Tiled subset.</exception>
     public void Import(AssetImportContext context)
@@ -28,18 +34,21 @@ public sealed class TiledImporter : IAssetImporter
         TiledMap map = TiledJson.Read<TiledMap>(context.ReadAllText(context.SourcePath));
         RequireSupported(map, context.TileSize);
 
-        Tileset[] tilesets = Tilesets.Load(map, context);
-        string mapDirectory = Path.GetDirectoryName(Path.GetFullPath(context.SourcePath))!;
+        TiledClass[]? classes = Project is { } project
+            ? Within($"project '{project}'", () => TiledJson.Read<TiledProject>(context.ReadAllText(Path.Combine(context.AssetRoot, project))).PropertyTypes)
+            : null;
+        PropertyScope scope = new(Path.GetDirectoryName(Path.GetFullPath(context.SourcePath))!, context.AssetRoot, classes);
+        Tileset[] tilesets = Tilesets.Load(map, context, scope);
         List<SceneDocumentEntry> entries = [];
         foreach (TiledLayer layer in map.Layers)
         {
             switch (layer.Type)
             {
                 case "tilelayer":
-                    entries.Add(TileLayers.ToEntry(layer, map, tilesets, mapDirectory, context.AssetRoot));
+                    entries.Add(TileLayers.ToEntry(layer, map, tilesets, scope));
                     break;
                 case "objectgroup":
-                    entries.AddRange(ObjectLayers.ToEntries(layer, tilesets, mapDirectory, context.AssetRoot));
+                    entries.AddRange(ObjectLayers.ToEntries(layer, tilesets, scope));
                     break;
                 default:
                     throw new FormatException(
@@ -60,7 +69,7 @@ public sealed class TiledImporter : IAssetImporter
             members["camera"] = camera;
         }
 
-        properties.AddTo(members, mapDirectory, context.AssetRoot, "clearColor");
+        properties.AddTo(members, scope, "clearColor");
 
         SceneDocument scene;
         try

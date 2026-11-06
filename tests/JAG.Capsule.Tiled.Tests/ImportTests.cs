@@ -6,9 +6,12 @@ using Capsule.Build;
 namespace JAG.Capsule.Tiled.Tests;
 
 // Imports Fixtures/Scenes/golden.tmj from a copy of Fixtures/ as the asset root. Each refusal row
-// edits the copy first. An edit is "path=json", and a path starting "tileset:" edits terrain.tsj.
+// edits the copy first. An edit is "path=json", a path starting "tileset:" edits terrain.tsj and one starting
+// "project:" edits golden.tiled-project.
 public sealed class ImportTests : IDisposable
 {
+    private const string Project = "golden.tiled-project";
+
     private static readonly string Fixtures = Path.Combine(AppContext.BaseDirectory, "Fixtures");
 
     private readonly DirectoryInfo _root = Directory.CreateTempSubdirectory("capsule-tiled-");
@@ -27,6 +30,8 @@ public sealed class ImportTests : IDisposable
 
     private string TilesetPath => Path.Combine(_root.FullName, "Tilesets", "terrain.tsj");
 
+    private string ProjectPath => Path.Combine(_root.FullName, Project);
+
     public void Dispose() => _root.Delete(recursive: true);
 
     [Fact]
@@ -41,11 +46,11 @@ public sealed class ImportTests : IDisposable
         Assert.Equal(expected.ToJsonString(), scene);
     }
 
-    // The build re-imports a map when any of its inputs changes, so an edited tileset re-imports its maps.
+    // The build re-imports a map when any of its inputs changes, so an edited tileset or project re-imports its maps.
     [Fact]
-    public void TheMapAndEachTilesetItReadsAreInputs()
+    public void TheMapItsProjectAndEachTilesetItReadsAreInputs()
     {
-        Assert.Equal([MapPath, TilesetPath], Import().Inputs.Select(Path.GetFullPath));
+        Assert.Equal([MapPath, ProjectPath, TilesetPath], Import().Inputs.Select(Path.GetFullPath));
     }
 
     // The build reports any IOException against the map.
@@ -96,6 +101,10 @@ public sealed class ImportTests : IDisposable
     [InlineData("layers.3.objects.3.properties.0.value=-1", "property 'lift': '-1' is not an object id")]
     [InlineData("layers.3.objects.5.properties.2.value.1={\"type\":\"object\",\"value\":0}", "property 'ticks': item 1 is unset")]
     [InlineData("layers.3.objects.5.properties.1.value={\"y\":4}", "property 'drift': class 'Vector2' sets y; Capsule imports a class value that sets exactly")]
+    [InlineData("project:propertyTypes.1.name=\"Other\"", "property 'part': class 'Part' sets destination, inner, offset, target, ticks, tint, type; Capsule imports a class value")]
+    [InlineData("project:propertyTypes.1.members.0.name=\"other\"", "property 'part': class 'Part' sets 'destination', which the project does not declare")]
+    [InlineData("layers.3.objects.7.properties.0.value.tint=\"#zz\"", "property 'part': member 'tint': '#zz' is not a #rrggbb or #aarrggbb colour")]
+    [InlineData("project:=null", "project 'golden.tiled-project': the file holds no Tiled document")]
     [InlineData("layers.3.objects.2.properties.0.value=\"#zz\"", "property 'core': '#zz' is not a #rrggbb or #aarrggbb colour")]
     [InlineData("layers.3.objects.1.properties.1.value=\"../../door.ogg\"", "property 'music': '../../door.ogg' resolves to")]
     [InlineData("tilesets.0.source=\"../Tilesets/terrain.tsx\"", "tileset '../Tilesets/terrain.tsx': the tileset is XML")]
@@ -124,7 +133,7 @@ public sealed class ImportTests : IDisposable
     private AssetImportContext Import()
     {
         AssetImportContext context = new(MapPath, _root.FullName) { TileSize = 16 };
-        new TiledImporter().Import(context);
+        new TiledImporter { Project = Project }.Import(context);
 
         return context;
     }
@@ -135,8 +144,10 @@ public sealed class ImportTests : IDisposable
         {
             int equals = edit.IndexOf('=', StringComparison.Ordinal);
             string path = edit[..equals];
-            string file = path.StartsWith("tileset:", StringComparison.Ordinal) ? TilesetPath : MapPath;
-            JsonNode? root = Set(JsonNode.Parse(File.ReadAllText(file))!, path.Replace("tileset:", string.Empty, StringComparison.Ordinal), JsonNode.Parse(edit[(equals + 1)..]));
+            string file = path.StartsWith("tileset:", StringComparison.Ordinal) ? TilesetPath
+                : path.StartsWith("project:", StringComparison.Ordinal) ? ProjectPath
+                : MapPath;
+            JsonNode? root = Set(JsonNode.Parse(File.ReadAllText(file))!, path[(path.IndexOf(':', StringComparison.Ordinal) + 1)..], JsonNode.Parse(edit[(equals + 1)..]));
             File.WriteAllText(file, root?.ToJsonString() ?? "null");
         }
     }

@@ -1,0 +1,98 @@
+{
+  "automappingRulesFile": "",
+  "commands": [],
+  "extensionsPath": "extensions",
+  "folders": [
+    "."
+  ],
+  "propertyTypes": [
+    {
+      "id": 1,
+      "name": "Inner",
+      "type": "class",
+      "color": "#ffa0a0a4",
+      "drawFill": true,
+      "useAs": [
+        "property"
+      ],
+      "members": [
+        {
+          "name": "depth",
+          "type": "int",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Part",
+      "type": "class",
+      "color": "#ffa0a0a4",
+      "drawFill": true,
+      "useAs": [
+        "property"
+      ],
+      "members": [
+        {
+          "name": "destination",
+          "type": "file",
+          "value": ""
+        },
+        {
+          "name": "inner",
+          "type": "class",
+          "propertyType": "Inner",
+          "value": {}
+        },
+        {
+          "name": "offset",
+          "type": "class",
+          "propertyType": "Vector2",
+          "value": {}
+        },
+        {
+          "name": "target",
+          "type": "object",
+          "value": 0
+        },
+        {
+          "name": "ticks",
+          "type": "list",
+          "value": []
+        },
+        {
+          "name": "tint",
+          "type": "color",
+          "value": ""
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Vector2",
+      "type": "class",
+      "color": "#ffa0a0a4",
+      "drawFill": true,
+      "useAs": [
+        "property"
+      ],
+      "members": [
+        {
+          "name": "x",
+          "type": "float",
+          "value": 0
+        },
+        {
+          "name": "y",
+          "type": "float",
+          "value": 0
+        }
+      ]
+    }
+  ]
+}
