@@ -79,6 +79,10 @@ csharp_space_around_binary_operators = before_and_after
 csharp_preserve_single_line_statements = false
 csharp_preserve_single_line_blocks = true
 
+# dotnet build enforces these two only when they are named here.
+dotnet_diagnostic.IDE0065.severity = warning
+dotnet_diagnostic.IDE1006.severity = warning
+
 # Naming rules are matched in declaration order, so the narrow field rules
 # (const, then static) must precede the catch-all instance-field rule.
 dotnet_naming_rule.constants_are_pascal_case.severity = warning

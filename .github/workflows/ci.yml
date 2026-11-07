@@ -12,7 +12,6 @@ permissions:
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
   # The module built from source beside the engine's main head, with no pin. An engine change the
@@ -55,12 +54,13 @@ jobs:
         working-directory: capsule-engine-tiled
         run: dotnet build --configuration Release --no-restore
 
-      # Format takes no MSBuild properties, and its workspace must match the Release build above.
+      # Format takes no MSBuild properties, and its workspace must match the Release build above. The
+      # engine's clone is the engine's to check.
       - name: Format
         working-directory: capsule-engine-tiled
         env:
           Configuration: Release
-        run: dotnet format --verify-no-changes --no-restore
+        run: dotnet format --verify-no-changes --no-restore --exclude ../capsule-engine
 
       - name: Test
         working-directory: capsule-engine-tiled
@@ -76,11 +76,6 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      - uses: actions/cache@v6
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json') }}
-          restore-keys: nuget-${{ runner.os }}-
       - name: Restore
         run: dotnet restore --locked-mode
       - name: Build (Release)

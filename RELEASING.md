@@ -49,7 +49,6 @@ CI's `packages` lane runs these. A source-mode restore, which the pre-commit hoo
 ```bash
 dotnet restore -p:CapsuleSourcePath=
 dotnet build --configuration Release --no-restore -p:CapsuleSourcePath=
-dotnet format --verify-no-changes --no-restore
 dotnet test --configuration Release --no-build -p:CapsuleSourcePath=
 dotnet pack JAG.Capsule.Tiled.slnx --configuration Release --no-build --output artifacts/packages -p:CapsuleSourcePath=
 ```
@@ -58,7 +57,7 @@ Clear `artifacts/packages` first if a stale pack from an earlier run is there.
 
 ## 3. Commit and push
 
-The pre-commit hook runs the source-mode gates (locked restore, build, format, test) against the
+The pre-commit hook runs the source-mode gates (whitespace, restore, build, test) against the
 sibling engine clone named in `Directory.Build.local.props`.
 
 ```bash

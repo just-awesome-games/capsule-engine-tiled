@@ -1,6 +1,6 @@
 #!/bin/sh
-# A locked restore, the build, the format check and the tests, in source mode against the sibling
-# capsule-engine clone. ci.yml runs the package-mode gates and the pack.
+# The whitespace check, a restore, the build and the tests, in source mode against the sibling
+# capsule-engine clone. ci.yml runs the whole format pass, the package-mode gates and the pack.
 # Activate once with: git config core.hooksPath .githooks
 set -u
 
@@ -16,11 +16,17 @@ run() {
     fi
 }
 
+run "whitespace check" dotnet format whitespace . --folder --verify-no-changes --exclude "**/bin/**" "**/obj/**" "**/artifacts/**"
+
 # Later steps pass --no-restore. An implicit unlocked restore would rewrite a drifted lock file
-# instead of failing as CI does.
-run "locked restore" dotnet restore --locked-mode
+# instead of failing as CI does. A source-mode lock file sits under obj/ and follows whatever last
+# restored there, as a game's publish does. That restore resolves it afresh.
+if [ -n "$(dotnet msbuild src/JAG.Capsule.Tiled/JAG.Capsule.Tiled.csproj -getProperty:NuGetLockFilePath)" ]; then
+    run "source-mode restore" dotnet restore --force-evaluate
+else
+    run "locked restore" dotnet restore --locked-mode
+fi
 run "build" dotnet build --no-restore
-run "format check" dotnet format --verify-no-changes --no-restore
 run "tests" dotnet test --no-build
 
 echo "pre-commit: all gates passed"
