@@ -18,7 +18,10 @@ internal static class ObjectLayers
                 throw new FormatException("the layer sets 'collider', which only a tile layer reads, and an object collides as its class does; remove the property.");
             }
 
-            return properties.TakeInt("zIndex");
+            int? band = properties.TakeInt("zIndex");
+            properties.RefuseEntryKeys();
+
+            return band;
         });
 
         return [.. (layer.Objects ?? []).Select(placed => TiledImporter.Within(
@@ -42,6 +45,7 @@ internal static class ObjectLayers
         TiledProperties properties = new(placed.Properties);
         EntitySpawn spawn = new(new Vector2((float)placed.X, (float)placed.Y))
         {
+            Name = TiledImporter.NameOf(placed.Name),
             Rotation = float.DegreesToRadians((float)placed.Rotation),
             Scale = placed.Gid is { } gid ? ScaleOf(placed, gid, tilesets) : Vector2.One,
             ZIndex = properties.TakeInt("zIndex") ?? layerZIndex,
@@ -60,7 +64,7 @@ internal static class ObjectLayers
             members["path"] = new JsonArray([.. path.Select(static point => new JsonArray(point.X, point.Y))]);
         }
 
-        properties.AddTo(members, scope);
+        properties.AddToEntry(members, scope);
 
         return new SceneDocumentEntry(placed.Type, spawn, TiledJson.ToElement(members)) { Id = placed.Id };
     }

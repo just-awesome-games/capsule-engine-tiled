@@ -84,6 +84,9 @@ public sealed class TiledImporter : IAssetImporter
         context.Write(Path.ChangeExtension(context.AssetPath, ".scene.json"), scene.ToJson());
     }
 
+    // Tiled leaves Name empty on a layer or object nobody named, which keeps the entity's own name.
+    internal static string? NameOf(string? name) => string.IsNullOrWhiteSpace(name) ? null : name;
+
     internal static T Within<T>(string context, Func<T> import)
     {
         try

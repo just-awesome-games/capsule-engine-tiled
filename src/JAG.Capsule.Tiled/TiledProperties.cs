@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Capsule.Rendering;
+using Capsule.Scenes;
 
 namespace JAG.Capsule.Tiled;
 
@@ -36,6 +37,28 @@ internal sealed class TiledProperties(TiledProperty[]? properties)
         { ValueKind: JsonValueKind.Number } value when value.TryGetInt32(out int number) => number,
         { } value => throw NotA(name, value, "int"),
     };
+
+    // An entry's members, where a property may not take a key the scene document keeps for the entry itself.
+    internal void AddToEntry(JsonObject members, PropertyScope scope, params ReadOnlySpan<string> reserved)
+    {
+        RefuseEntryKeys();
+        AddTo(members, scope, reserved);
+    }
+
+    // An object layer makes no entry of its own, and its properties still reach each of its objects' entries.
+    internal void RefuseEntryKeys()
+    {
+        foreach (TiledProperty property in _remaining)
+        {
+            string name = property.Name ?? string.Empty;
+            if (SceneDocumentKeys.Entry.Contains(name))
+            {
+                throw new FormatException(name == SceneDocumentKeys.Entry.Name
+                    ? "property 'name': the scene document reserves 'name' for the entry; set the Name field of the object or tile layer instead and remove the property."
+                    : $"property '{name}': the scene document reserves '{name}' for the entry, and Capsule sets it from the object's or layer's own fields; rename or remove the property.");
+            }
+        }
+    }
 
     internal void AddTo(JsonObject members, PropertyScope scope, params ReadOnlySpan<string> reserved)
     {

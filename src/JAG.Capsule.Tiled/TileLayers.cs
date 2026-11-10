@@ -21,7 +21,12 @@ internal static class TileLayers
         TiledImporter.Within($"tile layer '{layer.Name}'", () =>
         {
             TiledProperties properties = new(layer.Properties);
-            EntitySpawn spawn = new(Vector2.Zero) { ZIndex = properties.TakeInt("zIndex"), ScrollFactor = layer.ScrollFactor };
+            EntitySpawn spawn = new(Vector2.Zero)
+            {
+                Name = TiledImporter.NameOf(layer.Name),
+                ZIndex = properties.TakeInt("zIndex"),
+                ScrollFactor = layer.ScrollFactor,
+            };
             bool collider = properties.TakeBool("collider");
             if (layer.Width != map.Width || layer.Height != map.Height)
             {
@@ -60,7 +65,7 @@ internal static class TileLayers
             }
 
             // Capsule writes these only when the layer paints or turns a tile, and a property never stands in for them.
-            properties.AddTo(members, scope, "texture", "columns", "transforms");
+            properties.AddToEntry(members, scope, "texture", "columns", "transforms");
 
             return new SceneDocumentEntry(string.IsNullOrWhiteSpace(layer.Class) ? "tile-map" : layer.Class, spawn, TiledJson.ToElement(members));
         });

@@ -45,6 +45,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Map custom property | the scene member of its name, such as `ambient` or `sampling` |
 | Tile layer | a `tile-map` entry |
 | Tile layer Class | entry `type`, the `TileMap` subclass key |
+| Tile layer Name, when not blank | entry `name`, the tile map's `Name` |
 | Tile layer custom property | the tile map member of its name |
 | Tile layer hidden in Tiled | a tile map with no texture, whose tile types name no cell or frames: it draws nothing and still collides |
 | Tile layer tile flipped horizontally, vertically or diagonally | tile map `transforms`, which turns its drawing and collision shape alike |
@@ -56,6 +57,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Tile Collision Editor holding one unrotated polygon or rectangle, on a tile with a `layer` | tile type `shape`, `[[x, y], ...]` in pixels from the tile's top-left corner; an empty editor, or a rectangle covering the tile, is the whole tile |
 | Tile Animation Editor frames | tile type `frames` in place of `cell`, each frame's tile ID its `cell` and its duration its `ticks` at 60 steps a second, rounded to the nearest step and at least 1; the animated tile's own properties and collision apply |
 | Object ID, Class, position and Rotation | entry `id`, `type`, `x`, `y` and `rotation` |
+| Object Name, when not blank | entry `name`, the entity's `Name` |
 | Tile object size over its tile size | entry `scale` |
 | Rectangle or ellipse object Width and Height, when not 0 | entry `size`, `[w, h]` in pixels |
 | Polyline or polygon object points | entry `path`, `[[x, y], ...]` in pixels from the object's position; a polygon repeats its first point at the end |
@@ -64,7 +66,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | `collider` bool property on a tile layer | tile map `collider`; a layer without it only draws |
 | Tile layer or object layer Parallax Factor other than 1, 1 | entry `scrollFactor` on the tile map or on each of the layer's objects |
 
-Custom properties take these value forms. A property named after a key the importer writes itself fails the import.
+Custom properties take these value forms. A property named after a key the importer writes itself, or on a layer or object after a key the scene document keeps for an entry such as `name`, fails the import.
 
 | Map, layer, object or tile property | Scene, entry or tile type member |
 | --- | --- |

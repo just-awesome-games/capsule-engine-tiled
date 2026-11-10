@@ -16,6 +16,7 @@
   "outdoors": false,
   "entities": [
     {
+      "name": "terrain",
       "type": "tile-map",
       "zIndex": -10,
       "tileSize": 16,
@@ -169,6 +170,7 @@
       "collider": true
     },
     {
+      "name": "backdrop",
       "type": "gated-tile-map",
       "scrollFactor": [
         0.5,
@@ -209,6 +211,7 @@
       "gate": "boss-cleared"
     },
     {
+      "name": "empty",
       "type": "tile-map",
       "tileSize": 16,
       "width": 4,
@@ -246,6 +249,7 @@
     },
     {
       "id": 2,
+      "name": "north",
       "type": "door",
       "x": 64,
       "y": 48,
@@ -399,6 +403,7 @@
       }
     },
     {
+      "name": "collision",
       "type": "tile-map",
       "tileSize": 16,
       "width": 4,
