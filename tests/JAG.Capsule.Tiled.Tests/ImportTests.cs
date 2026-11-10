@@ -76,7 +76,7 @@ public sealed class ImportTests : IDisposable
     [InlineData("layers.3.objects.0.properties.0.name=\"x\"", "object 1 on layer 'things': property 'x': the scene document reserves 'x' for the entry")]
     [InlineData("layers.0.properties.1.name=\"name\"", "tile layer 'terrain': property 'name': the scene document reserves 'name' for the entry; set the Name field of the object or tile layer instead")]
     [InlineData("layers.3.properties=[{\"name\":\"name\",\"type\":\"string\",\"value\":\"props\"}]", "object layer 'things': property 'name': the scene document reserves 'name' for the entry")]
-    [InlineData("layers.3.objects.1.name=\"north (2)\"", "is named 'north (2)', which ends in a number in parentheses")]
+    [InlineData("layers.3.objects.1.name=\"north (2)\"", "object 2 on layer 'things': it imports to an invalid entry: entities[0] ('door' at (64, 48)) is named 'north (2)', which ends in a number in parentheses")]
     [InlineData("layers.3.objects.1.properties.0.name=\"size\"", "object 2 on layer 'things': property 'size': Capsule writes 'size' itself")]
     [InlineData("tileset:tiles.0.properties.1={\"name\":\"shape\",\"type\":\"int\",\"value\":7}", "tile 0 (Class 'ground'): property 'shape': Capsule writes 'shape' itself")]
     [InlineData("layers.2.properties=[{\"name\":\"texture\",\"type\":\"string\",\"value\":\"Textures/props.png\"}]", "tile layer 'empty': property 'texture': Capsule writes 'texture' itself")]

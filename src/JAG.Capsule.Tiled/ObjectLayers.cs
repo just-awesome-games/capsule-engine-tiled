@@ -66,7 +66,7 @@ internal static class ObjectLayers
 
         properties.AddToEntry(members, scope);
 
-        return new SceneDocumentEntry(placed.Type, spawn, TiledJson.ToElement(members)) { Id = placed.Id };
+        return TiledImporter.Checked(new SceneDocumentEntry(placed.Type, spawn, TiledJson.ToElement(members)) { Id = placed.Id });
     }
 
     private static void RequirePlaceableShape(TiledObject placed)

@@ -67,7 +67,7 @@ internal static class TileLayers
             // Capsule writes these only when the layer paints or turns a tile, and a property never stands in for them.
             properties.AddToEntry(members, scope, "texture", "columns", "transforms");
 
-            return new SceneDocumentEntry(string.IsNullOrWhiteSpace(layer.Class) ? "tile-map" : layer.Class, spawn, TiledJson.ToElement(members));
+            return TiledImporter.Checked(new SceneDocumentEntry(string.IsNullOrWhiteSpace(layer.Class) ? "tile-map" : layer.Class, spawn, TiledJson.ToElement(members)));
         });
 
     private static uint[] Decode(TiledLayer layer)

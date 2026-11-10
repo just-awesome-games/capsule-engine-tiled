@@ -87,6 +87,21 @@ public sealed class TiledImporter : IAssetImporter
     // Tiled leaves Name empty on a layer or object nobody named, which keeps the entity's own name.
     internal static string? NameOf(string? name) => string.IsNullOrWhiteSpace(name) ? null : name;
 
+    // Runs the scene document's own check of one entry while its layer or object is still known to the error.
+    internal static SceneDocumentEntry Checked(SceneDocumentEntry entry)
+    {
+        try
+        {
+            _ = new SceneDocument([entry]);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new FormatException($"it imports to an invalid entry: {ex.Message}", ex);
+        }
+
+        return entry;
+    }
+
     internal static T Within<T>(string context, Func<T> import)
     {
         try
