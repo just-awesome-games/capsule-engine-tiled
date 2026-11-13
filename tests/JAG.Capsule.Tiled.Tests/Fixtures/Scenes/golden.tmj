@@ -28,10 +28,12 @@
         },
         {
          "class":"gated-tile-map",
-         "data":[9, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+         "data":[9, 2147483658, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
          "height":3,
          "id":2,
          "name":"backdrop",
+         "offsetx":16,
+         "offsety":32,
          "opacity":1,
          "parallaxx":0.5,
          "properties":[
@@ -302,6 +304,8 @@
                  "x":8,
                  "y":8
                 }],
+         "offsetx":2,
+         "offsety":-4,
          "opacity":1,
          "parallaxx":0.25,
          "parallaxy":0.75,

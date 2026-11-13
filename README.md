@@ -34,7 +34,7 @@ Capsule Tiled imports [Tiled](https://www.mapeditor.org/) maps into [Capsule Eng
 
 ## Tiled subset
 
-Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finite, square-tiled and CSV-encoded. Their objects are points, rectangles, ellipses, polylines, polygons and unflipped tile objects, none of them a template instance. A rectangle or ellipse has both a width and a height or neither. A polyline or polygon has no Rotation. A tileset is a single image under `Assets/` whose tile size equals the map's, and a layer paints from one tileset. Anything else fails the build.
+Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finite, square-tiled and CSV-encoded. Their objects are points, rectangles, ellipses, polylines, polygons and unflipped tile objects, none of them a template instance. A rectangle or ellipse has both a width and a height or neither. A polyline or polygon has no Rotation. A tileset is a single image under `Assets/` whose tile size equals the map's, a layer paints from one tileset, and a layer has an Opacity of 1 and no Tint Color. Anything else fails the build.
 
 | Tiled | Scene document |
 | --- | --- |
@@ -56,7 +56,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Tile custom property | the tile type member of its name; `type` names the `TileType` subclass |
 | Tile Collision Editor holding one unrotated polygon or rectangle, on a tile with a `layer` | tile type `shape`, `[[x, y], ...]` in pixels from the tile's top-left corner; an empty editor, or a rectangle covering the tile, is the whole tile |
 | Tile Animation Editor frames | tile type `frames` in place of `cell`, each frame's tile ID its `cell` and its duration its `ticks` at 60 steps a second, rounded to the nearest step and at least 1; the animated tile's own properties and collision apply |
-| Object ID, Class, position and Rotation | entry `id`, `type`, `x`, `y` and `rotation` |
+| Object ID, Class, position and Rotation | entry `id`, `type`, `x`, `y` and `rotation`, the position moved by its layer's Offset |
 | Object Name, when not blank | entry `name`, the entity's `Name` |
 | Tile object size over its tile size | entry `scale` |
 | Rectangle or ellipse object Width and Height, when not 0 | entry `size`, `[w, h]` in pixels |
@@ -65,6 +65,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | `zIndex` int property on a tile layer, object layer or object | entry `zIndex`; an object's overrides its layer's |
 | `collider` bool property on a tile layer | tile map `collider`; a layer without it only draws |
 | Tile layer or object layer Parallax Factor other than 1, 1 | entry `scrollFactor` on the tile map or on each of the layer's objects |
+| Tile layer Offset, in whole tiles | tile map `tiles` and `transforms` moved by it, each painted tile staying on the map |
 
 Custom properties take these value forms. A property named after a key the importer writes itself, or on a layer or object after a key the scene document keeps for an entry such as `name`, fails the import.
 

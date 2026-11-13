@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -20,6 +21,7 @@ internal static class TileLayers
     internal static SceneDocumentEntry ToEntry(TiledLayer layer, TiledMap map, Tileset[] tilesets, PropertyScope scope) =>
         TiledImporter.Within($"tile layer '{layer.Name}'", () =>
         {
+            TiledImporter.RequireUnblended(layer);
             TiledProperties properties = new(layer.Properties);
             EntitySpawn spawn = new(Vector2.Zero)
             {
@@ -35,6 +37,10 @@ internal static class TileLayers
             }
 
             (Tileset? painted, int[] tiles, int[]? transforms, JsonArray? palette) = Convert(Decode(layer), tilesets);
+            if (layer.Offset != Vector2.Zero)
+            {
+                (tiles, transforms) = Shifted(tiles, transforms, layer, map.TileWidth);
+            }
 
             JsonObject members = new() { ["tileSize"] = map.TileWidth, ["width"] = map.Width, ["height"] = map.Height };
             if (!layer.Visible)
@@ -142,6 +148,47 @@ internal static class TileLayers
         }
 
         return painted is null ? (null, tiles, transforms, null) : (painted, tiles, transforms, (JsonArray)painted.Palette.DeepClone());
+    }
+
+    // A tile map sits at the world origin, so a layer's Offset moves its tiles instead, which is what Tiled previews.
+    private static (int[] Tiles, int[]? Transforms) Shifted(int[] tiles, int[]? transforms, TiledLayer layer, int tileSize)
+    {
+        if (layer.OffsetX % tileSize != 0 || layer.OffsetY % tileSize != 0)
+        {
+            throw new FormatException(string.Create(
+                CultureInfo.InvariantCulture,
+                $"the layer's Offset is ({layer.OffsetX}, {layer.OffsetY}), which is not a whole number of {tileSize}-pixel tiles, and a tile map's tiles sit on the map's grid; snap the offset to whole tiles."));
+        }
+
+        int dx = (int)(layer.OffsetX / tileSize);
+        int dy = (int)(layer.OffsetY / tileSize);
+        int[] movedTiles = new int[tiles.Length];
+        int[]? movedTransforms = transforms is null ? null : new int[tiles.Length];
+        for (int index = 0; index < tiles.Length; index++)
+        {
+            if (tiles[index] == 0)
+            {
+                continue;
+            }
+
+            (int y, int x) = Math.DivRem(index, layer.Width);
+            int toX = x + dx;
+            int toY = y + dy;
+            if (toX < 0 || toX >= layer.Width || toY < 0 || toY >= layer.Height)
+            {
+                throw new FormatException(
+                    $"the layer's Offset moves the tile at ({x}, {y}) to ({toX}, {toY}), off the {layer.Width}x{layer.Height} map; move the tile, or the offset, so every tile stays on the map.");
+            }
+
+            int to = toY * layer.Width + toX;
+            movedTiles[to] = tiles[index];
+            if (movedTransforms is not null)
+            {
+                movedTransforms[to] = transforms![index];
+            }
+        }
+
+        return (movedTiles, movedTransforms);
     }
 
     private static TileTransform TransformOf(uint gid)

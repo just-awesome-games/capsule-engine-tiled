@@ -195,8 +195,20 @@
         }
       ],
       "tiles": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
         1,
         2,
+        0
+      ],
+      "transforms": [
         0,
         0,
         0,
@@ -206,6 +218,8 @@
         0,
         0,
         0,
+        0,
+        1,
         0
       ],
       "gate": "boss-cleared"
@@ -239,8 +253,8 @@
     {
       "id": 1,
       "type": "player",
-      "x": 16,
-      "y": 32,
+      "x": 18,
+      "y": 28,
       "zIndex": 7,
       "scrollFactor": [
         0.25,
@@ -251,8 +265,8 @@
       "id": 2,
       "name": "north",
       "type": "door",
-      "x": 64,
-      "y": 48,
+      "x": 66,
+      "y": 44,
       "rotation": 22.5,
       "zIndex": 3,
       "scrollFactor": [
@@ -269,8 +283,8 @@
     {
       "id": 3,
       "type": "glow",
-      "x": 8,
-      "y": 8,
+      "x": 10,
+      "y": 4,
       "zIndex": 3,
       "scrollFactor": [
         0.25,
@@ -286,7 +300,8 @@
     {
       "id": 4,
       "type": "rail",
-      "y": 40,
+      "x": 2,
+      "y": 36,
       "zIndex": 3,
       "scrollFactor": [
         0.25,
@@ -307,8 +322,8 @@
     {
       "id": 5,
       "type": "zone",
-      "x": 24,
-      "y": 24,
+      "x": 26,
+      "y": 20,
       "zIndex": 3,
       "scrollFactor": [
         0.25,
@@ -338,8 +353,7 @@
     {
       "id": 6,
       "type": "spawn",
-      "x": 4,
-      "y": 4,
+      "x": 6,
       "zIndex": 3,
       "scrollFactor": [
         0.25,
@@ -363,8 +377,8 @@
     {
       "id": 7,
       "type": "crate",
-      "x": 64,
-      "y": 48,
+      "x": 66,
+      "y": 44,
       "scale": [
         2,
         0.5
@@ -378,8 +392,8 @@
     {
       "id": 8,
       "type": "anchor",
-      "x": 8,
-      "y": 8,
+      "x": 10,
+      "y": 4,
       "zIndex": 3,
       "scrollFactor": [
         0.25,

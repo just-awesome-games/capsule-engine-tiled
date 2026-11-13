@@ -74,9 +74,15 @@ internal sealed class TiledLayer
     public bool Visible { get; set; } = true;
     public double ParallaxX { get; set; } = 1;
     public double ParallaxY { get; set; } = 1;
+    public double OffsetX { get; set; }
+    public double OffsetY { get; set; }
+    public double Opacity { get; set; } = 1;
+    public string? TintColor { get; set; }
     public JsonElement Data { get; set; }
     public TiledObject[]? Objects { get; set; }
     public TiledProperty[]? Properties { get; set; }
+
+    internal Vector2 Offset => new((float)OffsetX, (float)OffsetY);
 
     internal Vector2? ScrollFactor =>
         ParallaxX == 1 && ParallaxY == 1 ? null : new Vector2((float)ParallaxX, (float)ParallaxY);

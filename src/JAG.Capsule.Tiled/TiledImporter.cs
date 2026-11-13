@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Nodes;
 using Capsule.Build;
 using Capsule.Scenes;
@@ -100,6 +101,24 @@ public sealed class TiledImporter : IAssetImporter
         }
 
         return entry;
+    }
+
+    // Capsule draws a layer as its tiles or entities draw themselves, so a layer-wide blend would preview in Tiled and
+    // never reach the game.
+    internal static void RequireUnblended(TiledLayer layer)
+    {
+        if (layer.Opacity != 1)
+        {
+            throw new FormatException(string.Create(
+                CultureInfo.InvariantCulture,
+                $"the layer's Opacity is {layer.Opacity}, and Capsule draws no layer-wide opacity; set it to 1 and fade what draws in the game."));
+        }
+
+        if (layer.TintColor is { } tint)
+        {
+            throw new FormatException(
+                $"the layer's Tint Color is '{tint}', and Capsule draws no layer-wide tint; clear it and colour what draws in the game.");
+        }
     }
 
     internal static T Within<T>(string context, Func<T> import)

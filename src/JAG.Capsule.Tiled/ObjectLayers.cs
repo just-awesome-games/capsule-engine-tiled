@@ -12,6 +12,7 @@ internal static class ObjectLayers
     {
         int? zIndex = TiledImporter.Within($"object layer '{layer.Name}'", () =>
         {
+            TiledImporter.RequireUnblended(layer);
             TiledProperties properties = new(layer.Properties);
             if (properties.TakeBool("collider"))
             {
@@ -43,7 +44,7 @@ internal static class ObjectLayers
 
         RequirePlaceableShape(placed);
         TiledProperties properties = new(placed.Properties);
-        EntitySpawn spawn = new(new Vector2((float)placed.X, (float)placed.Y))
+        EntitySpawn spawn = new(layer.Offset + new Vector2((float)placed.X, (float)placed.Y))
         {
             Name = TiledImporter.NameOf(placed.Name),
             Rotation = float.DegreesToRadians((float)placed.Rotation),
