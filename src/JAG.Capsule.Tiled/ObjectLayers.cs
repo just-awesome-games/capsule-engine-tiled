@@ -12,7 +12,7 @@ internal static class ObjectLayers
     {
         int? zIndex = TiledImporter.Within($"object layer '{layer.Name}'", () =>
         {
-            TiledImporter.RequireUnblended(layer);
+            RequireUnblended(layer);
             TiledProperties properties = new(layer.Properties);
             if (properties.TakeBool("collider"))
             {
@@ -28,6 +28,25 @@ internal static class ObjectLayers
         return [.. (layer.Objects ?? []).Select(placed => TiledImporter.Within(
             $"object {placed.Id} on layer '{layer.Name}'",
             () => ToEntry(placed, layer, zIndex, tilesets, scope)))];
+    }
+
+    // An object's own code replaces its tint rather than multiplying into it, the roots it spawns later inherit nothing,
+    // and a tint dims its lights and lines. A layer-wide blend would preview in Tiled and not reach the game.
+    private static void RequireUnblended(TiledLayer layer)
+    {
+        const string Reason = "an object's own code replaces its tint, what it spawns inherits none, and a tint dims its lights and lines";
+        if (layer.Opacity != 1)
+        {
+            throw new FormatException(string.Create(
+                CultureInfo.InvariantCulture,
+                $"the layer's Opacity is {layer.Opacity}, and Capsule fades no object layer: {Reason}; set it to 1 and fade the objects in the game."));
+        }
+
+        if (layer.TintColor is { } tint)
+        {
+            throw new FormatException(
+                $"the layer's Tint Color is '{tint}', and Capsule tints no object layer: {Reason}; clear it and colour the objects in the game.");
+        }
     }
 
     private static SceneDocumentEntry ToEntry(TiledObject placed, TiledLayer layer, int? layerZIndex, Tileset[] tilesets, PropertyScope scope)

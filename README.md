@@ -34,7 +34,7 @@ Capsule Tiled imports [Tiled](https://www.mapeditor.org/) maps into [Capsule Eng
 
 ## Tiled subset
 
-Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finite, square-tiled and CSV-encoded. Their objects are points, rectangles, ellipses, polylines, polygons and unflipped tile objects, none of them a template instance. A rectangle or ellipse has both a width and a height or neither. A polyline or polygon has no Rotation. A tileset is a single image under `Assets/` whose tile size equals the map's, a layer paints from one tileset, and a layer has an Opacity of 1 and no Tint Color. Anything else fails the build.
+Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finite, square-tiled and CSV-encoded. Their objects are points, rectangles, ellipses, polylines, polygons and unflipped tile objects, none of them a template instance. A rectangle or ellipse has both a width and a height or neither. A polyline or polygon has no Rotation. A tileset is a single image under `Assets/` whose tile size equals the map's, a layer paints from one tileset, and an object layer has an Opacity of 1 and no Tint Color. Anything else fails the build.
 
 | Tiled | Scene document |
 | --- | --- |
@@ -47,6 +47,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Tile layer Class | entry `type`, the `TileMap` subclass key |
 | Tile layer Name, when not blank | entry `name`, the tile map's `Name` |
 | Tile layer custom property | the tile map member of its name |
+| Tile layer Opacity and Tint Color, other than 1 and none | entry `tint`, the Tint Color with its alpha multiplied by the Opacity |
 | Tile layer hidden in Tiled | a tile map with no texture, whose tile types name no cell or frames: it draws nothing and still collides |
 | Tile layer tile flipped horizontally, vertically or diagonally | tile map `transforms`, which turns its drawing and collision shape alike |
 | Tileset tile | a tile type in the `tileTypes` of every tile map painting from its tileset, painted there or not, so a game can set any tile of the tileset at run time |

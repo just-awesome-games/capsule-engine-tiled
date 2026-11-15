@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Capsule.Rendering;
 using Capsule.Scenes;
 using Capsule.Tiles;
 
@@ -21,13 +22,13 @@ internal static class TileLayers
     internal static SceneDocumentEntry ToEntry(TiledLayer layer, TiledMap map, Tileset[] tilesets, PropertyScope scope) =>
         TiledImporter.Within($"tile layer '{layer.Name}'", () =>
         {
-            TiledImporter.RequireUnblended(layer);
             TiledProperties properties = new(layer.Properties);
             EntitySpawn spawn = new(Vector2.Zero)
             {
                 Name = TiledImporter.NameOf(layer.Name),
                 ZIndex = properties.TakeInt("zIndex"),
                 ScrollFactor = layer.ScrollFactor,
+                Tint = TintOf(layer),
             };
             bool collider = properties.TakeBool("collider");
             if (layer.Width != map.Width || layer.Height != map.Height)
@@ -75,6 +76,18 @@ internal static class TileLayers
 
             return TiledImporter.Checked(new SceneDocumentEntry(string.IsNullOrWhiteSpace(layer.Class) ? "tile-map" : layer.Class, spawn, TiledJson.ToElement(members)));
         });
+
+    // Tiled multiplies the Tint Color into each tile, its alpha included, then fades the layer by its Opacity. A tile
+    // map's tiles never overlap, and its tint draws the layer the same way.
+    private static ColorRgba? TintOf(TiledLayer layer)
+    {
+        ColorRgba tint = layer.TintColor is { } tiled
+            ? TiledImporter.Within("the layer's Tint Color", () => TiledProperties.ColorOf(tiled))
+            : ColorRgba.White;
+        tint = tint with { A = (byte)Math.Round(tint.A * Math.Clamp(layer.Opacity, 0, 1), MidpointRounding.AwayFromZero) };
+
+        return tint == ColorRgba.White ? null : tint;
+    }
 
     private static uint[] Decode(TiledLayer layer)
     {

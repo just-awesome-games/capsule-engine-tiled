@@ -53,9 +53,12 @@ internal sealed class TiledProperties(TiledProperty[]? properties)
             string name = property.Name ?? string.Empty;
             if (SceneDocumentKeys.Entry.Contains(name))
             {
-                throw new FormatException(name == SceneDocumentKeys.Entry.Name
-                    ? "property 'name': the scene document reserves 'name' for the entry; set the Name field of the object or tile layer instead and remove the property."
-                    : $"property '{name}': the scene document reserves '{name}' for the entry, and Capsule sets it from the object's or layer's own fields; rename or remove the property.");
+                throw new FormatException(name switch
+                {
+                    SceneDocumentKeys.Entry.Name => "property 'name': the scene document reserves 'name' for the entry; set the Name field of the object or tile layer instead and remove the property.",
+                    SceneDocumentKeys.Entry.Tint => "property 'tint': the scene document reserves 'tint' for the entry, and Capsule sets it from a tile layer's Opacity and Tint Color; set those on a tile layer, or colour an object in the game, and remove the property.",
+                    _ => $"property '{name}': the scene document reserves '{name}' for the entry, and Capsule sets it from the object's or layer's own fields; rename or remove the property.",
+                });
             }
         }
     }
@@ -79,19 +82,24 @@ internal sealed class TiledProperties(TiledProperty[]? properties)
 
     internal static string Color(string tiled)
     {
-        ColorRgba color;
+        ColorRgba color = ColorOf(tiled);
+
+        return color.A == byte.MaxValue
+            ? $"#{color.R:x2}{color.G:x2}{color.B:x2}"
+            : $"#{color.R:x2}{color.G:x2}{color.B:x2}{color.A:x2}";
+    }
+
+    // Tiled writes the alpha first, as #aarrggbb.
+    internal static ColorRgba ColorOf(string tiled)
+    {
         try
         {
-            color = ColorRgba.FromHex(tiled.Length == 9 && tiled[0] == '#' ? string.Concat("#", tiled.AsSpan(3), tiled.AsSpan(1, 2)) : tiled);
+            return ColorRgba.FromHex(tiled.Length == 9 && tiled[0] == '#' ? string.Concat("#", tiled.AsSpan(3), tiled.AsSpan(1, 2)) : tiled);
         }
         catch (FormatException)
         {
             throw new FormatException($"'{tiled}' is not a #rrggbb or #aarrggbb colour; pick the colour again in Tiled.");
         }
-
-        return color.A == byte.MaxValue
-            ? $"#{color.R:x2}{color.G:x2}{color.B:x2}"
-            : $"#{color.R:x2}{color.G:x2}{color.B:x2}{color.A:x2}";
     }
 
     private static JsonNode? ValueOf(TiledProperty property, PropertyScope scope)

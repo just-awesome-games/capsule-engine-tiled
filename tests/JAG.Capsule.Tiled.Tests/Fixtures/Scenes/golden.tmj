@@ -34,7 +34,7 @@
          "name":"backdrop",
          "offsetx":16,
          "offsety":32,
-         "opacity":1,
+         "opacity":0.5,
          "parallaxx":0.5,
          "properties":[
                 {
@@ -42,6 +42,7 @@
                  "type":"string",
                  "value":"boss-cleared"
                 }],
+         "tintcolor":"#80ff8000",
          "type":"tilelayer",
          "visible":true,
          "width":4,
@@ -127,7 +128,7 @@
                          "value":""
                         },
                         {
-                         "name":"tint",
+                         "name":"halo",
                          "type":"color",
                          "value":"#80ff8000"
                         }],
