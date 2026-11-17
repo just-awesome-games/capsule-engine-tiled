@@ -42,7 +42,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Map `baseScene` string property | `baseScene`, the abstract `Scene` subclass key |
 | Map `camera` string property | `camera` object `type`, the `Camera` subclass key |
 | Map Parallax Origin | `camera` object `scrollCenter`, negated, when the origin is not 0, 0 or any layer has a Parallax Factor other than 1, 1 |
-| Map custom property | the scene member of its name, such as `ambient` or `sampling` |
+| Map custom property | the scene member of its name, such as `ambient` |
 | Tile layer | a `tile-map` entry |
 | Tile layer Class | entry `type`, the `TileMap` subclass key |
 | Tile layer Name, when not blank | entry `name`, the tile map's `Name` |
