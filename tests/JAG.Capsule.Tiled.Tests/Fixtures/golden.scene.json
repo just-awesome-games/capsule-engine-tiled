@@ -19,6 +19,7 @@
       "name": "terrain",
       "type": "tile-map",
       "zIndex": -10,
+      "unlit": true,
       "tileSize": 16,
       "width": 4,
       "height": 3,
@@ -260,7 +261,8 @@
       "scrollFactor": [
         0.25,
         0.75
-      ]
+      ],
+      "unlit": false
     },
     {
       "id": 2,
@@ -274,6 +276,7 @@
         0.25,
         0.75
       ],
+      "unlit": true,
       "size": [
         32,
         8
@@ -291,6 +294,7 @@
         0.25,
         0.75
       ],
+      "unlit": true,
       "size": [
         12.5,
         4
@@ -308,6 +312,7 @@
         0.25,
         0.75
       ],
+      "unlit": true,
       "path": [
         [
           0,
@@ -330,6 +335,7 @@
         0.25,
         0.75
       ],
+      "unlit": true,
       "path": [
         [
           0,
@@ -360,6 +366,7 @@
         0.25,
         0.75
       ],
+      "unlit": true,
       "bounds": [
         0,
         -16,
@@ -388,7 +395,8 @@
       "scrollFactor": [
         0.25,
         0.75
-      ]
+      ],
+      "unlit": true
     },
     {
       "id": 8,
@@ -400,6 +408,7 @@
         0.25,
         0.75
       ],
+      "unlit": true,
       "part": {
         "destination": "Scenes/hall",
         "inner": {

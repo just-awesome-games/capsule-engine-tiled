@@ -16,6 +16,11 @@
                  "value":true
                 },
                 {
+                 "name":"unlit",
+                 "type":"bool",
+                 "value":true
+                },
+                {
                  "name":"zIndex",
                  "type":"int",
                  "value":-10
@@ -72,6 +77,11 @@
                  "name":"",
                  "point":true,
                  "properties":[
+                        {
+                         "name":"unlit",
+                         "type":"bool",
+                         "value":false
+                        },
                         {
                          "name":"zIndex",
                          "type":"int",
@@ -311,6 +321,11 @@
          "parallaxx":0.25,
          "parallaxy":0.75,
          "properties":[
+                {
+                 "name":"unlit",
+                 "type":"bool",
+                 "value":true
+                },
                 {
                  "name":"zIndex",
                  "type":"int",

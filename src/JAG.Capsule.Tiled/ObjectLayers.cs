@@ -10,24 +10,24 @@ internal static class ObjectLayers
 {
     internal static SceneDocumentEntry[] ToEntries(TiledLayer layer, Tileset[] tilesets, PropertyScope scope)
     {
-        int? zIndex = TiledImporter.Within($"object layer '{layer.Name}'", () =>
+        (int? zIndex, bool? unlit) = TiledImporter.Within($"object layer '{layer.Name}'", () =>
         {
             RequireUnblended(layer);
             TiledProperties properties = new(layer.Properties);
-            if (properties.TakeBool("collider"))
+            if (properties.TakeBool("collider") is true)
             {
                 throw new FormatException("the layer sets 'collider', which only a tile layer reads, and an object collides as its class does; remove the property.");
             }
 
-            int? band = properties.TakeInt("zIndex");
+            (int?, bool?) defaults = (properties.TakeInt("zIndex"), properties.TakeBool("unlit"));
             properties.RefuseEntryKeys();
 
-            return band;
+            return defaults;
         });
 
         return [.. (layer.Objects ?? []).Select(placed => TiledImporter.Within(
             $"object {placed.Id} on layer '{layer.Name}'",
-            () => ToEntry(placed, layer, zIndex, tilesets, scope)))];
+            () => ToEntry(placed, layer, zIndex, unlit, tilesets, scope)))];
     }
 
     // An object's own code replaces its tint rather than multiplying into it, the roots it spawns later inherit nothing,
@@ -49,7 +49,8 @@ internal static class ObjectLayers
         }
     }
 
-    private static SceneDocumentEntry ToEntry(TiledObject placed, TiledLayer layer, int? layerZIndex, Tileset[] tilesets, PropertyScope scope)
+    private static SceneDocumentEntry ToEntry(
+        TiledObject placed, TiledLayer layer, int? layerZIndex, bool? layerUnlit, Tileset[] tilesets, PropertyScope scope)
     {
         if (placed.Template is { } template)
         {
@@ -70,6 +71,7 @@ internal static class ObjectLayers
             Scale = placed.Gid is { } gid ? ScaleOf(placed, gid, tilesets) : Vector2.One,
             ZIndex = properties.TakeInt("zIndex") ?? layerZIndex,
             ScrollFactor = layer.ScrollFactor,
+            Unlit = properties.TakeBool("unlit") ?? layerUnlit,
         };
 
         JsonObject members = [];

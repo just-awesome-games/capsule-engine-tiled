@@ -24,9 +24,9 @@ internal sealed class TiledProperties(TiledProperty[]? properties)
         { } value => throw NotA(name, value, "string"),
     };
 
-    internal bool TakeBool(string name) => Take(name, "bool") switch
+    internal bool? TakeBool(string name) => Take(name, "bool") switch
     {
-        null => false,
+        null => null,
         { ValueKind: JsonValueKind.True or JsonValueKind.False } value => value.GetBoolean(),
         { } value => throw NotA(name, value, "bool"),
     };

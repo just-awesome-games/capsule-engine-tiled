@@ -64,6 +64,7 @@ Maps and tilesets are saved with Tiled 1.10 or later. Maps are orthogonal, finit
 | Polyline or polygon object points | entry `path`, `[[x, y], ...]` in pixels from the object's position; a polygon repeats its first point at the end |
 | Object custom property | the entry member of its name |
 | `zIndex` int property on a tile layer, object layer or object | entry `zIndex`; an object's overrides its layer's |
+| `unlit` bool property on a tile layer, object layer or object | entry `unlit`; an object's overrides its layer's |
 | `collider` bool property on a tile layer | tile map `collider`; a layer without it only draws |
 | Tile layer or object layer Parallax Factor other than 1, 1 | entry `scrollFactor` on the tile map or on each of the layer's objects |
 | Tile layer Offset, in whole tiles | tile map `tiles` and `transforms` moved by it, each painted tile staying on the map |
@@ -88,7 +89,7 @@ A scene previews in Tiled as it plays when the Tiled view is centred where the g
 
 ## Property types
 
-A new Tiled project starts as a copy of `capsule.tiled-project`, from the root of the package, placed at the root of `Assets/`. It adds two classes, `Vector2` and `Rect`, the property types for members of those types. A layer's `zIndex` and `collider` are plain custom properties, and a game's own layer class may declare them as members. An existing project imports the same types from `capsule-property-types.json` through Project > Import Types. A map saves a class value's members with no types, so a game with classes of its own names its project, and every map imports again when the project changes:
+A new Tiled project starts as a copy of `capsule.tiled-project`, from the root of the package, placed at the root of `Assets/`. It adds two classes, `Vector2` and `Rect`, the property types for members of those types. A layer's `zIndex`, `unlit` and `collider` are plain custom properties, and a game's own layer class may declare them as members. An existing project imports the same types from `capsule-property-types.json` through Project > Import Types. A map saves a class value's members with no types, so a game with classes of its own names its project, and every map imports again when the project changes:
 
 ```csharp
 .AddImporter(new TiledImporter { Project = "Scenes/game.tiled-project" })

@@ -29,8 +29,9 @@ internal static class TileLayers
                 ZIndex = properties.TakeInt("zIndex"),
                 ScrollFactor = layer.ScrollFactor,
                 Tint = TintOf(layer),
+                Unlit = properties.TakeBool("unlit"),
             };
-            bool collider = properties.TakeBool("collider");
+            bool collider = properties.TakeBool("collider") is true;
             if (layer.Width != map.Width || layer.Height != map.Height)
             {
                 throw new FormatException(
