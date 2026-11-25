@@ -9,13 +9,19 @@ using Capsule.Tiles;
 
 namespace JAG.Capsule.Tiled;
 
-internal sealed record Tileset(string Name, int FirstGid, string Texture, int Columns, int TileSize, JsonArray Palette, Dictionary<int, int> IndexByTileId);
+internal sealed record Tileset(string Name, int FirstGid, string Texture, int Columns, int TileSize, JsonArray Palette, Dictionary<int, int> IndexByTileId, Dictionary<int, string> RuleNames);
 
 internal static class Tilesets
 {
     // Tiled times a frame in milliseconds and Capsule in fixed steps. The build cannot see a game's runtime
     // step rate, so a frame is counted at the engine's default.
     private const long StepsPerSecond = StepContext.DefaultStepHertz;
+
+    // The sides a rule joins by the slot of a wang id that names each, whose slots Tiled stores clockwise from the top.
+    private static readonly (int Slot, string Side)[] Sides =
+    [
+        (0, "up"), (2, "right"), (4, "down"), (6, "left"), (1, "upRight"), (3, "downRight"), (5, "downLeft"), (7, "upLeft"),
+    ];
 
     internal static Tileset[] Load(TiledMap map, AssetImportContext context, PropertyScope scope)
     {
@@ -73,12 +79,21 @@ internal static class Tilesets
         string texture = TiledImporter.AssetPathOf(tileset.Image, scope.Directory, scope.AssetRoot);
 
         // Every tile of the tileset is a tile type, painted or not, so a game can set any of them in a tile map at
-        // run time. Classes come first, then the unclassed tiles in ID order.
+        // run time. Classes come first, then the wang sets, then the unclassed tiles in ID order. A wang tile is no
+        // tile type of its own: it is one look of its set's rule tile.
+        TiledWangSet[] wangSets = tileset.WangSets ?? [];
+        Dictionary<int, string> ruleNames = RuleNames(wangSets, tileset.TileCount);
         JsonArray palette = [EmptyTileType()];
         Dictionary<int, int> indexByTileId = [];
         Dictionary<int, TiledTile> unclassed = [];
         foreach (TiledTile tile in (tileset.Tiles ?? []).OrderBy(static tile => tile.Id))
         {
+            if (ruleNames.TryGetValue(tile.Id, out string? rule))
+            {
+                TiledImporter.Within($"tile {tile.Id}", () => RefuseOwnLook(tile, rule));
+                continue;
+            }
+
             if (string.IsNullOrWhiteSpace(tile.Type))
             {
                 unclassed[tile.Id] = tile;
@@ -89,7 +104,19 @@ internal static class Tilesets
             palette.Add((JsonNode)TiledImporter.Within($"tile {tile.Id} (Class '{tile.Type}')", () => TileType(tile, tile.Type, tileset, scope)));
         }
 
-        HashSet<string> classes = [.. palette.Select(static tileType => (string)tileType!["name"]!)];
+        HashSet<string> names = [.. palette.Select(static tileType => (string)tileType!["name"]!)];
+        foreach (TiledWangSet wangSet in wangSets)
+        {
+            int index = palette.Count;
+            palette.Add((JsonNode)TiledImporter.Within($"wang set '{wangSet.Name}'", () => names.Add(wangSet.Name ?? string.Empty)
+                ? RuleType(wangSet, scope)
+                : throw new FormatException("the set shares its name with another tile's Class or wang set; rename it in the Terrain Sets view.")));
+            foreach (TiledWangTile wangTile in wangSet.WangTiles ?? [])
+            {
+                indexByTileId[wangTile.TileId] = index;
+            }
+        }
+
         for (int tileId = 0; tileId < tileset.TileCount; tileId++)
         {
             if (indexByTileId.ContainsKey(tileId))
@@ -101,13 +128,98 @@ internal static class Tilesets
             string cellName = UnclassedName(tileId);
             int id = tileId;
             indexByTileId[tileId] = palette.Count;
-            palette.Add((JsonNode)TiledImporter.Within($"tile {tileId}", () => classes.Contains(cellName)
+            palette.Add((JsonNode)TiledImporter.Within($"tile {tileId}", () => names.Contains(cellName)
                 ? throw new FormatException(
-                    $"the tile has no Class, so Capsule names it '{cellName}', which another tile's Class already is; give this tile a Class, or rename the other one.")
+                    $"the tile has no Class, so Capsule names it '{cellName}', which another tile's Class or a wang set's name already is; give this tile a Class, or rename the other one.")
                 : TileType(unclassed.GetValueOrDefault(id) ?? new TiledTile { Id = id }, cellName, tileset, scope)));
         }
 
-        return new Tileset(name, tileset.FirstGid, texture, tileset.Columns, tileset.TileWidth, palette, indexByTileId);
+        return new Tileset(name, tileset.FirstGid, texture, tileset.Columns, tileset.TileWidth, palette, indexByTileId, ruleNames);
+    }
+
+    // A wang tile belongs to one set, and a set is a rule tile of one terrain: an edge or mixed set with one colour, the
+    // colour its rules join. A corner set picks its look from corners alone, which a rule tile has no side for.
+    private static Dictionary<int, string> RuleNames(TiledWangSet[] wangSets, int tileCount)
+    {
+        Dictionary<int, string> ruleNames = [];
+        foreach (TiledWangSet wangSet in wangSets)
+        {
+            TiledImporter.Within($"wang set '{wangSet.Name}'", () =>
+            {
+                if (wangSet.Type is not ("edge" or "mixed"))
+                {
+                    throw new FormatException(
+                        $"the set is a {wangSet.Type} set, and Capsule imports edge and mixed sets as rule tiles; change its type in the Terrain Sets view, or delete it.");
+                }
+
+                int colors = wangSet.Colors?.Length ?? 0;
+                if (colors != 1)
+                {
+                    throw new FormatException(
+                        $"the set has {colors} colors, and a rule tile joins one terrain; give it exactly one color in the Terrain Sets view, and one set to each terrain.");
+                }
+
+                foreach (TiledWangTile wangTile in wangSet.WangTiles ?? [])
+                {
+                    if ((uint)wangTile.TileId >= (uint)tileCount)
+                    {
+                        throw new FormatException(string.Create(
+                            CultureInfo.InvariantCulture,
+                            $"wang tile {wangTile.TileId} is past the tileset's {tileCount} tiles; remove it from the set in the Terrain Sets view, or re-save the tileset in Tiled."));
+                    }
+
+                    if (!ruleNames.TryAdd(wangTile.TileId, wangSet.Name ?? string.Empty))
+                    {
+                        throw new FormatException(string.Create(
+                            CultureInfo.InvariantCulture,
+                            $"tile {wangTile.TileId} is also a tile of wang set '{ruleNames[wangTile.TileId]}', and a tile is one look of one rule tile; remove it from one of the sets."));
+                    }
+                }
+            });
+        }
+
+        return ruleNames;
+    }
+
+    private static void RefuseOwnLook(TiledTile tile, string rule)
+    {
+        if (!string.IsNullOrWhiteSpace(tile.Type) || tile.Properties is { Length: > 0 } || tile.Animation is { Length: > 0 } || tile.ObjectGroup?.Objects is { Length: > 0 })
+        {
+            throw new FormatException(
+                $"the tile is a look of rule tile '{rule}', so it takes no Class, property, collision or animation of its own; clear them on the tile, and set a property on its wang set instead.");
+        }
+    }
+
+    private static JsonObject RuleType(TiledWangSet wangSet, PropertyScope scope)
+    {
+        TiledProperties properties = new(wangSet.Properties);
+        JsonArray rules = [];
+        foreach (TiledWangTile wangTile in (wangSet.WangTiles ?? []).OrderBy(static wangTile => wangTile.TileId))
+        {
+            int[] wangId = wangTile.WangId is { Length: 8 } id
+                ? id
+                : throw new FormatException(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"wang tile {wangTile.TileId} holds {wangTile.WangId?.Length ?? 0} color slots, and Tiled saves 8; re-save the tileset in Tiled."));
+            JsonObject rule = new() { ["cell"] = wangTile.TileId };
+            string joined = string.Join(", ", Sides.Where(side => wangId[side.Slot] != 0).Select(static side => side.Side));
+            if (joined.Length > 0)
+            {
+                rule["joined"] = joined;
+            }
+
+            rules.Add((JsonNode)rule);
+        }
+
+        JsonObject tileType = new() { ["name"] = wangSet.Name, ["joins"] = wangSet.Colors![0].Name, ["rules"] = rules };
+        if (properties.TakeString("layer")?.Trim() is { } layer)
+        {
+            tileType["layer"] = layer;
+        }
+
+        properties.AddTo(tileType, scope);
+
+        return tileType;
     }
 
     private static string UnclassedName(int tileId) => string.Create(CultureInfo.InvariantCulture, $"cell-{tileId}");

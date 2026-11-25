@@ -101,6 +101,27 @@ internal sealed class TiledTileset
     public int TileWidth { get; set; }
     public int TileHeight { get; set; }
     public TiledTile[]? Tiles { get; set; }
+    public TiledWangSet[]? WangSets { get; set; }
+}
+
+internal sealed class TiledWangSet
+{
+    public string? Name { get; set; }
+    public string? Type { get; set; }
+    public TiledWangColor[]? Colors { get; set; }
+    public TiledWangTile[]? WangTiles { get; set; }
+    public TiledProperty[]? Properties { get; set; }
+}
+
+internal sealed class TiledWangColor
+{
+    public string? Name { get; set; }
+}
+
+internal sealed class TiledWangTile
+{
+    public int TileId { get; set; }
+    public int[]? WangId { get; set; }
 }
 
 internal sealed class TiledTile

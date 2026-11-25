@@ -114,6 +114,13 @@ public sealed class TiledImporter : IAssetImporter
         }
     }
 
+    internal static void Within(string context, Action import) =>
+        Within(context, () =>
+        {
+            import();
+            return 0;
+        });
+
     internal static string AssetPathOf(string path, string directory, string assetRoot)
     {
         string root = Path.GetFullPath(assetRoot);

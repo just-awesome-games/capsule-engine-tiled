@@ -551,6 +551,137 @@
         0
       ],
       "collider": true
+    },
+    {
+      "name": "walls",
+      "type": "tile-map",
+      "tileSize": 16,
+      "width": 4,
+      "height": 3,
+      "texture": "Textures/walls.png",
+      "columns": 4,
+      "tileTypes": [
+        {
+          "name": "empty"
+        },
+        {
+          "name": "wall",
+          "joins": "stone",
+          "rules": [
+            {
+              "cell": 0
+            },
+            {
+              "cell": 1,
+              "joined": "up"
+            },
+            {
+              "cell": 2,
+              "joined": "right"
+            },
+            {
+              "cell": 3,
+              "joined": "up, right"
+            },
+            {
+              "cell": 4,
+              "joined": "down"
+            },
+            {
+              "cell": 5,
+              "joined": "up, down"
+            },
+            {
+              "cell": 6,
+              "joined": "right, down"
+            },
+            {
+              "cell": 7,
+              "joined": "up, right, down"
+            },
+            {
+              "cell": 8,
+              "joined": "left"
+            },
+            {
+              "cell": 9,
+              "joined": "up, left"
+            },
+            {
+              "cell": 10,
+              "joined": "right, left"
+            },
+            {
+              "cell": 11,
+              "joined": "up, right, left"
+            },
+            {
+              "cell": 12,
+              "joined": "down, left"
+            },
+            {
+              "cell": 13,
+              "joined": "up, down, left"
+            },
+            {
+              "cell": 14,
+              "joined": "right, down, left"
+            },
+            {
+              "cell": 15,
+              "joined": "up, right, down, left"
+            }
+          ],
+          "layer": "solid",
+          "terrain": "stone"
+        }
+      ],
+      "tiles": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0
+      ]
+    },
+    {
+      "name": "barrier",
+      "type": "tile-map",
+      "tileSize": 16,
+      "width": 4,
+      "height": 3,
+      "tileTypes": [
+        {
+          "name": "empty"
+        },
+        {
+          "name": "wall",
+          "layer": "solid",
+          "terrain": "stone"
+        }
+      ],
+      "tiles": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "collider": true
     }
   ]
 }

@@ -52,6 +52,8 @@ internal static class TileLayers
                 {
                     tileType.Remove("cell");
                     tileType.Remove("frames");
+                    tileType.Remove("rules");
+                    tileType.Remove("joins");
                 }
             }
             else if (painted is not null)
@@ -133,7 +135,8 @@ internal static class TileLayers
                     $"the tile at index {index} is turned 120 degrees, a turn only hexagonal maps have; clear the tile's rotation in Tiled.");
             }
 
-            if ((gid & OrientationBits) != 0)
+            bool turned = (gid & OrientationBits) != 0;
+            if (turned)
             {
                 transforms ??= new int[gids.Length];
                 transforms[index] = (int)TransformOf(gid);
@@ -155,6 +158,12 @@ internal static class TileLayers
             }
 
             int tileId = (int)gid - owner.FirstGid;
+            if (turned && owner.RuleNames.TryGetValue(tileId, out string? rule))
+            {
+                throw new FormatException(
+                    $"the tile at index {index} is tile {tileId} of rule tile '{rule}' and is flipped or rotated, and a rule tile picks its own look; unflip the cell in Tiled.");
+            }
+
             tiles[index] = owner.IndexByTileId.TryGetValue(tileId, out int paletteIndex)
                 ? paletteIndex
                 : throw new FormatException(
